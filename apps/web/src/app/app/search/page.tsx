@@ -340,7 +340,7 @@ export default function SearchPage() {
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(totalBySource).map(([source, count]) => (
                     <Badge key={source} variant="default" size="sm">
-                      {sourceLabels[source as AcademicSource] || source}: {count}
+                      {sourceLabels[source as AcademicSource] || source}: {typeof count === 'number' && !isNaN(count) ? count : 0}
                     </Badge>
                   ))}
                 </div>
@@ -554,7 +554,7 @@ function ResourceGridCard({
         )}
 
         {/* Page count for books */}
-        {resource.pageCount && (
+        {typeof resource.pageCount === 'number' && !isNaN(resource.pageCount) && resource.pageCount > 0 && (
           <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
             {resource.pageCount} págs.
           </div>
@@ -688,7 +688,7 @@ function ResourceResultCard({
                       </span>
                     </>
                   )}
-                  {resource.citationCount !== null && resource.citationCount > 0 && (
+                  {typeof resource.citationCount === 'number' && !isNaN(resource.citationCount) && resource.citationCount > 0 && (
                     <span>· {resource.citationCount} citas</span>
                   )}
                   {resource.duration && (
@@ -697,7 +697,7 @@ function ResourceResultCard({
                       <span>{resource.duration}</span>
                     </>
                   )}
-                  {resource.pageCount && <span>· {resource.pageCount} págs.</span>}
+                  {typeof resource.pageCount === 'number' && !isNaN(resource.pageCount) && resource.pageCount > 0 && <span>· {resource.pageCount} págs.</span>}
                   {resource.fileSize && <span>· {resource.fileSize}</span>}
                 </div>
               </div>
