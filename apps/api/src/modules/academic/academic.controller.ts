@@ -1,14 +1,15 @@
-import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AcademicService, SearchCategory } from './academic.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { AcademicSource, AcademicResourceType } from './interfaces/academic-resource.interface';
+import { AcademicSource, AcademicResourceType, AcademicResource } from './interfaces/academic-resource.interface';
 
 /** Academic resources controller - searches books, videos, papers across multiple sources */
 @ApiTags('academic')
@@ -17,6 +18,34 @@ import { AcademicSource, AcademicResourceType } from './interfaces/academic-reso
 @Controller('academic')
 export class AcademicController {
   constructor(private readonly academicService: AcademicService) {}
+
+  @Post('import')
+  @ApiOperation({
+    summary: 'Importar recurso académico a una materia',
+    description: 'Importa un recurso de búsqueda académica a una materia del usuario'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['subjectId', 'resource'],
+      properties: {
+        subjectId: { type: 'string', description: 'ID de la materia' },
+        resource: { type: 'object', description: 'Recurso académico a importar' },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Recurso importado exitosamente' })
+  @ApiResponse({ status: 404, description: 'Materia no encontrada' })
+  async importResource(
+    @Body() body: { subjectId: string; resource: AcademicResource },
+    @Request() req: any,
+  ) {
+    return this.academicService.importToSubject(
+      body.subjectId,
+      req.user.id,
+      body.resource,
+    );
+  }
 
   // NOTE: More specific routes must come BEFORE less specific ones
   // /search/all and /search/multi must be defined before /search
