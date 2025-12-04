@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: campusmind-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: campusmind
+      POSTGRES_PASSWORD: campusmind_dev
+      POSTGRES_DB: campusmind_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusmind -d campusmind_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions (optional for MVP)
+  redis:
+    image: redis:7-alpine
+    container_name: campusmind-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant vector database (alternative to pgvector)
+  # Uncomment if you want to use Qdrant instead of pgvector
+  # qdrant:
+  #   image: qdrant/qdrant:latest
+  #   container_name: campusmind-qdrant
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6333:6333"
+  #     - "6334:6334"
+  #   volumes:
+  #     - qdrant_data:/qdrant/storage
+  #   environment:
+  #     QDRANT__SERVICE__GRPC_PORT: 6334
+
+volumes:
+  postgres_data:
+  redis_data:
+  # qdrant_data:
