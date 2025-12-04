@@ -7,6 +7,7 @@ import { GoogleBooksProvider } from './providers/google-books.provider';
 import { ArchiveOrgProvider } from './providers/archive-org.provider';
 import { LibGenProvider } from './providers/libgen.provider';
 import { WebSearchProvider } from './providers/web-search.provider';
+import { MedicalBooksProvider } from './providers/medical-books.provider';
 import {
   AcademicResource,
   SearchQuery,
@@ -15,7 +16,7 @@ import {
 } from './interfaces/academic-resource.interface';
 
 // Categorías de búsqueda
-export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses';
+export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses' | 'medical';
 
 @Injectable()
 export class AcademicService {
@@ -30,6 +31,7 @@ export class AcademicService {
     private readonly archiveOrg: ArchiveOrgProvider,
     private readonly libgen: LibGenProvider,
     private readonly webSearch: WebSearchProvider,
+    private readonly medicalBooks: MedicalBooksProvider,
   ) {}
 
   /**
@@ -57,6 +59,8 @@ export class AcademicService {
           return await this.libgen.search(query);
         case 'web':
           return await this.webSearch.search(query);
+        case 'medical_books':
+          return await this.medicalBooks.search(query);
         case 'openalex':
         default:
           return await this.openAlex.search(query);
@@ -96,11 +100,13 @@ export class AcademicService {
       case 'papers':
         return ['openalex', 'semantic_scholar', 'crossref'];
       case 'books':
-        return ['google_books', 'archive_org', 'libgen'];
+        return ['google_books', 'archive_org', 'libgen', 'medical_books'];
       case 'videos':
         return ['youtube'];
       case 'courses':
         return ['archive_org', 'web'];
+      case 'medical':
+        return ['medical_books', 'openalex', 'semantic_scholar'];
       case 'all':
       default:
         return [
@@ -109,6 +115,7 @@ export class AcademicService {
           'youtube',
           'archive_org',
           'crossref',
+          'medical_books',
         ];
     }
   }

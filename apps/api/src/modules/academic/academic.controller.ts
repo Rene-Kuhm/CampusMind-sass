@@ -29,9 +29,9 @@ export class AcademicController {
   @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
   @ApiQuery({
     name: 'category',
-    enum: ['all', 'papers', 'books', 'videos', 'courses'],
+    enum: ['all', 'papers', 'books', 'videos', 'courses', 'medical'],
     required: false,
-    description: 'Categoría de recursos (default: all)'
+    description: 'Categoría de recursos (default: all). Medical incluye PubMed, NCBI Bookshelf y OpenStax.'
   })
   @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
   @ApiQuery({ name: 'page', type: Number, required: false })
@@ -89,9 +89,9 @@ export class AcademicController {
   @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
   @ApiQuery({
     name: 'source',
-    enum: ['openalex', 'semantic_scholar', 'crossref', 'youtube', 'google_books', 'archive_org', 'libgen', 'web'],
+    enum: ['openalex', 'semantic_scholar', 'crossref', 'youtube', 'google_books', 'archive_org', 'libgen', 'web', 'medical_books'],
     required: false,
-    description: 'Fuente de búsqueda (default: openalex)'
+    description: 'Fuente de búsqueda (default: openalex). medical_books incluye PubMed Central, NCBI Bookshelf y OpenStax.'
   })
   @ApiQuery({ name: 'type', enum: ['paper', 'book', 'video', 'course', 'article', 'thesis', 'manual'], required: false })
   @ApiQuery({ name: 'yearFrom', type: Number, required: false })

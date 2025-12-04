@@ -55,6 +55,7 @@ export type AcademicSource =
   | 'libgen'
   | 'web'
   | 'oer_commons'
+  | 'medical_books'
   | 'manual';
 
 export type AcademicResourceType =
