@@ -9,6 +9,7 @@ import { AcademicModule } from './modules/academic/academic.module';
 import { RagModule } from './modules/rag/rag.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { FlashcardsModule } from './modules/flashcards/flashcards.module';
+import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -38,6 +39,7 @@ import { HealthController } from './health.controller';
     RagModule,
     CalendarModule,
     FlashcardsModule,
+    QuizzesModule,
   ],
   controllers: [HealthController],
 })
