@@ -118,9 +118,8 @@ export default function SubjectDetailPage() {
 
     setIsSubmitting(true);
     try {
-      const created = await resourcesApi.create(token, {
+      const created = await resourcesApi.create(token, subjectId, {
         ...newResource,
-        subjectId,
         authors: newResource.authors?.filter(Boolean) || [],
       });
       setResources((prev) => [created, ...prev]);
@@ -147,7 +146,7 @@ export default function SubjectDetailPage() {
     if (!token || !confirm('¿Estás seguro de eliminar este recurso?')) return;
 
     try {
-      await resourcesApi.delete(token, id);
+      await resourcesApi.delete(token, subjectId, id);
       setResources((prev) => prev.filter((r) => r.id !== id));
     } catch (error) {
       console.error('Error deleting resource:', error);
@@ -160,7 +159,7 @@ export default function SubjectDetailPage() {
     try {
       await resourcesApi.index(token, id);
       // Reload to get updated status
-      const updated = await resourcesApi.get(token, id);
+      const updated = await resourcesApi.get(token, subjectId, id);
       setResources((prev) =>
         prev.map((r) => (r.id === id ? updated : r))
       );

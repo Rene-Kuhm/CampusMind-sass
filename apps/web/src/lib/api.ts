@@ -217,23 +217,33 @@ export interface UpdateResourceRequest extends Partial<Omit<CreateResourceReques
 
 export const resources = {
   listBySubject: (token: string, subjectId: string) =>
-    request<Resource[]>(`/resources/subject/${subjectId}`, { token }),
+    request<Resource[]>(`/subjects/${subjectId}/resources`, { token }),
 
-  get: (token: string, id: string) =>
-    request<Resource>(`/resources/${id}`, { token }),
+  get: (token: string, subjectId: string, id: string) =>
+    request<Resource>(`/subjects/${subjectId}/resources/${id}`, { token }),
 
-  create: (token: string, data: CreateResourceRequest) =>
-    request<Resource>('/resources', { method: 'POST', body: data, token }),
+  create: (token: string, subjectId: string, data: Omit<CreateResourceRequest, 'subjectId'>) =>
+    request<Resource>(`/subjects/${subjectId}/resources`, { method: 'POST', body: data, token }),
 
-  update: (token: string, id: string, data: UpdateResourceRequest) =>
-    request<Resource>(`/resources/${id}`, { method: 'PATCH', body: data, token }),
+  update: (token: string, subjectId: string, id: string, data: UpdateResourceRequest) =>
+    request<Resource>(`/subjects/${subjectId}/resources/${id}`, { method: 'PATCH', body: data, token }),
 
-  delete: (token: string, id: string) =>
-    request<void>(`/resources/${id}`, { method: 'DELETE', token }),
+  delete: (token: string, subjectId: string, id: string) =>
+    request<void>(`/subjects/${subjectId}/resources/${id}`, { method: 'DELETE', token }),
 
-  index: (token: string, id: string) =>
+  addNote: (token: string, subjectId: string, resourceId: string, content: string) =>
+    request<{ id: string; content: string }>(`/subjects/${subjectId}/resources/${resourceId}/notes`, {
+      method: 'POST',
+      body: { content },
+      token,
+    }),
+
+  deleteNote: (token: string, subjectId: string, noteId: string) =>
+    request<void>(`/subjects/${subjectId}/resources/notes/${noteId}`, { method: 'DELETE', token }),
+
+  index: (token: string, resourceId: string) =>
     request<{ chunksCreated: number; tokensUsed: number }>(
-      `/resources/${id}/index`,
+      `/rag/ingest/${resourceId}`,
       { method: 'POST', token }
     ),
 };
