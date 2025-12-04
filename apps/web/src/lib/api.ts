@@ -344,12 +344,10 @@ export const rag = {
   query: (token: string, data: RagQueryRequest) =>
     request<RagResponse>('/rag/query', { method: 'POST', body: data, token }),
 
-  generateSummary: (token: string, resourceId: string, depth?: 'basic' | 'intermediate' | 'advanced') =>
-    request<HarvardSummary>(`/rag/summary/${resourceId}`, {
-      method: 'POST',
-      body: { depth },
-      token,
-    }),
+  generateSummary: (token: string, resourceId: string, depth?: 'basic' | 'intermediate' | 'advanced') => {
+    const params = depth ? `?depth=${depth}` : '';
+    return request<HarvardSummary>(`/rag/summary/${resourceId}${params}`, { token });
+  },
 
   getStats: (token: string) =>
     request<RagStats>('/rag/stats', { token }),
