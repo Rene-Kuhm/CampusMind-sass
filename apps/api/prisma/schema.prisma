@@ -23,10 +23,11 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  profile     UserProfile?
-  subjects    Subject[]
-  queries     RagQuery[]
-  studyEvents StudyEvent[]
+  profile        UserProfile?
+  subjects       Subject[]
+  queries        RagQuery[]
+  studyEvents    StudyEvent[]
+  flashcardDecks FlashcardDeck[]
 
   @@map("users")
 }
@@ -83,10 +84,11 @@ model Subject {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resources   Resource[]
-  queries     RagQuery[]
-  studyEvents StudyEvent[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resources      Resource[]
+  queries        RagQuery[]
+  studyEvents    StudyEvent[]
+  flashcardDecks FlashcardDeck[]
 
   @@index([userId])
   @@map("subjects")
@@ -281,4 +283,71 @@ enum RecurrenceType {
   WEEKLY
   BIWEEKLY
   MONTHLY
+}
+
+// ============================================
+// FLASHCARDS & SPACED REPETITION
+// ============================================
+
+model FlashcardDeck {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  subjectId   String?  @map("subject_id")
+  color       String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  flashcards  Flashcard[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("flashcard_decks")
+}
+
+model Flashcard {
+  id          String   @id @default(cuid())
+  deckId      String   @map("deck_id")
+
+  front       String   // Pregunta o frente de la tarjeta
+  back        String   // Respuesta o reverso
+  formula     String?  // Fórmula/código opcional
+  tags        String[] @default([])
+
+  // SM-2 Spaced Repetition Algorithm fields
+  repetitions Int      @default(0)
+  easeFactor  Float    @default(2.5) @map("ease_factor")
+  interval    Int      @default(0)   // Days until next review
+  nextReviewDate DateTime @default(now()) @map("next_review_date")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  deck        FlashcardDeck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviews     FlashcardReview[]
+
+  @@index([deckId])
+  @@index([nextReviewDate])
+  @@map("flashcards")
+}
+
+model FlashcardReview {
+  id          String   @id @default(cuid())
+  flashcardId String   @map("flashcard_id")
+
+  quality     Int      // 1-5 scale (SM-2)
+  interval    Int      // Days until next review at time of review
+  easeFactor  Float    @map("ease_factor")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@index([flashcardId])
+  @@index([createdAt])
+  @@map("flashcard_reviews")
 }
