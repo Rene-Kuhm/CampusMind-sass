@@ -7,6 +7,7 @@ import { SubjectsModule } from './modules/subjects/subjects.module';
 import { ResourcesModule } from './modules/resources/resources.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { RagModule } from './modules/rag/rag.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -34,6 +35,7 @@ import { HealthController } from './health.controller';
     ResourcesModule,
     AcademicModule,
     RagModule,
+    CalendarModule,
   ],
   controllers: [HealthController],
 })
