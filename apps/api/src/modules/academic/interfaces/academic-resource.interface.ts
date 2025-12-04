@@ -2,41 +2,58 @@
 export interface AcademicResource {
   // Identificación
   externalId: string;
-  source: AcademicSource;
+  source: AcademicSource | string;
 
   // Metadata básica
   title: string;
   authors: string[];
-  abstract?: string;
-  publicationDate?: string;
+  abstract?: string | null;
+  publicationDate?: string | null;
   publicationYear?: number;
 
   // Clasificación
-  type: AcademicResourceType;
+  type: AcademicResourceType | string;
   topics?: string[];
   keywords?: string[];
+  subjects?: string[];
+  categories?: string[];
 
   // Acceso
-  url?: string;
-  pdfUrl?: string;
+  url?: string | null;
+  pdfUrl?: string | null;
   isOpenAccess: boolean;
   license?: string;
 
   // Métricas (si disponibles)
-  citationCount?: number;
+  citationCount?: number | null;
   referenceCount?: number;
 
   // Fuente específica
-  doi?: string;
+  doi?: string | null;
   journal?: string;
   publisher?: string;
   venue?: string;
+
+  // Multimedia
+  thumbnailUrl?: string | null;
+  duration?: string; // For videos
+  pageCount?: number; // For books
+
+  // File info
+  language?: string;
+  extension?: string;
+  fileSize?: string;
 }
 
 export type AcademicSource =
   | 'openalex'
   | 'semantic_scholar'
   | 'crossref'
+  | 'youtube'
+  | 'google_books'
+  | 'archive_org'
+  | 'libgen'
+  | 'web'
   | 'oer_commons'
   | 'manual';
 
@@ -50,6 +67,9 @@ export type AcademicResourceType =
   | 'preprint'
   | 'dataset'
   | 'course'
+  | 'video'
+  | 'manual'
+  | 'notes'
   | 'report'
   | 'standard'
   | 'reference'
@@ -57,7 +77,7 @@ export type AcademicResourceType =
 
 // Interfaz para proveedores de APIs académicas
 export interface AcademicProvider {
-  readonly name: AcademicSource;
+  readonly name: string;
 
   search(query: SearchQuery): Promise<SearchResult>;
   getById(externalId: string): Promise<AcademicResource | null>;
@@ -86,5 +106,5 @@ export interface SearchResult {
   total: number;
   page: number;
   perPage: number;
-  source: AcademicSource;
+  source: string;
 }

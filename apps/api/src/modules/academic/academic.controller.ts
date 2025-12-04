@@ -6,10 +6,11 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AcademicService } from './academic.service';
+import { AcademicService, SearchCategory } from './academic.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AcademicSource, AcademicResourceType } from './interfaces/academic-resource.interface';
 
+/** Academic resources controller - searches books, videos, papers across multiple sources */
 @ApiTags('academic')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -18,10 +19,15 @@ export class AcademicController {
   constructor(private readonly academicService: AcademicService) {}
 
   @Get('search')
-  @ApiOperation({ summary: 'Buscar recursos académicos en APIs externas' })
+  @ApiOperation({ summary: 'Buscar recursos en una fuente específica' })
   @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
-  @ApiQuery({ name: 'source', enum: ['openalex', 'semantic_scholar'], required: false })
-  @ApiQuery({ name: 'type', enum: ['paper', 'book', 'article', 'thesis', 'conference'], required: false })
+  @ApiQuery({
+    name: 'source',
+    enum: ['openalex', 'semantic_scholar', 'crossref', 'youtube', 'google_books', 'archive_org', 'libgen', 'web'],
+    required: false,
+    description: 'Fuente de búsqueda (default: openalex)'
+  })
+  @ApiQuery({ name: 'type', enum: ['paper', 'book', 'video', 'course', 'article', 'thesis', 'manual'], required: false })
   @ApiQuery({ name: 'yearFrom', type: Number, required: false })
   @ApiQuery({ name: 'yearTo', type: Number, required: false })
   @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
@@ -56,8 +62,46 @@ export class AcademicController {
     );
   }
 
+  @Get('search/all')
+  @ApiOperation({
+    summary: 'Búsqueda unificada en todas las fuentes',
+    description: 'Busca libros, videos, papers, manuales y más en múltiples fuentes en paralelo'
+  })
+  @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
+  @ApiQuery({
+    name: 'category',
+    enum: ['all', 'papers', 'books', 'videos', 'courses'],
+    required: false,
+    description: 'Categoría de recursos (default: all)'
+  })
+  @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'perPage', type: Number, required: false })
+  @ApiResponse({ status: 200, description: 'Resultados combinados de todas las fuentes' })
+  async searchAll(
+    @Query('q') query: string,
+    @Query('category') category?: SearchCategory,
+    @Query('openAccessOnly') openAccessOnly?: boolean,
+    @Query('page') page?: number,
+    @Query('perPage') perPage?: number,
+  ) {
+    return this.academicService.searchAll(
+      {
+        query,
+        filters: {
+          isOpenAccess: openAccessOnly,
+        },
+        pagination: {
+          page: page || 1,
+          perPage: perPage || 25,
+        },
+      },
+      category || 'all',
+    );
+  }
+
   @Get('search/multi')
-  @ApiOperation({ summary: 'Buscar en múltiples fuentes académicas' })
+  @ApiOperation({ summary: 'Buscar en múltiples fuentes académicas (papers)' })
   @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
   @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
   @ApiQuery({ name: 'page', type: Number, required: false })
