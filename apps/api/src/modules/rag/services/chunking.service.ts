@@ -29,6 +29,11 @@ export class ChunkingService {
     // Limpiar el texto
     const cleanedText = this.cleanText(text);
 
+    // Si el texto está vacío después de limpiar, no crear chunks
+    if (!cleanedText) {
+      return [];
+    }
+
     if (cleanedText.length <= opts.chunkSize!) {
       // Texto pequeño, un solo chunk
       return [
