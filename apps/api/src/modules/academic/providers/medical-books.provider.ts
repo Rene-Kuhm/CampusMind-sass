@@ -13,6 +13,7 @@ import {
  * - PubMed Central (free full-text medical articles and books)
  * - NCBI Bookshelf (medical textbooks)
  * - OpenStax (free textbooks including anatomy, biology, etc.)
+ * - BooksMediacos.org (Spanish medical books - diccionarios, atlas, manuales)
  */
 @Injectable()
 export class MedicalBooksProvider {
@@ -26,14 +27,15 @@ export class MedicalBooksProvider {
     const perPage = pagination?.perPage || 25;
 
     // Search multiple sources in parallel
-    const [pubmedResults, ncbiBooks, openStaxResults] = await Promise.all([
+    const [pubmedResults, ncbiBooks, openStaxResults, booksMedicosResults] = await Promise.all([
       this.searchPubMedCentral(searchTerm, page, perPage),
       this.searchNCBIBookshelf(searchTerm, page, perPage),
       this.searchOpenStax(searchTerm),
+      this.searchBooksMedicos(searchTerm, perPage),
     ]);
 
     // Combine and deduplicate results
-    const allItems = [...pubmedResults, ...ncbiBooks, ...openStaxResults];
+    const allItems = [...booksMedicosResults, ...pubmedResults, ...ncbiBooks, ...openStaxResults];
     const seen = new Set<string>();
     const uniqueItems: AcademicResource[] = [];
 
@@ -281,6 +283,126 @@ export class MedicalBooksProvider {
       this.logger.error(`OpenStax search error: ${error}`);
       return [];
     }
+  }
+
+  /**
+   * Search BooksMediacos.org for Spanish medical books
+   * Includes: diccionarios, atlas, manuales, tratados médicos
+   */
+  private async searchBooksMedicos(
+    searchTerm: string,
+    limit: number,
+  ): Promise<AcademicResource[]> {
+    try {
+      const searchUrl = `https://booksmedicos.org/?s=${encodeURIComponent(searchTerm)}`;
+
+      const response = await firstValueFrom(
+        this.http.get(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+          },
+          timeout: 15000,
+        }),
+      );
+
+      const html = response.data as string;
+      const items: AcademicResource[] = [];
+
+      // Parse search results from HTML
+      // Pattern: <h2 class="entry-title"><a href="URL">TITLE</a></h2>
+      const articlePattern = /<article[^>]*class="[^"]*post[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+      const articles = html.match(articlePattern) || [];
+
+      for (const article of articles.slice(0, Math.min(limit, 15))) {
+        try {
+          // Extract title and URL
+          const titleMatch = article.match(/<h2[^>]*class="[^"]*entry-title[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
+          if (!titleMatch) continue;
+
+          const url = titleMatch[1];
+          const title = this.decodeHtmlEntities(titleMatch[2].trim());
+
+          // Extract thumbnail image
+          const imgMatch = article.match(/<img[^>]*src="([^"]+)"[^>]*>/i);
+          const thumbnailUrl = imgMatch ? imgMatch[1] : null;
+
+          // Extract categories (e.g., "Diccionarios", "Atlas", "Anatomía")
+          const categoryMatches = article.match(/<a[^>]*rel="category[^"]*"[^>]*>([^<]+)<\/a>/gi) || [];
+          const categories = categoryMatches
+            .map(cat => {
+              const match = cat.match(/>([^<]+)</);
+              return match ? match[1].trim() : '';
+            })
+            .filter(c => c.length > 0);
+
+          // Extract date
+          const dateMatch = article.match(/<time[^>]*datetime="([^"]+)"[^>]*>/i);
+          const publicationDate = dateMatch ? dateMatch[1].split('T')[0] : null;
+
+          // Generate unique ID from URL
+          const urlParts = url.split('/').filter(p => p.length > 0);
+          const externalId = `booksmedicos-${urlParts[urlParts.length - 1] || Date.now()}`;
+
+          items.push({
+            externalId,
+            source: 'medical_books',
+            title,
+            authors: ['BooksMediacos.org'],
+            abstract: categories.length > 0
+              ? `Categorías: ${categories.join(', ')}. Libro médico en español disponible en BooksMediacos.org.`
+              : 'Libro médico en español disponible en BooksMediacos.org.',
+            publicationDate,
+            publicationYear: publicationDate ? parseInt(publicationDate.substring(0, 4)) : undefined,
+            citationCount: undefined,
+            url,
+            pdfUrl: undefined,
+            doi: undefined,
+            isOpenAccess: true,
+            type: 'book',
+            language: 'es',
+            publisher: 'BooksMediacos.org',
+            thumbnailUrl,
+            categories,
+          });
+        } catch (parseError) {
+          // Skip malformed articles
+          continue;
+        }
+      }
+
+      this.logger.log(`BooksMediacos found ${items.length} results for: ${searchTerm}`);
+      return items;
+    } catch (error) {
+      this.logger.error(`BooksMediacos search error: ${error}`);
+      return [];
+    }
+  }
+
+  /**
+   * Decode HTML entities
+   */
+  private decodeHtmlEntities(text: string): string {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#8211;/g, '–')
+      .replace(/&#8212;/g, '—')
+      .replace(/&#8217;/g, "'")
+      .replace(/&#8220;/g, '"')
+      .replace(/&#8221;/g, '"')
+      .replace(/&aacute;/gi, 'á')
+      .replace(/&eacute;/gi, 'é')
+      .replace(/&iacute;/gi, 'í')
+      .replace(/&oacute;/gi, 'ó')
+      .replace(/&uacute;/gi, 'ú')
+      .replace(/&ntilde;/gi, 'ñ')
+      .replace(/&Ntilde;/gi, 'Ñ');
   }
 
   /**
