@@ -19,6 +19,7 @@ import {
   EmptyState,
   Spinner,
 } from '@/components/ui';
+import { HarvardSummaryView } from '@/components/features/harvard-summary';
 import {
   subjects as subjectsApi,
   resources as resourcesApi,
@@ -44,6 +45,8 @@ import {
   Sparkles,
   MessageSquare,
   Download,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   resourceTypeLabels,
@@ -343,6 +346,7 @@ export default function SubjectDetailPage() {
                     resource={resource}
                     onDelete={() => handleDeleteResource(resource.id)}
                     onIndex={() => handleIndexResource(resource.id)}
+                    token={token!}
                   />
                 ))}
               </div>
@@ -482,13 +486,16 @@ function ResourceCard({
   resource,
   onDelete,
   onIndex,
+  token,
 }: {
   resource: Resource;
   onDelete: () => void;
   onIndex: () => void;
+  token: string;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleIndex = async () => {
     setIsIndexing(true);
@@ -498,100 +505,142 @@ function ResourceCard({
   };
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-lg border border-secondary-200 hover:border-secondary-300 transition-colors">
-      <div className="w-10 h-10 rounded-lg bg-secondary-100 flex items-center justify-center text-secondary-600">
-        {resourceTypeIcons[resource.type]}
-      </div>
+    <div className="rounded-lg border border-secondary-200 hover:border-secondary-300 transition-colors overflow-hidden">
+      <div className="flex items-start gap-4 p-4">
+        <div className="w-10 h-10 rounded-lg bg-secondary-100 flex items-center justify-center text-secondary-600">
+          {resourceTypeIcons[resource.type]}
+        </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-medium text-secondary-900">{resource.title}</h3>
-            {resource.authors.length > 0 && (
-              <p className="text-sm text-secondary-500">
-                {resource.authors.join(', ')}
-              </p>
-            )}
-          </div>
-          <div className="relative">
-            <button
-              className="p-1 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100"
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <MoreVertical className="h-5 w-5" />
-            </button>
-
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-secondary-200 py-1 z-20">
-                  {resource.url && (
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Abrir enlace
-                    </a>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-medium text-secondary-900">{resource.title}</h3>
+              {resource.authors.length > 0 && (
+                <p className="text-sm text-secondary-500">
+                  {resource.authors.join(', ')}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Expand/Collapse button for Harvard Summary */}
+              {resource.isIndexed && (
+                <button
+                  className="p-1 rounded-lg text-primary-500 hover:text-primary-700 hover:bg-primary-50"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  title="Ver resumen Harvard"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
                   )}
-                  <button
-                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
-                    onClick={handleIndex}
-                    disabled={isIndexing}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {isIndexing
-                      ? 'Indexando...'
-                      : resource.isIndexed
-                      ? 'Reindexar para RAG'
-                      : 'Indexar para RAG'}
-                  </button>
-                  <button
-                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    onClick={() => {
-                      onDelete();
-                      setShowMenu(false);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Eliminar
-                  </button>
-                </div>
-              </>
+                </button>
+              )}
+              <div className="relative">
+                <button
+                  className="p-1 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100"
+                  onClick={() => setShowMenu(!showMenu)}
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+
+                {showMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-secondary-200 py-1 z-20">
+                      {resource.url && (
+                        <a
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Abrir enlace
+                        </a>
+                      )}
+                      <button
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
+                        onClick={handleIndex}
+                        disabled={isIndexing}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        {isIndexing
+                          ? 'Indexando...'
+                          : resource.isIndexed
+                          ? 'Reindexar para RAG'
+                          : 'Indexar para RAG'}
+                      </button>
+                      {resource.isIndexed && (
+                        <button
+                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
+                          onClick={() => {
+                            setIsExpanded(true);
+                            setShowMenu(false);
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                          Generar resumen Harvard
+                        </button>
+                      )}
+                      <button
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          onDelete();
+                          setShowMenu(false);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {resource.description && (
+            <p className="text-sm text-secondary-600 mt-2 line-clamp-2">
+              {resource.description}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <Badge variant="default" size="sm">
+              {resourceTypeLabels[resource.type]}
+            </Badge>
+            <Badge variant="default" size="sm">
+              {resourceLevelLabels[resource.level]}
+            </Badge>
+            {resource.isOpenAccess && (
+              <Badge variant="success" size="sm">
+                Open Access
+              </Badge>
+            )}
+            {resource.isIndexed && (
+              <Badge variant="primary" size="sm">
+                Indexado ({resource.chunkCount} chunks)
+              </Badge>
             )}
           </div>
         </div>
-
-        {resource.description && (
-          <p className="text-sm text-secondary-600 mt-2 line-clamp-2">
-            {resource.description}
-          </p>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <Badge variant="default" size="sm">
-            {resourceTypeLabels[resource.type]}
-          </Badge>
-          <Badge variant="default" size="sm">
-            {resourceLevelLabels[resource.level]}
-          </Badge>
-          {resource.isOpenAccess && (
-            <Badge variant="success" size="sm">
-              Open Access
-            </Badge>
-          )}
-          {resource.isIndexed && (
-            <Badge variant="primary" size="sm">
-              Indexado ({resource.chunkCount} chunks)
-            </Badge>
-          )}
-        </div>
       </div>
+
+      {/* Harvard Summary Section */}
+      {isExpanded && (
+        <div className="border-t border-secondary-200 p-4 bg-secondary-50/50">
+          <HarvardSummaryView
+            resourceId={resource.id}
+            resourceTitle={resource.title}
+            token={token}
+            isIndexed={resource.isIndexed}
+          />
+        </div>
+      )}
     </div>
   );
 }
