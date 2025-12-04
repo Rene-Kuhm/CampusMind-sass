@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '@/database/prisma.service';
 import { OpenAlexProvider } from './providers/openalex.provider';
 import { SemanticScholarProvider } from './providers/semantic-scholar.provider';
 import { CrossrefProvider } from './providers/crossref.provider';
@@ -10,6 +11,7 @@ import { WebSearchProvider } from './providers/web-search.provider';
 import { MedicalBooksProvider } from './providers/medical-books.provider';
 import {
   AcademicResource,
+  AcademicResourceType,
   SearchQuery,
   SearchResult,
   AcademicSource,
@@ -23,6 +25,7 @@ export class AcademicService {
   private readonly logger = new Logger(AcademicService.name);
 
   constructor(
+    private readonly prisma: PrismaService,
     private readonly openAlex: OpenAlexProvider,
     private readonly semanticScholar: SemanticScholarProvider,
     private readonly crossref: CrossrefProvider,
@@ -235,5 +238,63 @@ export class AcademicService {
 
     const { results } = await this.searchAll(query, options?.category || 'all');
     return results.slice(0, options?.limit || 10);
+  }
+
+  /**
+   * Importa un recurso académico a una materia del usuario
+   */
+  async importToSubject(
+    subjectId: string,
+    userId: string,
+    resource: AcademicResource,
+  ) {
+    // Verify subject ownership
+    const subject = await this.prisma.subject.findFirst({
+      where: { id: subjectId, userId },
+    });
+
+    if (!subject) {
+      throw new Error('Materia no encontrada');
+    }
+
+    // Map AcademicResourceType to internal ResourceType
+    const typeMap: Record<AcademicResourceType | string, string> = {
+      paper: 'PAPER',
+      book: 'BOOK',
+      book_chapter: 'BOOK',
+      article: 'ARTICLE',
+      thesis: 'PAPER',
+      conference: 'PAPER',
+      preprint: 'PAPER',
+      dataset: 'OTHER',
+      course: 'COURSE',
+      video: 'VIDEO',
+      manual: 'MANUAL',
+      notes: 'NOTES',
+      report: 'PAPER',
+      standard: 'OTHER',
+      reference: 'OTHER',
+      other: 'OTHER',
+    };
+
+    const resourceType = typeMap[resource.type] || 'OTHER';
+
+    // Create the resource
+    return this.prisma.resource.create({
+      data: {
+        subjectId,
+        title: resource.title,
+        authors: resource.authors || [],
+        description: resource.abstract || null,
+        url: resource.url || resource.pdfUrl || null,
+        type: resourceType as any,
+        level: 'INTERMEDIATE',
+        language: resource.language || 'en',
+        isOpenAccess: resource.isOpenAccess,
+        license: resource.license || null,
+        externalId: resource.externalId,
+        externalSource: resource.source as string,
+      },
+    });
   }
 }
