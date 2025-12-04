@@ -18,49 +18,8 @@ import { AcademicSource, AcademicResourceType } from './interfaces/academic-reso
 export class AcademicController {
   constructor(private readonly academicService: AcademicService) {}
 
-  @Get('search')
-  @ApiOperation({ summary: 'Buscar recursos en una fuente específica' })
-  @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
-  @ApiQuery({
-    name: 'source',
-    enum: ['openalex', 'semantic_scholar', 'crossref', 'youtube', 'google_books', 'archive_org', 'libgen', 'web'],
-    required: false,
-    description: 'Fuente de búsqueda (default: openalex)'
-  })
-  @ApiQuery({ name: 'type', enum: ['paper', 'book', 'video', 'course', 'article', 'thesis', 'manual'], required: false })
-  @ApiQuery({ name: 'yearFrom', type: Number, required: false })
-  @ApiQuery({ name: 'yearTo', type: Number, required: false })
-  @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
-  @ApiQuery({ name: 'page', type: Number, required: false })
-  @ApiQuery({ name: 'perPage', type: Number, required: false })
-  @ApiResponse({ status: 200, description: 'Resultados de búsqueda' })
-  async search(
-    @Query('q') query: string,
-    @Query('source') source?: AcademicSource,
-    @Query('type') type?: AcademicResourceType,
-    @Query('yearFrom') yearFrom?: number,
-    @Query('yearTo') yearTo?: number,
-    @Query('openAccessOnly') openAccessOnly?: boolean,
-    @Query('page') page?: number,
-    @Query('perPage') perPage?: number,
-  ) {
-    return this.academicService.search(
-      {
-        query,
-        filters: {
-          type,
-          yearFrom,
-          yearTo,
-          isOpenAccess: openAccessOnly,
-        },
-        pagination: {
-          page: page || 1,
-          perPage: perPage || 25,
-        },
-      },
-      source || 'openalex',
-    );
-  }
+  // NOTE: More specific routes must come BEFORE less specific ones
+  // /search/all and /search/multi must be defined before /search
 
   @Get('search/all')
   @ApiOperation({
@@ -123,6 +82,50 @@ export class AcademicController {
         perPage: perPage || 25,
       },
     });
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Buscar recursos en una fuente específica' })
+  @ApiQuery({ name: 'q', description: 'Término de búsqueda', required: true })
+  @ApiQuery({
+    name: 'source',
+    enum: ['openalex', 'semantic_scholar', 'crossref', 'youtube', 'google_books', 'archive_org', 'libgen', 'web'],
+    required: false,
+    description: 'Fuente de búsqueda (default: openalex)'
+  })
+  @ApiQuery({ name: 'type', enum: ['paper', 'book', 'video', 'course', 'article', 'thesis', 'manual'], required: false })
+  @ApiQuery({ name: 'yearFrom', type: Number, required: false })
+  @ApiQuery({ name: 'yearTo', type: Number, required: false })
+  @ApiQuery({ name: 'openAccessOnly', type: Boolean, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'perPage', type: Number, required: false })
+  @ApiResponse({ status: 200, description: 'Resultados de búsqueda' })
+  async search(
+    @Query('q') query: string,
+    @Query('source') source?: AcademicSource,
+    @Query('type') type?: AcademicResourceType,
+    @Query('yearFrom') yearFrom?: number,
+    @Query('yearTo') yearTo?: number,
+    @Query('openAccessOnly') openAccessOnly?: boolean,
+    @Query('page') page?: number,
+    @Query('perPage') perPage?: number,
+  ) {
+    return this.academicService.search(
+      {
+        query,
+        filters: {
+          type,
+          yearFrom,
+          yearTo,
+          isOpenAccess: openAccessOnly,
+        },
+        pagination: {
+          page: page || 1,
+          perPage: perPage || 25,
+        },
+      },
+      source || 'openalex',
+    );
   }
 
   @Get('resource/:source/:externalId')
