@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OpenAlexProvider } from './providers/openalex.provider';
 import { SemanticScholarProvider } from './providers/semantic-scholar.provider';
+import { CrossrefProvider } from './providers/crossref.provider';
 import {
   AcademicResource,
   SearchQuery,
@@ -15,6 +16,7 @@ export class AcademicService {
   constructor(
     private readonly openAlex: OpenAlexProvider,
     private readonly semanticScholar: SemanticScholarProvider,
+    private readonly crossref: CrossrefProvider,
   ) {}
 
   /**
@@ -29,6 +31,8 @@ export class AcademicService {
     switch (source) {
       case 'semantic_scholar':
         return this.semanticScholar.search(query);
+      case 'crossref':
+        return this.crossref.search(query);
       case 'openalex':
       default:
         return this.openAlex.search(query);
@@ -40,7 +44,7 @@ export class AcademicService {
    */
   async searchMultiple(
     query: SearchQuery,
-    sources: AcademicSource[] = ['openalex', 'semantic_scholar'],
+    sources: AcademicSource[] = ['openalex', 'semantic_scholar', 'crossref'],
   ): Promise<{
     results: AcademicResource[];
     totalBySource: Record<AcademicSource, number>;
@@ -93,6 +97,8 @@ export class AcademicService {
     switch (source) {
       case 'semantic_scholar':
         return this.semanticScholar.getById(externalId);
+      case 'crossref':
+        return this.crossref.getById(externalId);
       case 'openalex':
         return this.openAlex.getById(externalId);
       default:

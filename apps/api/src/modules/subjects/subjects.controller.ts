@@ -21,7 +21,12 @@ import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
+
+// Definir tipo User localmente para evitar dependencia de Prisma
+interface User {
+  id: string;
+  email: string;
+}
 
 @ApiTags('subjects')
 @ApiBearerAuth()

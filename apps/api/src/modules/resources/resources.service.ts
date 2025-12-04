@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
-import { CreateResourceDto } from './dto/create-resource.dto';
+import { CreateResourceDto, ResourceType, ResourceLevel } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
-import { ResourceType, ResourceLevel } from '@prisma/client';
 
 interface ResourceFilters {
   type?: ResourceType;

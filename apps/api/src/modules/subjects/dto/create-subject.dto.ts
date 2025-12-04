@@ -15,7 +15,7 @@ export class CreateSubjectDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ example: 'Cálculo diferencial e integral de una variable' })
   @IsOptional()

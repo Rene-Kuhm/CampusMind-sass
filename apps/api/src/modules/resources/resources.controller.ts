@@ -17,12 +17,17 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ResourcesService } from './resources.service';
-import { CreateResourceDto } from './dto/create-resource.dto';
+import { CreateResourceDto, ResourceType, ResourceLevel } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User, ResourceType, ResourceLevel } from '@prisma/client';
+
+// Definir tipo User localmente para evitar dependencia de Prisma
+interface User {
+  id: string;
+  email: string;
+}
 
 @ApiTags('resources')
 @ApiBearerAuth()

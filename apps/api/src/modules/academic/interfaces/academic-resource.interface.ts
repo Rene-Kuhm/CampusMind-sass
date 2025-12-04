@@ -50,6 +50,9 @@ export type AcademicResourceType =
   | 'preprint'
   | 'dataset'
   | 'course'
+  | 'report'
+  | 'standard'
+  | 'reference'
   | 'other';
 
 // Interfaz para proveedores de APIs académicas

@@ -1,8 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { EmbeddingResult } from '../interfaces/rag.interface';
+
+interface OpenAIEmbeddingResponse {
+  data: Array<{ embedding: number[]; index: number }>;
+  usage: { total_tokens: number };
+}
 
 /**
  * Servicio de embeddings con abstracción para múltiples proveedores
@@ -56,8 +62,8 @@ export class EmbeddingService {
 
   private async generateOpenAIEmbedding(text: string): Promise<EmbeddingResult> {
     try {
-      const response = await firstValueFrom(
-        this.http.post(
+      const response: AxiosResponse<OpenAIEmbeddingResponse> = await firstValueFrom(
+        this.http.post<OpenAIEmbeddingResponse>(
           'https://api.openai.com/v1/embeddings',
           {
             input: text,
@@ -73,7 +79,7 @@ export class EmbeddingService {
         ),
       );
 
-      const data = response.data;
+      const data: OpenAIEmbeddingResponse = response.data;
 
       return {
         embedding: data.data[0].embedding,
@@ -89,8 +95,8 @@ export class EmbeddingService {
     texts: string[],
   ): Promise<EmbeddingResult[]> {
     try {
-      const response = await firstValueFrom(
-        this.http.post(
+      const response: AxiosResponse<OpenAIEmbeddingResponse> = await firstValueFrom(
+        this.http.post<OpenAIEmbeddingResponse>(
           'https://api.openai.com/v1/embeddings',
           {
             input: texts,
@@ -106,10 +112,10 @@ export class EmbeddingService {
         ),
       );
 
-      const data = response.data;
+      const data: OpenAIEmbeddingResponse = response.data;
       const tokensPerItem = Math.ceil(data.usage.total_tokens / texts.length);
 
-      return data.data.map((item: any) => ({
+      return data.data.map((item) => ({
         embedding: item.embedding,
         tokenCount: tokensPerItem,
       }));

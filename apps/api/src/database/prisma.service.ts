@@ -28,7 +28,10 @@ export class PrismaService
       throw new Error('cleanDatabase is not allowed in production');
     }
     // Used for testing - truncate tables in correct order
-    const models = Reflect.ownKeys(this).filter((key) => key[0] !== '_');
+    const models = Reflect.ownKeys(this).filter((key) => {
+      const keyStr = typeof key === 'string' ? key : key.toString();
+      return keyStr[0] !== '_';
+    });
     return Promise.all(
       models.map((modelKey) => {
         const model = this[modelKey as keyof this];

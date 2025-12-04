@@ -20,7 +20,7 @@ export class QueryRagDto {
   @IsString()
   @MinLength(5)
   @MaxLength(1000)
-  query: string;
+  query!: string;
 
   @ApiPropertyOptional({
     description: 'ID de la materia para limitar la búsqueda',

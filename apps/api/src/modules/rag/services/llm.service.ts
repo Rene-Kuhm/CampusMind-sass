@@ -1,8 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { LlmOptions, LlmResponse } from '../interfaces/rag.interface';
+
+interface OpenAIChatResponse {
+  choices: Array<{
+    message: { content: string };
+    finish_reason: string;
+  }>;
+  usage: { total_tokens: number };
+}
 
 /**
  * Servicio de LLM con abstracción para múltiples proveedores
@@ -139,8 +148,8 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
 
       messages.push({ role: 'user', content: prompt });
 
-      const response = await firstValueFrom(
-        this.http.post(
+      const response: AxiosResponse<OpenAIChatResponse> = await firstValueFrom(
+        this.http.post<OpenAIChatResponse>(
           'https://api.openai.com/v1/chat/completions',
           {
             model: this.model,
@@ -157,7 +166,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
         ),
       );
 
-      const data = response.data;
+      const data: OpenAIChatResponse = response.data;
 
       return {
         content: data.choices[0].message.content,

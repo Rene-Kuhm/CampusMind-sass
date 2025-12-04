@@ -13,25 +13,25 @@ import {
 export class RegisterDto {
   @ApiProperty({ example: 'estudiante@universidad.edu' })
   @IsEmail({}, { message: 'Email inválido' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'MiPassword123!' })
   @IsString()
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   @MaxLength(100)
-  password: string;
+  password!: string;
 
   @ApiProperty({ example: 'Juan' })
   @IsString()
   @MinLength(2)
   @MaxLength(50)
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ example: 'Pérez' })
   @IsString()
   @MinLength(2)
   @MaxLength(50)
-  lastName: string;
+  lastName!: string;
 
   @ApiPropertyOptional({ example: 'Ingeniería en Sistemas' })
   @IsOptional()
