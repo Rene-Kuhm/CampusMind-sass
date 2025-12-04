@@ -2,12 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OpenAlexProvider } from './providers/openalex.provider';
 import { SemanticScholarProvider } from './providers/semantic-scholar.provider';
 import { CrossrefProvider } from './providers/crossref.provider';
+import { YouTubeProvider } from './providers/youtube.provider';
+import { GoogleBooksProvider } from './providers/google-books.provider';
+import { ArchiveOrgProvider } from './providers/archive-org.provider';
+import { LibGenProvider } from './providers/libgen.provider';
+import { WebSearchProvider } from './providers/web-search.provider';
 import {
   AcademicResource,
   SearchQuery,
   SearchResult,
   AcademicSource,
 } from './interfaces/academic-resource.interface';
+
+// Categorías de búsqueda
+export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses';
 
 @Injectable()
 export class AcademicService {
@@ -17,6 +25,11 @@ export class AcademicService {
     private readonly openAlex: OpenAlexProvider,
     private readonly semanticScholar: SemanticScholarProvider,
     private readonly crossref: CrossrefProvider,
+    private readonly youtube: YouTubeProvider,
+    private readonly googleBooks: GoogleBooksProvider,
+    private readonly archiveOrg: ArchiveOrgProvider,
+    private readonly libgen: LibGenProvider,
+    private readonly webSearch: WebSearchProvider,
   ) {}
 
   /**
@@ -28,14 +41,75 @@ export class AcademicService {
   ): Promise<SearchResult> {
     this.logger.log(`Searching ${source} for: ${query.query}`);
 
-    switch (source) {
-      case 'semantic_scholar':
-        return this.semanticScholar.search(query);
-      case 'crossref':
-        return this.crossref.search(query);
-      case 'openalex':
+    try {
+      switch (source) {
+        case 'semantic_scholar':
+          return await this.semanticScholar.search(query);
+        case 'crossref':
+          return await this.crossref.search(query);
+        case 'youtube':
+          return await this.youtube.search(query);
+        case 'google_books':
+          return await this.googleBooks.search(query);
+        case 'archive_org':
+          return await this.archiveOrg.search(query);
+        case 'libgen':
+          return await this.libgen.search(query);
+        case 'web':
+          return await this.webSearch.search(query);
+        case 'openalex':
+        default:
+          return await this.openAlex.search(query);
+      }
+    } catch (error) {
+      this.logger.error(`Error searching ${source}: ${error}`);
+      return {
+        items: [],
+        total: 0,
+        page: query.pagination?.page || 1,
+        perPage: query.pagination?.perPage || 25,
+        source,
+      };
+    }
+  }
+
+  /**
+   * Búsqueda unificada en todas las fuentes
+   * Busca en paralelo y combina resultados
+   */
+  async searchAll(
+    query: SearchQuery,
+    category: SearchCategory = 'all',
+  ): Promise<{
+    results: AcademicResource[];
+    totalBySource: Record<string, number>;
+  }> {
+    const sources = this.getSourcesByCategory(category);
+    return this.searchMultiple(query, sources);
+  }
+
+  /**
+   * Obtiene las fuentes según la categoría
+   */
+  private getSourcesByCategory(category: SearchCategory): AcademicSource[] {
+    switch (category) {
+      case 'papers':
+        return ['openalex', 'semantic_scholar', 'crossref'];
+      case 'books':
+        return ['google_books', 'archive_org', 'libgen'];
+      case 'videos':
+        return ['youtube'];
+      case 'courses':
+        return ['archive_org', 'web'];
+      case 'all':
       default:
-        return this.openAlex.search(query);
+        return [
+          'openalex',
+          'google_books',
+          'youtube',
+          'archive_org',
+          'crossref',
+        ];
     }
   }
 
@@ -49,6 +123,8 @@ export class AcademicService {
     results: AcademicResource[];
     totalBySource: Record<AcademicSource, number>;
   }> {
+    this.logger.log(`Searching multiple sources: ${sources.join(', ')}`);
+
     const searchPromises = sources.map((source) =>
       this.search(query, source).catch((error) => {
         this.logger.error(`Error searching ${source}: ${error}`);
@@ -64,7 +140,7 @@ export class AcademicService {
 
     const results = await Promise.all(searchPromises);
 
-    // Combinar y deduplicar por DOI si existe
+    // Combinar y deduplicar por DOI/URL si existe
     const seen = new Set<string>();
     const combined: AcademicResource[] = [];
     const totalBySource: Record<string, number> = {};
@@ -73,13 +149,23 @@ export class AcademicService {
       totalBySource[result.source] = result.total;
 
       for (const item of result.items) {
-        const key = item.doi || `${item.source}:${item.externalId}`;
+        // Use DOI, URL, or source:id as unique key
+        const key = item.doi || item.url || `${item.source}:${item.externalId}`;
         if (!seen.has(key)) {
           seen.add(key);
           combined.push(item);
         }
       }
     }
+
+    // Sort by relevance (items with thumbnails and abstracts first)
+    combined.sort((a, b) => {
+      const scoreA = (a.thumbnailUrl ? 2 : 0) + (a.abstract ? 1 : 0);
+      const scoreB = (b.thumbnailUrl ? 2 : 0) + (b.abstract ? 1 : 0);
+      return scoreB - scoreA;
+    });
+
+    this.logger.log(`Found ${combined.length} unique results from ${sources.length} sources`);
 
     return {
       results: combined,
@@ -94,15 +180,24 @@ export class AcademicService {
     externalId: string,
     source: AcademicSource,
   ): Promise<AcademicResource | null> {
-    switch (source) {
-      case 'semantic_scholar':
-        return this.semanticScholar.getById(externalId);
-      case 'crossref':
-        return this.crossref.getById(externalId);
-      case 'openalex':
-        return this.openAlex.getById(externalId);
-      default:
-        return null;
+    try {
+      switch (source) {
+        case 'semantic_scholar':
+          return await this.semanticScholar.getById(externalId);
+        case 'crossref':
+          return await this.crossref.getById(externalId);
+        case 'openalex':
+          return await this.openAlex.getById(externalId);
+        case 'google_books':
+          return await this.googleBooks.getById(externalId);
+        case 'archive_org':
+          return await this.archiveOrg.getById(externalId);
+        default:
+          return null;
+      }
+    } catch (error) {
+      this.logger.error(`Error getting ${source}:${externalId}: ${error}`);
+      return null;
     }
   }
 
@@ -114,6 +209,7 @@ export class AcademicService {
     options?: {
       isOpenAccess?: boolean;
       limit?: number;
+      category?: SearchCategory;
     },
   ): Promise<AcademicResource[]> {
     if (topics.length === 0) return [];
@@ -130,7 +226,7 @@ export class AcademicService {
       sort: 'relevance',
     };
 
-    const result = await this.search(query, 'openalex');
-    return result.items;
+    const { results } = await this.searchAll(query, options?.category || 'all');
+    return results.slice(0, options?.limit || 10);
   }
 }

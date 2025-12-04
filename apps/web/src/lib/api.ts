@@ -252,24 +252,75 @@ export const resources = {
 // ACADEMIC SEARCH ENDPOINTS
 // ============================================
 
+export type AcademicSource =
+  | 'openalex'
+  | 'semantic_scholar'
+  | 'crossref'
+  | 'youtube'
+  | 'google_books'
+  | 'archive_org'
+  | 'libgen'
+  | 'web'
+  | 'oer_commons'
+  | 'manual';
+
+export type AcademicResourceType =
+  | 'paper'
+  | 'book'
+  | 'book_chapter'
+  | 'article'
+  | 'thesis'
+  | 'conference'
+  | 'preprint'
+  | 'dataset'
+  | 'course'
+  | 'video'
+  | 'manual'
+  | 'notes'
+  | 'report'
+  | 'standard'
+  | 'reference'
+  | 'other';
+
+export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses';
+
 export interface AcademicResource {
   externalId: string;
-  source: 'openalex' | 'semantic_scholar' | 'crossref';
+  source: AcademicSource;
   title: string;
   authors: string[];
   abstract: string | null;
   publicationDate: string | null;
+  publicationYear?: number;
   citationCount: number | null;
   url: string | null;
   pdfUrl: string | null;
   doi: string | null;
   isOpenAccess: boolean;
-  type: ResourceType;
-  level: ResourceLevel;
+  type: AcademicResourceType | string;
+  // Extended fields for multimedia
+  thumbnailUrl?: string | null;
+  duration?: string; // For videos
+  pageCount?: number; // For books
+  language?: string;
+  extension?: string;
+  fileSize?: string;
+  // Additional metadata
+  topics?: string[];
+  keywords?: string[];
+  subjects?: string[];
+  categories?: string[];
+  journal?: string;
+  publisher?: string;
+  venue?: string;
+  license?: string;
+  referenceCount?: number;
 }
 
 export interface AcademicSearchParams {
   query: string;
+  source?: AcademicSource;
+  category?: SearchCategory;
   type?: ResourceType;
   level?: ResourceLevel;
   language?: string;
@@ -277,6 +328,7 @@ export interface AcademicSearchParams {
   yearTo?: number;
   openAccessOnly?: boolean;
   limit?: number;
+  page?: number;
 }
 
 export interface AcademicSearchResult {
@@ -287,19 +339,40 @@ export interface AcademicSearchResult {
   source: string;
 }
 
+export interface UnifiedSearchResult {
+  results: AcademicResource[];
+  totalBySource: Record<AcademicSource, number>;
+}
+
 export const academic = {
+  // Single source search
   search: async (token: string, params: AcademicSearchParams): Promise<AcademicResource[]> => {
     const searchParams = new URLSearchParams();
     searchParams.append('q', params.query);
+    if (params.source) searchParams.append('source', params.source);
     if (params.yearFrom) searchParams.append('yearFrom', String(params.yearFrom));
     if (params.yearTo) searchParams.append('yearTo', String(params.yearTo));
     if (params.openAccessOnly) searchParams.append('openAccessOnly', String(params.openAccessOnly));
     if (params.limit) searchParams.append('perPage', String(params.limit));
+    if (params.page) searchParams.append('page', String(params.page));
 
     const result = await request<AcademicSearchResult>(`/academic/search?${searchParams}`, { token });
     return result.items || [];
   },
 
+  // Unified search across all sources (books, videos, papers, courses)
+  searchAll: async (token: string, params: AcademicSearchParams): Promise<UnifiedSearchResult> => {
+    const searchParams = new URLSearchParams();
+    searchParams.append('q', params.query);
+    if (params.category) searchParams.append('category', params.category);
+    if (params.openAccessOnly) searchParams.append('openAccessOnly', String(params.openAccessOnly));
+    if (params.limit) searchParams.append('perPage', String(params.limit));
+    if (params.page) searchParams.append('page', String(params.page));
+
+    return request<UnifiedSearchResult>(`/academic/search/all?${searchParams}`, { token });
+  },
+
+  // Multi-source search (papers only)
   searchMulti: async (token: string, params: AcademicSearchParams): Promise<AcademicResource[]> => {
     const searchParams = new URLSearchParams();
     searchParams.append('q', params.query);
@@ -308,7 +381,7 @@ export const academic = {
     if (params.openAccessOnly) searchParams.append('openAccessOnly', String(params.openAccessOnly));
     if (params.limit) searchParams.append('perPage', String(params.limit));
 
-    const result = await request<{ results: AcademicResource[]; totalBySource: Record<string, number> }>(
+    const result = await request<UnifiedSearchResult>(
       `/academic/search/multi?${searchParams}`,
       { token }
     );
