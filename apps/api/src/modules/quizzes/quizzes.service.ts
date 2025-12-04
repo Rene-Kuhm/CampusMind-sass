@@ -378,11 +378,13 @@ export class QuizzesService {
       };
 
       if (userAnswer) {
+        const options = question.options as Array<{ id: string; text: string; isCorrect: boolean }> | null;
+
         if (question.type === QuestionType.MULTIPLE_CHOICE ||
             question.type === QuestionType.TRUE_FALSE) {
           // Verificar opción seleccionada
-          const selectedOption = question.options?.find(
-            (opt: any) => opt.id === userAnswer.selectedOptionId,
+          const selectedOption = options?.find(
+            (opt) => opt.id === userAnswer.selectedOptionId,
           );
           graded.userAnswer = selectedOption?.text;
           graded.isCorrect = selectedOption?.isCorrect === true;
@@ -416,9 +418,9 @@ export class QuizzesService {
 
         // Agregar respuesta correcta si está habilitado
         if (quiz.showAnswers) {
-          if (question.options) {
-            graded.correctAnswer = question.options.find(
-              (opt: any) => opt.isCorrect,
+          if (options) {
+            graded.correctAnswer = options.find(
+              (opt) => opt.isCorrect,
             )?.text;
           } else {
             graded.correctAnswer = question.correctAnswer;
