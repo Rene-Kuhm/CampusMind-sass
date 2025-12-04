@@ -199,7 +199,7 @@ export default function SettingsPage() {
                 options={studyStyleOptions}
                 value={profile.studyStyle}
                 onChange={(e) =>
-                  setProfile((prev) => ({ ...prev, studyStyle: e.target.value }))
+                  setProfile((prev) => ({ ...prev, studyStyle: e.target.value as 'FORMAL' | 'PRACTICAL' | 'BALANCED' }))
                 }
                 hint="Formal: más académico y teórico. Práctico: más ejemplos y aplicaciones."
               />
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                 options={contentDepthOptions}
                 value={profile.contentDepth}
                 onChange={(e) =>
-                  setProfile((prev) => ({ ...prev, contentDepth: e.target.value }))
+                  setProfile((prev) => ({ ...prev, contentDepth: e.target.value as 'BASIC' | 'INTERMEDIATE' | 'ADVANCED' }))
                 }
                 hint="Ajusta el nivel de detalle de las explicaciones"
               />

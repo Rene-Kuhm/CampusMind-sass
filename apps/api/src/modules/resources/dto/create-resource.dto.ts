@@ -9,14 +9,31 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { ResourceType, ResourceLevel } from '@prisma/client';
+
+// Definir enums localmente para evitar dependencia de generación de Prisma
+export enum ResourceType {
+  BOOK = 'BOOK',
+  PAPER = 'PAPER',
+  ARTICLE = 'ARTICLE',
+  VIDEO = 'VIDEO',
+  COURSE = 'COURSE',
+  MANUAL = 'MANUAL',
+  NOTES = 'NOTES',
+  OTHER = 'OTHER',
+}
+
+export enum ResourceLevel {
+  BASIC = 'BASIC',
+  INTERMEDIATE = 'INTERMEDIATE',
+  ADVANCED = 'ADVANCED',
+}
 
 export class CreateResourceDto {
   @ApiProperty({ example: 'Cálculo Vol. 1 - Stewart' })
   @IsString()
   @MinLength(2)
   @MaxLength(200)
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional({ example: ['James Stewart'] })
   @IsOptional()
@@ -37,7 +54,7 @@ export class CreateResourceDto {
 
   @ApiProperty({ enum: ResourceType, example: 'BOOK' })
   @IsEnum(ResourceType)
-  type: ResourceType;
+  type!: ResourceType;
 
   @ApiPropertyOptional({ enum: ResourceLevel, example: 'INTERMEDIATE' })
   @IsOptional()

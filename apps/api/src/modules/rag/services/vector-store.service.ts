@@ -178,9 +178,18 @@ export class VectorStoreService {
       }>
     >(query, ...params);
 
+    type QueryResult = {
+      id: string;
+      content: string;
+      metadata: any;
+      resource_id: string;
+      resource_title: string;
+      score: number;
+    };
+
     return results
-      .filter((r) => r.score >= minScore)
-      .map((r) => ({
+      .filter((r: QueryResult) => r.score >= minScore)
+      .map((r: QueryResult) => ({
         id: r.id,
         content: r.content,
         metadata: {

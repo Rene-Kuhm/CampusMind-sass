@@ -21,6 +21,8 @@ import {
   AcademicResource,
   AcademicSearchParams,
   Subject,
+  ResourceType,
+  ResourceLevel,
 } from '@/lib/api';
 import {
   Search,
@@ -188,7 +190,7 @@ export default function SearchPage() {
                     onChange={(e) =>
                       setFilters((prev) => ({
                         ...prev,
-                        type: e.target.value || undefined,
+                        type: (e.target.value as ResourceType) || undefined,
                       }))
                     }
                   />
@@ -199,7 +201,7 @@ export default function SearchPage() {
                     onChange={(e) =>
                       setFilters((prev) => ({
                         ...prev,
-                        level: e.target.value || undefined,
+                        level: (e.target.value as ResourceLevel) || undefined,
                       }))
                     }
                   />

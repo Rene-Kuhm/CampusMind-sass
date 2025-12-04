@@ -118,7 +118,7 @@ describe('RagService', () => {
         { embedding: [0.1, 0.2], tokenCount: 10 },
         { embedding: [0.3, 0.4], tokenCount: 10 },
       ]);
-      vectorStore.storeChunks.mockResolvedValue(undefined);
+      vectorStore.storeChunks.mockResolvedValue(['chunk-1', 'chunk-2']);
       (prisma.resource.update as jest.Mock).mockResolvedValue({
         ...mockResource,
         isIndexed: true,
@@ -181,6 +181,7 @@ describe('RagService', () => {
       llm.generateWithContext.mockResolvedValue({
         content: 'Generated answer',
         tokensUsed: 50,
+        finishReason: 'stop',
       });
       (prisma.ragQuery.create as jest.Mock).mockResolvedValue({ id: 'query-1' });
 
