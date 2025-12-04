@@ -15,6 +15,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { RagService } from './rag.service';
+import { CacheService } from './services/cache.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -25,7 +26,10 @@ import { QueryRagDto } from './dto/query-rag.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('rag')
 export class RagController {
-  constructor(private readonly ragService: RagService) {}
+  constructor(
+    private readonly ragService: RagService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   @Post('query')
   @ApiOperation({ summary: 'Consultar al copiloto académico' })
@@ -38,6 +42,7 @@ export class RagController {
       minScore: dto.minScore,
       style: dto.style,
       depth: dto.depth,
+      skipCache: dto.skipCache,
     });
   }
 
@@ -65,5 +70,21 @@ export class RagController {
   @ApiResponse({ status: 200, description: 'Estadísticas de uso' })
   async getStats(@CurrentUser() user: User) {
     return this.ragService.getUserStats(user.id);
+  }
+
+  @Get('cache/stats')
+  @ApiOperation({ summary: 'Obtener estadísticas del cache RAG' })
+  @ApiResponse({ status: 200, description: 'Estadísticas de cache' })
+  async getCacheStats() {
+    const stats = this.cacheService.getStats();
+    const hitRate = this.cacheService.getCacheHitRate();
+
+    return {
+      ...stats,
+      hitRate: {
+        embedding: `${(hitRate.embedding * 100).toFixed(1)}%`,
+        rag: `${(hitRate.rag * 100).toFixed(1)}%`,
+      },
+    };
   }
 }

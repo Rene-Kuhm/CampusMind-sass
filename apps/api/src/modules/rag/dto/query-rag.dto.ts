@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNumber,
   IsEnum,
+  IsBoolean,
   MinLength,
   MaxLength,
   Min,
@@ -72,4 +73,12 @@ export class QueryRagDto {
   @IsOptional()
   @IsEnum(['basic', 'intermediate', 'advanced'])
   depth?: 'basic' | 'intermediate' | 'advanced';
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Omitir cache y forzar respuesta fresca',
+  })
+  @IsOptional()
+  @IsBoolean()
+  skipCache?: boolean;
 }

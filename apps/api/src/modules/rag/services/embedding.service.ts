@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { EmbeddingResult } from '../interfaces/rag.interface';
+import { CacheService } from './cache.service';
 
 interface OpenAIEmbeddingResponse {
   data: Array<{ embedding: number[]; index: number }>;
@@ -12,6 +13,7 @@ interface OpenAIEmbeddingResponse {
 
 /**
  * Servicio de embeddings con abstracción para múltiples proveedores
+ * Incluye cache en memoria para optimizar costos y latencia
  */
 @Injectable()
 export class EmbeddingService {
@@ -24,6 +26,8 @@ export class EmbeddingService {
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
+    @Inject(forwardRef(() => CacheService))
+    private readonly cache: CacheService,
   ) {
     this.provider = this.config.get<string>('LLM_PROVIDER', 'openai');
     this.model = this.config.get<string>('EMBEDDING_MODEL', 'text-embedding-3-small');
@@ -31,30 +35,70 @@ export class EmbeddingService {
   }
 
   /**
-   * Genera embedding para un texto
+   * Genera embedding para un texto (con cache)
    */
   async generateEmbedding(text: string): Promise<EmbeddingResult> {
+    // Verificar cache primero
+    const cached = this.cache.getEmbedding(text);
+    if (cached) {
+      return cached;
+    }
+
+    let result: EmbeddingResult;
     switch (this.provider) {
       case 'openai':
-        return this.generateOpenAIEmbedding(text);
+        result = await this.generateOpenAIEmbedding(text);
+        break;
       // Agregar más proveedores aquí (Cohere, HuggingFace, etc.)
       default:
-        return this.generateOpenAIEmbedding(text);
+        result = await this.generateOpenAIEmbedding(text);
     }
+
+    // Guardar en cache
+    this.cache.setEmbedding(text, result.embedding, result.tokenCount);
+    return result;
   }
 
   /**
-   * Genera embeddings para múltiples textos en batch
+   * Genera embeddings para múltiples textos en batch (con cache)
    */
   async generateEmbeddings(texts: string[]): Promise<EmbeddingResult[]> {
-    // OpenAI soporta batch de hasta 2048 inputs
-    const batchSize = 100;
-    const results: EmbeddingResult[] = [];
+    const results: EmbeddingResult[] = new Array(texts.length);
+    const uncachedTexts: string[] = [];
+    const uncachedIndices: number[] = [];
 
-    for (let i = 0; i < texts.length; i += batchSize) {
-      const batch = texts.slice(i, i + batchSize);
-      const batchResults = await this.generateOpenAIEmbeddingBatch(batch);
-      results.push(...batchResults);
+    // Verificar cache para cada texto
+    for (let i = 0; i < texts.length; i++) {
+      const cached = this.cache.getEmbedding(texts[i]);
+      if (cached) {
+        results[i] = cached;
+      } else {
+        uncachedTexts.push(texts[i]);
+        uncachedIndices.push(i);
+      }
+    }
+
+    this.logger.debug(
+      `Embedding batch: ${texts.length - uncachedTexts.length} cached, ${uncachedTexts.length} to generate`,
+    );
+
+    // Generar embeddings solo para los no cacheados
+    if (uncachedTexts.length > 0) {
+      const batchSize = 100;
+
+      for (let i = 0; i < uncachedTexts.length; i += batchSize) {
+        const batch = uncachedTexts.slice(i, i + batchSize);
+        const batchIndices = uncachedIndices.slice(i, i + batchSize);
+        const batchResults = await this.generateOpenAIEmbeddingBatch(batch);
+
+        // Guardar en cache y en resultados
+        for (let j = 0; j < batchResults.length; j++) {
+          const originalIndex = batchIndices[j];
+          const text = uncachedTexts[i + j];
+          results[originalIndex] = batchResults[j];
+          this.cache.setEmbedding(text, batchResults[j].embedding, batchResults[j].tokenCount);
+        }
+      }
     }
 
     return results;
