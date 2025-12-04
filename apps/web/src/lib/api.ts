@@ -262,6 +262,7 @@ export type AcademicSource =
   | 'libgen'
   | 'web'
   | 'oer_commons'
+  | 'medical_books'
   | 'manual';
 
 export type AcademicResourceType =
@@ -282,7 +283,7 @@ export type AcademicResourceType =
   | 'reference'
   | 'other';
 
-export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses';
+export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses' | 'medical';
 
 export interface AcademicResource {
   externalId: string;

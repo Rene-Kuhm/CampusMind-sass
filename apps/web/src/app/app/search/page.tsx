@@ -45,6 +45,7 @@ import {
   Play,
   Clock,
   File,
+  Stethoscope,
 } from 'lucide-react';
 import { resourceTypeLabels, resourceLevelLabels } from '@/lib/utils';
 import Image from 'next/image';
@@ -56,6 +57,7 @@ const categoryConfig: Record<SearchCategory, { label: string; icon: React.ReactN
   books: { label: 'Libros', icon: <BookMarked className="h-4 w-4" />, description: 'Libros y manuales' },
   videos: { label: 'Videos', icon: <Video className="h-4 w-4" />, description: 'Videos educativos' },
   courses: { label: 'Cursos', icon: <GraduationCap className="h-4 w-4" />, description: 'Cursos y tutoriales' },
+  medical: { label: 'Medicina', icon: <Stethoscope className="h-4 w-4" />, description: 'PubMed, NCBI y OpenStax' },
 };
 
 export default function SearchPage() {
@@ -445,6 +447,7 @@ const sourceLabels: Record<string, string> = {
   libgen: 'Library Genesis',
   web: 'Web',
   oer_commons: 'OER Commons',
+  medical_books: 'Medical Books',
   manual: 'Manual',
 };
 
@@ -497,6 +500,8 @@ function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'wa
       return 'warning';
     case 'libgen':
       return 'success';
+    case 'medical_books':
+      return 'primary';
     default:
       return 'default';
   }

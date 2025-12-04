@@ -10,6 +10,7 @@ import { GoogleBooksProvider } from './providers/google-books.provider';
 import { ArchiveOrgProvider } from './providers/archive-org.provider';
 import { LibGenProvider } from './providers/libgen.provider';
 import { WebSearchProvider } from './providers/web-search.provider';
+import { MedicalBooksProvider } from './providers/medical-books.provider';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { WebSearchProvider } from './providers/web-search.provider';
     ArchiveOrgProvider,
     LibGenProvider,
     WebSearchProvider,
+    // Medical & Scientific
+    MedicalBooksProvider,
   ],
   exports: [AcademicService],
 })
