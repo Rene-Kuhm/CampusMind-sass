@@ -351,3 +351,86 @@ model FlashcardReview {
   @@index([createdAt])
   @@map("flashcard_reviews")
 }
+
+// ============================================
+// QUIZZES & EXAM SIMULATIONS
+// ============================================
+
+model Quiz {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  title            String
+  description      String?
+  subjectId        String?  @map("subject_id")
+
+  timeLimitMinutes Int?     @map("time_limit_minutes")
+  passingScore     Int      @default(60) @map("passing_score") // Percentage
+  showAnswers      Boolean  @default(true) @map("show_answers")
+  shuffleQuestions Boolean  @default(false) @map("shuffle_questions")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  questions        QuizQuestion[]
+  attempts         QuizAttempt[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String   @id @default(cuid())
+  quizId        String   @map("quiz_id")
+
+  text          String
+  type          QuestionType
+  options       Json?    // Array of { id, text, isCorrect }
+  correctAnswer String?  @map("correct_answer") // For short answer/essay
+  explanation   String?
+  difficulty    DifficultyLevel @default(MEDIUM)
+  points        Int      @default(1)
+  order         Int      @default(0)
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  quizId           String   @map("quiz_id")
+
+  answers          Json     // Array of graded answers
+  score            Int
+  totalPoints      Int      @map("total_points")
+  percentage       Float
+  passed           Boolean
+  timeSpentMinutes Int?     @map("time_spent_minutes")
+
+  completedAt      DateTime @default(now()) @map("completed_at")
+
+  quiz             Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
