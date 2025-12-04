@@ -1,0 +1,218 @@
+// CampusMind Database Schema
+// PostgreSQL with pgvector extension for embeddings
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profile  UserProfile?
+  subjects Subject[]
+  queries  RagQuery[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  career    String? // Carrera universitaria
+  year      Int? // Año de cursada
+  university String?
+
+  // Preferencias de estudio
+  studyStyle    StudyStyle @default(BALANCED) @map("study_style")
+  contentDepth  ContentDepth @default(INTERMEDIATE) @map("content_depth")
+  preferredLang String @default("es") @map("preferred_lang")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+enum StudyStyle {
+  FORMAL      // Más académico, formal
+  PRACTICAL   // Más práctico, ejemplos
+  BALANCED    // Equilibrado
+}
+
+enum ContentDepth {
+  BASIC        // Introductorio
+  INTERMEDIATE // Intermedio
+  ADVANCED     // Avanzado
+}
+
+// ============================================
+// SUBJECTS (MATERIAS/WORKSPACES)
+// ============================================
+
+model Subject {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  career      String?
+  year        Int?
+  semester    String?
+  color       String?  @default("#6366f1") // Color para UI
+  isArchived  Boolean  @default(false) @map("is_archived")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resources Resource[]
+  queries   RagQuery[]
+
+  @@index([userId])
+  @@map("subjects")
+}
+
+// ============================================
+// ACADEMIC RESOURCES
+// ============================================
+
+model Resource {
+  id          String       @id @default(cuid())
+  subjectId   String       @map("subject_id")
+
+  // Metadata básica
+  title       String
+  authors     String[]     @default([])
+  description String?
+  url         String?      // Enlace externo
+
+  // Clasificación
+  type        ResourceType
+  level       ResourceLevel @default(INTERMEDIATE)
+  language    String        @default("es")
+
+  // Licencia y acceso
+  isOpenAccess Boolean      @default(true) @map("is_open_access")
+  license      String?      // CC-BY, MIT, etc.
+
+  // Fuente externa (si viene de API académica)
+  externalId   String?      @map("external_id") // ID en OpenAlex, Semantic Scholar, etc.
+  externalSource String?    @map("external_source") // openalex, semantic_scholar, crossref
+
+  // Estado de indexación RAG
+  isIndexed    Boolean      @default(false) @map("is_indexed")
+  indexedAt    DateTime?    @map("indexed_at")
+  chunkCount   Int          @default(0) @map("chunk_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subject   Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chunks    ResourceChunk[]
+  notes     ResourceNote[]
+
+  @@index([subjectId])
+  @@index([externalId, externalSource])
+  @@map("resources")
+}
+
+enum ResourceType {
+  BOOK
+  PAPER
+  ARTICLE
+  VIDEO
+  COURSE
+  MANUAL
+  NOTES
+  OTHER
+}
+
+enum ResourceLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+}
+
+// Notas del usuario sobre un recurso
+model ResourceNote {
+  id         String   @id @default(cuid())
+  resourceId String   @map("resource_id")
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@map("resource_notes")
+}
+
+// ============================================
+// RAG - CHUNKS & EMBEDDINGS
+// ============================================
+
+model ResourceChunk {
+  id         String   @id @default(cuid())
+  resourceId String   @map("resource_id")
+
+  content    String   // Texto del chunk
+  metadata   Json?    // Página, sección, timestamp, etc.
+  chunkIndex Int      @map("chunk_index")
+
+  // Vector embedding (pgvector)
+  // Dimensión 1536 para text-embedding-3-small de OpenAI
+  embedding  Unsupported("vector(1536)")?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId])
+  @@map("resource_chunks")
+}
+
+// ============================================
+// RAG QUERIES LOG
+// ============================================
+
+model RagQuery {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  subjectId String?  @map("subject_id")
+
+  query     String   // Pregunta del usuario
+  response  String?  // Respuesta generada
+
+  // Chunks usados para la respuesta
+  chunksUsed Json?   @map("chunks_used") // Array de chunk IDs + scores
+
+  // Métricas
+  tokensUsed    Int?     @map("tokens_used")
+  responseTimeMs Int?    @map("response_time_ms")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("rag_queries")
+}
