@@ -23,9 +23,10 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  profile  UserProfile?
-  subjects Subject[]
-  queries  RagQuery[]
+  profile     UserProfile?
+  subjects    Subject[]
+  queries     RagQuery[]
+  studyEvents StudyEvent[]
 
   @@map("users")
 }
@@ -82,9 +83,10 @@ model Subject {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resources Resource[]
-  queries   RagQuery[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resources   Resource[]
+  queries     RagQuery[]
+  studyEvents StudyEvent[]
 
   @@index([userId])
   @@map("subjects")
@@ -125,9 +127,10 @@ model Resource {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  subject   Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  chunks    ResourceChunk[]
-  notes     ResourceNote[]
+  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chunks      ResourceChunk[]
+  notes       ResourceNote[]
+  studyEvents StudyEvent[]
 
   @@index([subjectId])
   @@index([externalId, externalSource])
@@ -215,4 +218,67 @@ model RagQuery {
   @@index([userId])
   @@index([subjectId])
   @@map("rag_queries")
+}
+
+// ============================================
+// STUDY CALENDAR & EVENTS
+// ============================================
+
+model StudyEvent {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  title       String
+  description String?
+
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
+
+  type        StudyEventType @default(STUDY_SESSION)
+
+  // Asociaciones opcionales
+  subjectId   String?  @map("subject_id")
+  resourceId  String?  @map("resource_id")
+
+  // Personalización
+  color       String?
+
+  // Recurrencia
+  recurrence  RecurrenceType @default(NONE)
+
+  // Recordatorio
+  reminderMinutes Int?  @map("reminder_minutes")
+
+  // Estado
+  isAllDay    Boolean  @default(false) @map("is_all_day")
+  isCompleted Boolean  @default(false) @map("is_completed")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  resource  Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([startTime, endTime])
+  @@map("study_events")
+}
+
+enum StudyEventType {
+  STUDY_SESSION
+  REVIEW
+  EXAM
+  DEADLINE
+  CLASS
+  BREAK
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }
