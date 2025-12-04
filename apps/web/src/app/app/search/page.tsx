@@ -685,14 +685,16 @@ function ResourceResultCard({
                 )}
 
                 <div className="flex items-center gap-2 text-sm text-secondary-500 mt-1">
-                  {(resource.publicationDate || resource.publicationYear) && (
-                    <>
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {resource.publicationYear || new Date(resource.publicationDate!).getFullYear()}
-                      </span>
-                    </>
-                  )}
+                  {(() => {
+                    const year = resource.publicationYear ||
+                      (resource.publicationDate ? new Date(resource.publicationDate).getFullYear() : null);
+                    return typeof year === 'number' && !isNaN(year) && year > 0 ? (
+                      <>
+                        <Calendar className="h-4 w-4" />
+                        <span>{year}</span>
+                      </>
+                    ) : null;
+                  })()}
                   {typeof resource.citationCount === 'number' && !isNaN(resource.citationCount) && resource.citationCount > 0 && (
                     <span>· {resource.citationCount} citas</span>
                   )}
