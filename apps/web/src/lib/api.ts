@@ -279,15 +279,40 @@ export interface AcademicSearchParams {
   limit?: number;
 }
 
+export interface AcademicSearchResult {
+  items: AcademicResource[];
+  total: number;
+  page: number;
+  perPage: number;
+  source: string;
+}
+
 export const academic = {
-  search: (token: string, params: AcademicSearchParams) => {
+  search: async (token: string, params: AcademicSearchParams): Promise<AcademicResource[]> => {
     const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, String(value));
-      }
-    });
-    return request<AcademicResource[]>(`/academic/search?${searchParams}`, { token });
+    searchParams.append('q', params.query);
+    if (params.yearFrom) searchParams.append('yearFrom', String(params.yearFrom));
+    if (params.yearTo) searchParams.append('yearTo', String(params.yearTo));
+    if (params.openAccessOnly) searchParams.append('openAccessOnly', String(params.openAccessOnly));
+    if (params.limit) searchParams.append('perPage', String(params.limit));
+
+    const result = await request<AcademicSearchResult>(`/academic/search?${searchParams}`, { token });
+    return result.items || [];
+  },
+
+  searchMulti: async (token: string, params: AcademicSearchParams): Promise<AcademicResource[]> => {
+    const searchParams = new URLSearchParams();
+    searchParams.append('q', params.query);
+    if (params.yearFrom) searchParams.append('yearFrom', String(params.yearFrom));
+    if (params.yearTo) searchParams.append('yearTo', String(params.yearTo));
+    if (params.openAccessOnly) searchParams.append('openAccessOnly', String(params.openAccessOnly));
+    if (params.limit) searchParams.append('perPage', String(params.limit));
+
+    const result = await request<{ results: AcademicResource[]; totalBySource: Record<string, number> }>(
+      `/academic/search/multi?${searchParams}`,
+      { token }
+    );
+    return result.results || [];
   },
 
   importToSubject: (token: string, subjectId: string, resource: AcademicResource) =>
