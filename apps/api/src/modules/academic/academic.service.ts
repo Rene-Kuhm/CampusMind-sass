@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { OpenAlexProvider } from './providers/openalex.provider';
 import { SemanticScholarProvider } from './providers/semantic-scholar.provider';
@@ -248,13 +248,16 @@ export class AcademicService {
     userId: string,
     resource: AcademicResource,
   ) {
+    this.logger.log(`Importing resource "${resource.title}" to subject ${subjectId} for user ${userId}`);
+
     // Verify subject ownership
     const subject = await this.prisma.subject.findFirst({
       where: { id: subjectId, userId },
     });
 
     if (!subject) {
-      throw new Error('Materia no encontrada');
+      this.logger.warn(`Subject ${subjectId} not found for user ${userId}`);
+      throw new NotFoundException('Materia no encontrada');
     }
 
     // Map AcademicResourceType to internal ResourceType
@@ -279,22 +282,30 @@ export class AcademicService {
 
     const resourceType = typeMap[resource.type] || 'OTHER';
 
-    // Create the resource
-    return this.prisma.resource.create({
-      data: {
-        subjectId,
-        title: resource.title,
-        authors: resource.authors || [],
-        description: resource.abstract || null,
-        url: resource.url || resource.pdfUrl || null,
-        type: resourceType as any,
-        level: 'INTERMEDIATE',
-        language: resource.language || 'en',
-        isOpenAccess: resource.isOpenAccess,
-        license: resource.license || null,
-        externalId: resource.externalId,
-        externalSource: resource.source as string,
-      },
-    });
+    try {
+      // Create the resource
+      const created = await this.prisma.resource.create({
+        data: {
+          subjectId,
+          title: resource.title,
+          authors: resource.authors || [],
+          description: resource.abstract || null,
+          url: resource.url || resource.pdfUrl || null,
+          type: resourceType as any,
+          level: 'INTERMEDIATE',
+          language: resource.language || 'en',
+          isOpenAccess: resource.isOpenAccess,
+          license: resource.license || null,
+          externalId: resource.externalId,
+          externalSource: resource.source as string,
+        },
+      });
+
+      this.logger.log(`Successfully imported resource ${created.id}`);
+      return created;
+    } catch (error) {
+      this.logger.error(`Failed to import resource: ${error}`);
+      throw error;
+    }
   }
 }

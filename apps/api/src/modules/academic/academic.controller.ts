@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards, Request, Logger } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -17,6 +17,8 @@ import { AcademicSource, AcademicResourceType, AcademicResource } from './interf
 @UseGuards(JwtAuthGuard)
 @Controller('academic')
 export class AcademicController {
+  private readonly logger = new Logger(AcademicController.name);
+
   constructor(private readonly academicService: AcademicService) {}
 
   @Post('import')
@@ -40,11 +42,22 @@ export class AcademicController {
     @Body() body: { subjectId: string; resource: AcademicResource },
     @Request() req: any,
   ) {
-    return this.academicService.importToSubject(
-      body.subjectId,
-      req.user.id,
-      body.resource,
-    );
+    this.logger.log(`Import request received - subjectId: ${body.subjectId}, userId: ${req.user?.id}`);
+    this.logger.log(`Resource to import: ${JSON.stringify(body.resource?.title || 'no title')}`);
+
+    try {
+      const result = await this.academicService.importToSubject(
+        body.subjectId,
+        req.user.id,
+        body.resource,
+      );
+      this.logger.log(`Import successful: ${result.id}`);
+      return result;
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Import failed: ${err.message}`, err.stack);
+      throw error;
+    }
   }
 
   // NOTE: More specific routes must come BEFORE less specific ones
