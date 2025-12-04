@@ -4,6 +4,7 @@ import { ChunkingService } from './services/chunking.service';
 import { EmbeddingService } from './services/embedding.service';
 import { VectorStoreService } from './services/vector-store.service';
 import { LlmService } from './services/llm.service';
+import { CacheService } from './services/cache.service';
 import {
   RagQueryOptions,
   RagResponse,
@@ -20,6 +21,7 @@ export class RagService {
     private readonly embedding: EmbeddingService,
     private readonly vectorStore: VectorStoreService,
     private readonly llm: LlmService,
+    private readonly cache: CacheService,
   ) {}
 
   /**
@@ -85,6 +87,9 @@ export class RagService {
       },
     });
 
+    // Invalidar cache RAG porque los chunks han cambiado
+    this.cache.invalidateByResource(resourceId);
+
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);
 
     this.logger.log(
@@ -99,6 +104,7 @@ export class RagService {
 
   /**
    * Consulta RAG: busca contexto relevante y genera respuesta
+   * Implementa cache para consultas frecuentes
    */
   async queryRAG(
     userId: string,
@@ -106,6 +112,25 @@ export class RagService {
     options?: RagQueryOptions,
   ): Promise<RagResponse> {
     const startTime = Date.now();
+
+    // Verificar cache primero (solo si no se especifica que se quiere respuesta fresca)
+    if (!options?.skipCache) {
+      const cached = this.cache.getRagResponse(query, {
+        subjectId: options?.subjectId,
+        resourceIds: options?.resourceIds,
+      });
+
+      if (cached) {
+        this.logger.debug(`RAG cache hit for query: "${query.substring(0, 30)}..."`);
+        return {
+          answer: cached.answer,
+          citations: cached.citations,
+          tokensUsed: 0, // No tokens used for cached response
+          processingTimeMs: Date.now() - startTime,
+          fromCache: true,
+        };
+      }
+    }
 
     // Generar embedding de la consulta
     const queryEmbedding = await this.embedding.generateEmbedding(query);
@@ -153,6 +178,15 @@ export class RagService {
       relevanceScore: chunk.score,
     }));
 
+    const totalTokens = queryEmbedding.tokenCount + llmResponse.tokensUsed;
+
+    // Guardar en cache
+    this.cache.setRagResponse(
+      query,
+      { answer: llmResponse.content, citations, tokensUsed: totalTokens },
+      { subjectId: options?.subjectId, resourceIds: options?.resourceIds },
+    );
+
     // Guardar query en el log
     await this.prisma.ragQuery.create({
       data: {
@@ -161,7 +195,7 @@ export class RagService {
         query,
         response: llmResponse.content,
         chunksUsed: similarChunks.map((c) => ({ id: c.id, score: c.score })),
-        tokensUsed: queryEmbedding.tokenCount + llmResponse.tokensUsed,
+        tokensUsed: totalTokens,
         responseTimeMs: Date.now() - startTime,
       },
     });
@@ -169,7 +203,7 @@ export class RagService {
     return {
       answer: llmResponse.content,
       citations,
-      tokensUsed: queryEmbedding.tokenCount + llmResponse.tokensUsed,
+      tokensUsed: totalTokens,
       processingTimeMs: Date.now() - startTime,
     };
   }

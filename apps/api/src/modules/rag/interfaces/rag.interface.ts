@@ -33,6 +33,7 @@ export interface RagQueryOptions {
   minScore?: number; // Minimum similarity score
   style?: 'formal' | 'practical' | 'balanced';
   depth?: 'basic' | 'intermediate' | 'advanced';
+  skipCache?: boolean; // Force fresh query, skip cache
 }
 
 export interface RagResponse {
@@ -40,6 +41,7 @@ export interface RagResponse {
   citations: Citation[];
   tokensUsed: number;
   processingTimeMs: number;
+  fromCache?: boolean; // Indicates if response was served from cache
 }
 
 export interface Citation {
