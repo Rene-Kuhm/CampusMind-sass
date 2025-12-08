@@ -955,6 +955,469 @@ export const notebook = {
   },
 };
 
+// ============================================
+// FLASHCARDS ENDPOINTS
+// ============================================
+
+export interface Flashcard {
+  id: string;
+  deckId: string;
+  front: string;
+  back: string;
+  formula?: string;
+  tags: string[];
+  interval: number;
+  easeFactor: number;
+  repetitions: number;
+  nextReviewDate: string;
+  lastReviewDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlashcardDeck {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  color: string;
+  subjectId?: string;
+  subject?: { name: string; color: string };
+  isPublic: boolean;
+  cardCount: number;
+  dueCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFlashcardRequest {
+  deckId: string;
+  front: string;
+  back: string;
+  formula?: string;
+  tags?: string[];
+}
+
+export interface CreateDeckRequest {
+  name: string;
+  description?: string;
+  color?: string;
+  subjectId?: string;
+  isPublic?: boolean;
+}
+
+export interface ReviewFlashcardRequest {
+  quality: number; // 0-5 for SM-2
+  timeSpentMs?: number;
+}
+
+export interface FlashcardStats {
+  totalCards: number;
+  dueToday: number;
+  reviewedToday: number;
+  averageEaseFactor: number;
+  masteredCards: number;
+  streakDays: number;
+}
+
+export const flashcards = {
+  // Decks
+  listDecks: (token: string) =>
+    request<FlashcardDeck[]>('/flashcards/decks', { token }),
+
+  getDeck: (token: string, deckId: string) =>
+    request<FlashcardDeck>(`/flashcards/decks/${deckId}`, { token }),
+
+  createDeck: (token: string, data: CreateDeckRequest) =>
+    request<FlashcardDeck>('/flashcards/decks', { method: 'POST', body: data, token }),
+
+  updateDeck: (token: string, deckId: string, data: Partial<CreateDeckRequest>) =>
+    request<FlashcardDeck>(`/flashcards/decks/${deckId}`, { method: 'PATCH', body: data, token }),
+
+  deleteDeck: (token: string, deckId: string) =>
+    request<void>(`/flashcards/decks/${deckId}`, { method: 'DELETE', token }),
+
+  // Cards
+  getCards: (token: string, deckId: string) =>
+    request<Flashcard[]>(`/flashcards/decks/${deckId}/cards`, { token }),
+
+  createCard: (token: string, data: CreateFlashcardRequest) =>
+    request<Flashcard>('/flashcards/cards', { method: 'POST', body: data, token }),
+
+  updateCard: (token: string, cardId: string, data: Partial<CreateFlashcardRequest>) =>
+    request<Flashcard>(`/flashcards/cards/${cardId}`, { method: 'PATCH', body: data, token }),
+
+  deleteCard: (token: string, cardId: string) =>
+    request<void>(`/flashcards/cards/${cardId}`, { method: 'DELETE', token }),
+
+  // Study
+  getDueCards: (token: string, deckId?: string) => {
+    const query = deckId ? `?deckId=${deckId}` : '';
+    return request<Flashcard[]>(`/flashcards/due${query}`, { token });
+  },
+
+  reviewCard: (token: string, cardId: string, data: ReviewFlashcardRequest) =>
+    request<Flashcard>(`/flashcards/cards/${cardId}/review`, { method: 'POST', body: data, token }),
+
+  // Stats
+  getStats: (token: string, deckId?: string) => {
+    const query = deckId ? `?deckId=${deckId}` : '';
+    return request<FlashcardStats>(`/flashcards/stats${query}`, { token });
+  },
+
+  // Bulk import
+  importCards: (token: string, deckId: string, cards: Array<{ front: string; back: string; tags?: string[] }>) =>
+    request<{ imported: number }>('/flashcards/import', { method: 'POST', body: { deckId, cards }, token }),
+};
+
+// ============================================
+// QUIZZES ENDPOINTS
+// ============================================
+
+export type QuizQuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY';
+export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
+
+export interface QuizQuestion {
+  id: string;
+  quizId: string;
+  type: QuizQuestionType;
+  text: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation?: string;
+  points: number;
+  difficulty: DifficultyLevel;
+  orderIndex: number;
+}
+
+export interface Quiz {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  subjectId?: string;
+  subject?: { name: string; color: string };
+  timeLimitMinutes?: number;
+  passingScore: number;
+  showAnswers: boolean;
+  shuffleQuestions: boolean;
+  isPublished: boolean;
+  questions: QuizQuestion[];
+  _count?: { attempts: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuizAttempt {
+  id: string;
+  quizId: string;
+  userId: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  passed: boolean;
+  answers: Record<string, unknown>;
+  gradedAnswers?: Array<{
+    questionId: string;
+    userAnswer: unknown;
+    isCorrect: boolean | null;
+    points: number;
+    explanation?: string;
+    essayEvaluation?: {
+      feedback: string;
+      strengths: string[];
+      improvements: string[];
+    };
+  }>;
+  timeSpentMinutes?: number;
+  startedAt: string;
+  completedAt: string;
+}
+
+export interface CreateQuizRequest {
+  title: string;
+  description?: string;
+  subjectId?: string;
+  timeLimitMinutes?: number;
+  passingScore?: number;
+  showAnswers?: boolean;
+  shuffleQuestions?: boolean;
+}
+
+export interface CreateQuestionRequest {
+  type: QuizQuestionType;
+  text: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation?: string;
+  points?: number;
+  difficulty?: DifficultyLevel;
+}
+
+export interface SubmitQuizRequest {
+  answers: Array<{
+    questionId: string;
+    selectedOption?: number;
+    textAnswer?: string;
+  }>;
+  timeSpentMinutes?: number;
+}
+
+export interface QuizStats {
+  totalQuizzes: number;
+  totalAttempts: number;
+  averageScore: number;
+  passRate: number;
+  bestScore: number;
+  recentAttempts: QuizAttempt[];
+}
+
+export const quizzes = {
+  // Quiz CRUD
+  list: (token: string, subjectId?: string) => {
+    const query = subjectId ? `?subjectId=${subjectId}` : '';
+    return request<Quiz[]>(`/quizzes${query}`, { token });
+  },
+
+  get: (token: string, quizId: string) =>
+    request<Quiz>(`/quizzes/${quizId}`, { token }),
+
+  create: (token: string, data: CreateQuizRequest) =>
+    request<Quiz>('/quizzes', { method: 'POST', body: data, token }),
+
+  update: (token: string, quizId: string, data: Partial<CreateQuizRequest>) =>
+    request<Quiz>(`/quizzes/${quizId}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, quizId: string) =>
+    request<void>(`/quizzes/${quizId}`, { method: 'DELETE', token }),
+
+  publish: (token: string, quizId: string) =>
+    request<Quiz>(`/quizzes/${quizId}/publish`, { method: 'PATCH', token }),
+
+  // Questions
+  addQuestion: (token: string, quizId: string, data: CreateQuestionRequest) =>
+    request<QuizQuestion>(`/quizzes/${quizId}/questions`, { method: 'POST', body: data, token }),
+
+  updateQuestion: (token: string, quizId: string, questionId: string, data: Partial<CreateQuestionRequest>) =>
+    request<QuizQuestion>(`/quizzes/${quizId}/questions/${questionId}`, { method: 'PATCH', body: data, token }),
+
+  deleteQuestion: (token: string, quizId: string, questionId: string) =>
+    request<void>(`/quizzes/${quizId}/questions/${questionId}`, { method: 'DELETE', token }),
+
+  reorderQuestions: (token: string, quizId: string, questionIds: string[]) =>
+    request<void>(`/quizzes/${quizId}/questions/reorder`, { method: 'PATCH', body: { questionIds }, token }),
+
+  // Taking quizzes
+  getForTaking: (token: string, quizId: string) =>
+    request<Quiz>(`/quizzes/${quizId}/take`, { token }),
+
+  submit: (token: string, quizId: string, data: SubmitQuizRequest) =>
+    request<QuizAttempt>(`/quizzes/${quizId}/submit`, { method: 'POST', body: data, token }),
+
+  // Attempts
+  getAttempts: (token: string, quizId: string) =>
+    request<QuizAttempt[]>(`/quizzes/${quizId}/attempts`, { token }),
+
+  getAttempt: (token: string, quizId: string, attemptId: string) =>
+    request<QuizAttempt>(`/quizzes/${quizId}/attempts/${attemptId}`, { token }),
+
+  // Stats
+  getStats: (token: string) =>
+    request<QuizStats>('/quizzes/stats', { token }),
+
+  getQuizStats: (token: string, quizId: string) =>
+    request<{ attempts: number; averageScore: number; passRate: number }>(`/quizzes/${quizId}/stats`, { token }),
+};
+
+// ============================================
+// DASHBOARD ENDPOINTS
+// ============================================
+
+export interface DashboardStats {
+  subjects: number;
+  flashcards: number;
+  quizzes: number;
+  studyHours: number;
+  streakDays: number;
+  xpTotal: number;
+  level: number;
+  dueCards: number;
+  upcomingEvents: number;
+}
+
+export interface WeeklyProgress {
+  day: string;
+  cardsReviewed: number;
+  quizzesCompleted: number;
+  minutesStudied: number;
+}
+
+export interface RecentActivity {
+  id: string;
+  type: 'flashcard_review' | 'quiz_attempt' | 'resource_added' | 'achievement';
+  title: string;
+  description: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+export const dashboard = {
+  getStats: (token: string) =>
+    request<DashboardStats>('/dashboard/stats', { token }),
+
+  getWeeklyProgress: (token: string) =>
+    request<WeeklyProgress[]>('/dashboard/progress/weekly', { token }),
+
+  getRecentActivity: (token: string, limit = 10) =>
+    request<RecentActivity[]>(`/dashboard/activity?limit=${limit}`, { token }),
+
+  getStudyStreak: (token: string) =>
+    request<{ currentStreak: number; longestStreak: number; lastStudyDate: string }>('/dashboard/streak', { token }),
+};
+
+// ============================================
+// PROFILE & SETTINGS ENDPOINTS
+// ============================================
+
+export interface ProfileStats {
+  totalStudyTime: number;
+  cardsReviewed: number;
+  quizzesTaken: number;
+  averageQuizScore: number;
+  achievementsUnlocked: number;
+  currentStreak: number;
+  longestStreak: number;
+  joinedAt: string;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  unlockedAt?: string;
+  progress?: number;
+  maxProgress?: number;
+}
+
+export interface NotificationSettings {
+  emailStudyReminders: boolean;
+  emailWeeklySummary: boolean;
+  emailAchievements: boolean;
+  pushStudyReminders: boolean;
+  pushDueCards: boolean;
+  pushAchievements: boolean;
+  reminderTime: string; // HH:mm format
+}
+
+export interface PrivacySettings {
+  profilePublic: boolean;
+  showStreak: boolean;
+  showAchievements: boolean;
+  allowGroupInvites: boolean;
+}
+
+export interface UserSettings {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  studyStyle: 'FORMAL' | 'PRACTICAL' | 'BALANCED';
+  contentDepth: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+  notifications: NotificationSettings;
+  privacy: PrivacySettings;
+}
+
+export const profile = {
+  get: (token: string) =>
+    request<User & { stats: ProfileStats }>('/profile', { token }),
+
+  update: (token: string, data: Partial<UserProfile>) =>
+    request<User>('/profile', { method: 'PATCH', body: data, token }),
+
+  getStats: (token: string) =>
+    request<ProfileStats>('/profile/stats', { token }),
+
+  getAchievements: (token: string) =>
+    request<Achievement[]>('/profile/achievements', { token }),
+
+  uploadAvatar: async (token: string, file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await fetch(`${API_URL}${API_PREFIX}/profile/avatar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!response.ok) throw new ApiError(response.status, 'Failed to upload avatar');
+    return response.json() as Promise<{ avatarUrl: string }>;
+  },
+};
+
+export const settings = {
+  get: (token: string) =>
+    request<UserSettings>('/settings', { token }),
+
+  update: (token: string, data: Partial<UserSettings>) =>
+    request<UserSettings>('/settings', { method: 'PATCH', body: data, token }),
+
+  getNotifications: (token: string) =>
+    request<NotificationSettings>('/settings/notifications', { token }),
+
+  updateNotifications: (token: string, data: Partial<NotificationSettings>) =>
+    request<NotificationSettings>('/settings/notifications', { method: 'PATCH', body: data, token }),
+
+  getPrivacy: (token: string) =>
+    request<PrivacySettings>('/settings/privacy', { token }),
+
+  updatePrivacy: (token: string, data: Partial<PrivacySettings>) =>
+    request<PrivacySettings>('/settings/privacy', { method: 'PATCH', body: data, token }),
+};
+
+// ============================================
+// TWO-FACTOR AUTH ENDPOINTS
+// ============================================
+
+export interface TwoFactorSetup {
+  secret: string;
+  qrCodeUrl: string;
+  backupCodes: string[];
+}
+
+export const twoFactor = {
+  getStatus: (token: string) =>
+    request<{ enabled: boolean; hasBackupCodes: boolean }>('/auth/2fa/status', { token }),
+
+  setup: (token: string) =>
+    request<TwoFactorSetup>('/auth/2fa/setup', { method: 'POST', token }),
+
+  verify: (token: string, code: string) =>
+    request<{ success: boolean; backupCodes?: string[] }>('/auth/2fa/verify', { method: 'POST', body: { code }, token }),
+
+  disable: (token: string, code: string) =>
+    request<{ success: boolean }>('/auth/2fa/disable', { method: 'POST', body: { code }, token }),
+
+  regenerateBackupCodes: (token: string, code: string) =>
+    request<{ backupCodes: string[] }>('/auth/2fa/backup-codes', { method: 'POST', body: { code }, token }),
+};
+
+// ============================================
+// PASSWORD RESET ENDPOINTS
+// ============================================
+
+export const passwordReset = {
+  requestReset: (email: string) =>
+    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: { email } }),
+
+  validateToken: (email: string, token: string) =>
+    request<{ valid: boolean }>('/auth/validate-reset-token', { method: 'POST', body: { email, token } }),
+
+  resetPassword: (email: string, token: string, newPassword: string) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: { email, token, newPassword } }),
+
+  changePassword: (token: string, currentPassword: string, newPassword: string) =>
+    request<{ message: string }>('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword }, token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -966,4 +1429,11 @@ export default {
   billing,
   calendar,
   notebook,
+  flashcards,
+  quizzes,
+  dashboard,
+  profile,
+  settings,
+  twoFactor,
+  passwordReset,
 };
