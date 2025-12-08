@@ -302,6 +302,12 @@ Fotosíntesis	Proceso por el cual las plantas convierten luz en energía`,
 "¿Qué es H2O?","Agua - Molécula formada por 2 átomos de hidrógeno y 1 de oxígeno","química"
 "Teorema de Pitágoras","a² + b² = c² - Relación entre los lados de un triángulo rectángulo","matemáticas geometría"
 "Primera ley de Newton","Un objeto en reposo permanece en reposo a menos que actúe una fuerza externa","física mecánica"`,
+
+  text: `# Ejemplo de formato texto (separador automático)
+# Usa tab, | o :: como separador entre frente y reverso
+¿Cuál es la fórmula del agua?	H2O
+Velocidad de la luz	299,792,458 m/s
+ADN :: Ácido desoxirribonucleico`,
 };
 
 // Validation helpers
