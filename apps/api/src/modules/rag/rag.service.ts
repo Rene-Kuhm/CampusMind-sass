@@ -300,6 +300,263 @@ export class RagService {
   }
 
   /**
+   * Genera flashcards a partir de un tema o contenido usando IA
+   */
+  async generateFlashcards(
+    topic: string,
+    options?: {
+      count?: number;
+      difficulty?: 'basic' | 'intermediate' | 'advanced';
+      language?: string;
+      content?: string; // Contenido opcional para basar las flashcards
+    },
+  ): Promise<{
+    flashcards: Array<{
+      front: string;
+      back: string;
+    }>;
+    tokensUsed: number;
+  }> {
+    const count = options?.count || 5;
+    const difficulty = options?.difficulty || 'intermediate';
+    const language = options?.language || 'es';
+
+    const difficultyGuide = {
+      basic:
+        'Preguntas simples y directas, enfocadas en definiciones y conceptos fundamentales.',
+      intermediate:
+        'Preguntas que requieren comprensión y relación de conceptos.',
+      advanced:
+        'Preguntas que requieren análisis, síntesis y aplicación de conocimientos.',
+    };
+
+    const contentSection = options?.content
+      ? `\n\nCONTENIDO DE REFERENCIA:\n${options.content.substring(0, 8000)}`
+      : '';
+
+    const prompt = `Genera exactamente ${count} flashcards educativas sobre el siguiente tema.${contentSection}
+
+TEMA: ${topic}
+
+NIVEL DE DIFICULTAD: ${difficultyGuide[difficulty]}
+IDIOMA: ${language === 'es' ? 'Español' : language}
+
+INSTRUCCIONES:
+1. Cada flashcard debe tener una pregunta (front) y una respuesta (back)
+2. Las preguntas deben ser claras y específicas
+3. Las respuestas deben ser concisas pero completas
+4. Varía el tipo de preguntas: definiciones, conceptos, aplicaciones, comparaciones
+5. Asegúrate de que las respuestas sean correctas y educativas
+
+FORMATO DE RESPUESTA (JSON válido):
+{
+  "flashcards": [
+    {"front": "Pregunta 1", "back": "Respuesta 1"},
+    {"front": "Pregunta 2", "back": "Respuesta 2"}
+  ]
+}
+
+Responde SOLO con el JSON válido, sin texto adicional.`;
+
+    const response = await this.llm.generateWithFreeProvider(prompt, {
+      maxTokens: 2000,
+      temperature: 0.7,
+    });
+
+    try {
+      const parsed = JSON.parse(response.content);
+      return {
+        flashcards: parsed.flashcards || [],
+        tokensUsed: response.tokensUsed,
+      };
+    } catch {
+      this.logger.error('Failed to parse flashcards JSON');
+      return {
+        flashcards: [],
+        tokensUsed: response.tokensUsed,
+      };
+    }
+  }
+
+  /**
+   * Genera un quiz/examen de práctica a partir de un tema usando IA
+   */
+  async generateQuiz(
+    topic: string,
+    options?: {
+      questionCount?: number;
+      difficulty?: 'basic' | 'intermediate' | 'advanced';
+      questionTypes?: ('multiple_choice' | 'true_false' | 'short_answer')[];
+      language?: string;
+      content?: string;
+    },
+  ): Promise<{
+    questions: Array<{
+      type: 'multiple_choice' | 'true_false' | 'short_answer';
+      question: string;
+      options?: string[];
+      correctAnswer: string;
+      explanation?: string;
+      points: number;
+    }>;
+    tokensUsed: number;
+  }> {
+    const count = options?.questionCount || 5;
+    const difficulty = options?.difficulty || 'intermediate';
+    const language = options?.language || 'es';
+    const types = options?.questionTypes || ['multiple_choice', 'true_false', 'short_answer'];
+
+    const contentSection = options?.content
+      ? `\n\nCONTENIDO DE REFERENCIA:\n${options.content.substring(0, 8000)}`
+      : '';
+
+    const prompt = `Genera exactamente ${count} preguntas de examen sobre el siguiente tema.${contentSection}
+
+TEMA: ${topic}
+
+NIVEL DE DIFICULTAD: ${difficulty}
+IDIOMA: ${language === 'es' ? 'Español' : language}
+TIPOS DE PREGUNTAS A INCLUIR: ${types.join(', ')}
+
+INSTRUCCIONES:
+1. Distribuye los tipos de preguntas de manera equilibrada
+2. Para multiple_choice: incluye 4 opciones (A, B, C, D)
+3. Para true_false: la respuesta debe ser "Verdadero" o "Falso"
+4. Para short_answer: la respuesta debe ser breve (1-3 palabras o una frase corta)
+5. Incluye una explicación breve para cada respuesta
+6. Asigna puntos según dificultad (1-3)
+
+FORMATO DE RESPUESTA (JSON válido):
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "question": "¿Cuál es...?",
+      "options": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
+      "correctAnswer": "A",
+      "explanation": "Explicación de por qué es correcta",
+      "points": 2
+    },
+    {
+      "type": "true_false",
+      "question": "Afirmación verdadera o falsa",
+      "correctAnswer": "Verdadero",
+      "explanation": "Explicación",
+      "points": 1
+    },
+    {
+      "type": "short_answer",
+      "question": "¿Qué es...?",
+      "correctAnswer": "Respuesta corta",
+      "explanation": "Explicación",
+      "points": 2
+    }
+  ]
+}
+
+Responde SOLO con el JSON válido, sin texto adicional.`;
+
+    const response = await this.llm.generateWithFreeProvider(prompt, {
+      maxTokens: 3000,
+      temperature: 0.7,
+    });
+
+    try {
+      const parsed = JSON.parse(response.content);
+      return {
+        questions: parsed.questions || [],
+        tokensUsed: response.tokensUsed,
+      };
+    } catch {
+      this.logger.error('Failed to parse quiz JSON');
+      return {
+        questions: [],
+        tokensUsed: response.tokensUsed,
+      };
+    }
+  }
+
+  /**
+   * Genera un resumen automático de contenido
+   */
+  async generateAutoSummary(
+    content: string,
+    options?: {
+      style?: 'bullet_points' | 'paragraph' | 'outline';
+      length?: 'short' | 'medium' | 'long';
+      language?: string;
+    },
+  ): Promise<{
+    summary: string;
+    keyPoints: string[];
+    tokensUsed: number;
+  }> {
+    const style = options?.style || 'bullet_points';
+    const length = options?.length || 'medium';
+    const language = options?.language || 'es';
+
+    const lengthGuide = {
+      short: '3-5 puntos clave o 1-2 párrafos',
+      medium: '5-8 puntos clave o 2-3 párrafos',
+      long: '8-12 puntos clave o 4-5 párrafos',
+    };
+
+    const styleGuide = {
+      bullet_points: 'Usa viñetas para cada punto clave',
+      paragraph: 'Escribe en formato de párrafos fluidos',
+      outline: 'Usa formato de esquema con secciones y subsecciones',
+    };
+
+    const prompt = `Genera un resumen del siguiente contenido.
+
+CONTENIDO:
+${content.substring(0, 12000)}
+
+ESTILO: ${styleGuide[style]}
+LONGITUD: ${lengthGuide[length]}
+IDIOMA: ${language === 'es' ? 'Español' : language}
+
+INSTRUCCIONES:
+1. Captura las ideas principales y conceptos clave
+2. Mantén la precisión y evita añadir información no presente
+3. Usa un lenguaje claro y académico
+4. Organiza la información de manera lógica
+
+FORMATO DE RESPUESTA (JSON válido):
+{
+  "summary": "El resumen completo aquí...",
+  "keyPoints": [
+    "Punto clave 1",
+    "Punto clave 2",
+    "Punto clave 3"
+  ]
+}
+
+Responde SOLO con el JSON válido, sin texto adicional.`;
+
+    const response = await this.llm.generateWithFreeProvider(prompt, {
+      maxTokens: 2000,
+      temperature: 0.3,
+    });
+
+    try {
+      const parsed = JSON.parse(response.content);
+      return {
+        summary: parsed.summary || '',
+        keyPoints: parsed.keyPoints || [],
+        tokensUsed: response.tokensUsed,
+      };
+    } catch {
+      this.logger.error('Failed to parse summary JSON');
+      return {
+        summary: response.content,
+        keyPoints: [],
+        tokensUsed: response.tokensUsed,
+      };
+    }
+  }
+
+  /**
    * Obtiene estadísticas de uso RAG del usuario
    */
   async getUserStats(userId: string) {

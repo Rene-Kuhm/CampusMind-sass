@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { subjects as subjectsApi, Subject } from '@/lib/api';
+import { subjects as subjectsApi, Subject, rag } from '@/lib/api';
 import {
   Card,
   CardContent,
@@ -35,6 +35,8 @@ import {
   Zap,
   Award,
   Flame,
+  Wand2,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -110,10 +112,19 @@ export default function FlashcardsPage() {
   // Modal states
   const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isAIGenerateModalOpen, setIsAIGenerateModalOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [newDeck, setNewDeck] = useState<Partial<Deck>>({ name: '', color: 'blue' });
   const [newCard, setNewCard] = useState<Partial<Flashcard>>({ front: '', back: '' });
+
+  // AI Generation state
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiCount, setAiCount] = useState(5);
+  const [aiDifficulty, setAiDifficulty] = useState<'basic' | 'intermediate' | 'advanced'>('intermediate');
+  const [aiContent, setAiContent] = useState('');
+  const [generatedCards, setGeneratedCards] = useState<{ front: string; back: string }[]>([]);
 
   // Stats
   const [stats, setStats] = useState({
@@ -280,6 +291,68 @@ export default function FlashcardsPage() {
     saveDecks(decks.map(d =>
       d.id === card.deckId ? { ...d, cardCount: Math.max(0, d.cardCount - 1) } : d
     ));
+  };
+
+  // AI Generation
+  const openAIGenerateModal = () => {
+    if (!selectedDeck) return;
+    setAiTopic('');
+    setAiCount(5);
+    setAiDifficulty('intermediate');
+    setAiContent('');
+    setGeneratedCards([]);
+    setIsAIGenerateModalOpen(true);
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!aiTopic || !token || !selectedDeck) return;
+
+    setAiGenerating(true);
+    try {
+      const response = await rag.generateFlashcards(token, {
+        topic: aiTopic,
+        count: aiCount,
+        difficulty: aiDifficulty,
+        content: aiContent || undefined,
+      });
+
+      if (response.flashcards && response.flashcards.length > 0) {
+        setGeneratedCards(response.flashcards);
+      }
+    } catch (error) {
+      console.error('Error generating flashcards:', error);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleAddGeneratedCards = () => {
+    if (!selectedDeck || generatedCards.length === 0) return;
+
+    const newCards: Flashcard[] = generatedCards.map((gc, index) => ({
+      id: `${Date.now()}-${index}`,
+      front: gc.front,
+      back: gc.back,
+      deckId: selectedDeck.id,
+      level: 0,
+      nextReview: getNextReviewDate(0),
+      timesReviewed: 0,
+      timesCorrect: 0,
+      createdAt: new Date().toISOString(),
+    }));
+
+    const updatedCards = [...cards, ...newCards];
+    saveCards(updatedCards);
+    saveDecks(decks.map(d =>
+      d.id === selectedDeck.id ? { ...d, cardCount: d.cardCount + newCards.length } : d
+    ));
+
+    setIsAIGenerateModalOpen(false);
+    setGeneratedCards([]);
+  };
+
+  const handleRemoveGeneratedCard = (index: number) => {
+    setGeneratedCards(prev => prev.filter((_, i) => i !== index));
   };
 
   // Study session
@@ -585,11 +658,22 @@ export default function FlashcardsPage() {
 
         <div className="p-6">
           <div className="max-w-4xl mx-auto">
-            {/* Add Card */}
-            <Button variant="outline" className="w-full mb-6" onClick={openNewCardModal}>
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar tarjeta
-            </Button>
+            {/* Add Card Buttons */}
+            <div className="flex gap-3 mb-6">
+              <Button variant="outline" className="flex-1" onClick={openNewCardModal}>
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar tarjeta
+              </Button>
+              <Button
+                variant="gradient"
+                className="flex-1"
+                onClick={openAIGenerateModal}
+              >
+                <Wand2 className="h-4 w-4 mr-2" />
+                Generar con IA
+                <Badge className="ml-2 bg-white/20 text-white text-xs">IA</Badge>
+              </Button>
+            </div>
 
             {/* Cards List */}
             {deckCards.length === 0 ? (
@@ -694,6 +778,174 @@ export default function FlashcardsPage() {
                 {editingCard ? 'Guardar' : 'Crear'}
               </Button>
             </div>
+          </div>
+        </Modal>
+
+        {/* AI Generate Modal */}
+        <Modal
+          isOpen={isAIGenerateModalOpen}
+          onClose={() => setIsAIGenerateModalOpen(false)}
+          title="Generar Flashcards con IA"
+          variant="glass"
+          size="lg"
+        >
+          <div className="space-y-6">
+            {generatedCards.length === 0 ? (
+              <>
+                {/* Generation Form */}
+                <div className="p-4 bg-gradient-to-r from-primary-50 to-violet-50 rounded-xl border border-primary-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-5 w-5 text-primary-500" />
+                    <span className="font-medium text-primary-700">Generación con IA</span>
+                  </div>
+                  <p className="text-sm text-primary-600">
+                    Describe el tema y la IA generará flashcards automáticamente.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">
+                    Tema *
+                  </label>
+                  <Input
+                    placeholder="Ej: Leyes de Newton, Células eucariotas, Guerra Fría..."
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-1">
+                      Cantidad de tarjetas
+                    </label>
+                    <Select
+                      value={String(aiCount)}
+                      onChange={(e) => setAiCount(Number(e.target.value))}
+                      options={[
+                        { value: '3', label: '3 tarjetas' },
+                        { value: '5', label: '5 tarjetas' },
+                        { value: '10', label: '10 tarjetas' },
+                        { value: '15', label: '15 tarjetas' },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-1">
+                      Dificultad
+                    </label>
+                    <Select
+                      value={aiDifficulty}
+                      onChange={(e) => setAiDifficulty(e.target.value as typeof aiDifficulty)}
+                      options={[
+                        { value: 'basic', label: 'Básico' },
+                        { value: 'intermediate', label: 'Intermedio' },
+                        { value: 'advanced', label: 'Avanzado' },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">
+                    Contenido de referencia (opcional)
+                  </label>
+                  <textarea
+                    className="w-full px-3 py-2 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    rows={4}
+                    placeholder="Pega aquí texto de tus apuntes o material de estudio para generar flashcards basadas en ese contenido..."
+                    value={aiContent}
+                    onChange={(e) => setAiContent(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-secondary-100">
+                  <Button variant="outline" onClick={() => setIsAIGenerateModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="gradient"
+                    onClick={handleGenerateWithAI}
+                    disabled={!aiTopic || aiGenerating}
+                  >
+                    {aiGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generando...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Generar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Generated Cards Preview */}
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-emerald-500" />
+                    <span className="font-medium text-emerald-700">
+                      {generatedCards.length} tarjetas generadas
+                    </span>
+                  </div>
+                  <p className="text-sm text-emerald-600">
+                    Revisa las tarjetas y elimina las que no necesites antes de agregarlas.
+                  </p>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto space-y-3">
+                  {generatedCards.map((card, index) => (
+                    <Card key={index} className="relative">
+                      <CardContent className="p-4">
+                        <button
+                          onClick={() => handleRemoveGeneratedCard(index)}
+                          className="absolute top-2 right-2 p-1.5 text-secondary-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="grid grid-cols-2 gap-4 pr-6">
+                          <div>
+                            <p className="text-xs text-secondary-400 mb-1">Pregunta</p>
+                            <p className="text-sm text-secondary-800">{card.front}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-secondary-400 mb-1">Respuesta</p>
+                            <p className="text-sm text-secondary-600">{card.back}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="flex justify-between gap-3 pt-4 border-t border-secondary-100">
+                  <Button
+                    variant="outline"
+                    onClick={() => setGeneratedCards([])}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Regenerar
+                  </Button>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setIsAIGenerateModalOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="gradient"
+                      onClick={handleAddGeneratedCards}
+                      disabled={generatedCards.length === 0}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar {generatedCards.length} tarjetas
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Modal>
       </div>

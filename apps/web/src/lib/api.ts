@@ -538,6 +538,61 @@ export interface ProvidersResponse {
   available: AIProvider[];
 }
 
+// AI Generation interfaces
+export interface GenerateFlashcardsRequest {
+  topic: string;
+  count?: number;
+  difficulty?: 'basic' | 'intermediate' | 'advanced';
+  language?: string;
+  content?: string;
+}
+
+export interface GeneratedFlashcard {
+  front: string;
+  back: string;
+}
+
+export interface GenerateFlashcardsResponse {
+  flashcards: GeneratedFlashcard[];
+  tokensUsed: number;
+}
+
+export interface GenerateQuizRequest {
+  topic: string;
+  questionCount?: number;
+  difficulty?: 'basic' | 'intermediate' | 'advanced';
+  questionTypes?: ('multiple_choice' | 'true_false' | 'short_answer')[];
+  language?: string;
+  content?: string;
+}
+
+export interface GeneratedQuestion {
+  type: 'multiple_choice' | 'true_false' | 'short_answer';
+  question: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation?: string;
+  points: number;
+}
+
+export interface GenerateQuizResponse {
+  questions: GeneratedQuestion[];
+  tokensUsed: number;
+}
+
+export interface GenerateSummaryRequest {
+  content: string;
+  style?: 'bullet_points' | 'paragraph' | 'outline';
+  length?: 'short' | 'medium' | 'long';
+  language?: string;
+}
+
+export interface GenerateSummaryResponse {
+  summary: string;
+  keyPoints: string[];
+  tokensUsed: number;
+}
+
 export const rag = {
   query: (token: string, data: RagQueryRequest) =>
     request<RagResponse>('/rag/query', { method: 'POST', body: data, token }),
@@ -552,6 +607,16 @@ export const rag = {
 
   getProviders: (token: string) =>
     request<ProvidersResponse>('/rag/providers', { token }),
+
+  // AI Generation endpoints
+  generateFlashcards: (token: string, data: GenerateFlashcardsRequest) =>
+    request<GenerateFlashcardsResponse>('/rag/generate/flashcards', { method: 'POST', body: data, token }),
+
+  generateQuiz: (token: string, data: GenerateQuizRequest) =>
+    request<GenerateQuizResponse>('/rag/generate/quiz', { method: 'POST', body: data, token }),
+
+  generateAutoSummary: (token: string, data: GenerateSummaryRequest) =>
+    request<GenerateSummaryResponse>('/rag/generate/summary', { method: 'POST', body: data, token }),
 };
 
 // ============================================

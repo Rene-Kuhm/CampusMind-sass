@@ -22,6 +22,31 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
 import { QueryRagDto } from './dto/query-rag.dto';
 
+// DTOs para generación con IA
+class GenerateFlashcardsDto {
+  topic: string;
+  count?: number;
+  difficulty?: 'basic' | 'intermediate' | 'advanced';
+  language?: string;
+  content?: string;
+}
+
+class GenerateQuizDto {
+  topic: string;
+  questionCount?: number;
+  difficulty?: 'basic' | 'intermediate' | 'advanced';
+  questionTypes?: ('multiple_choice' | 'true_false' | 'short_answer')[];
+  language?: string;
+  content?: string;
+}
+
+class GenerateSummaryDto {
+  content: string;
+  style?: 'bullet_points' | 'paragraph' | 'outline';
+  length?: 'short' | 'medium' | 'long';
+  language?: string;
+}
+
 @ApiTags('rag')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -112,5 +137,41 @@ export class RagController {
         description: p.description,
       })),
     };
+  }
+
+  @Post('generate/flashcards')
+  @ApiOperation({ summary: 'Generar flashcards con IA a partir de un tema' })
+  @ApiResponse({ status: 200, description: 'Flashcards generadas' })
+  async generateFlashcards(@Body() dto: GenerateFlashcardsDto) {
+    return this.ragService.generateFlashcards(dto.topic, {
+      count: dto.count,
+      difficulty: dto.difficulty,
+      language: dto.language,
+      content: dto.content,
+    });
+  }
+
+  @Post('generate/quiz')
+  @ApiOperation({ summary: 'Generar quiz/examen de práctica con IA' })
+  @ApiResponse({ status: 200, description: 'Quiz generado' })
+  async generateQuiz(@Body() dto: GenerateQuizDto) {
+    return this.ragService.generateQuiz(dto.topic, {
+      questionCount: dto.questionCount,
+      difficulty: dto.difficulty,
+      questionTypes: dto.questionTypes,
+      language: dto.language,
+      content: dto.content,
+    });
+  }
+
+  @Post('generate/summary')
+  @ApiOperation({ summary: 'Generar resumen automático con IA' })
+  @ApiResponse({ status: 200, description: 'Resumen generado' })
+  async generateSummary(@Body() dto: GenerateSummaryDto) {
+    return this.ragService.generateAutoSummary(dto.content, {
+      style: dto.style,
+      length: dto.length,
+      language: dto.language,
+    });
   }
 }
