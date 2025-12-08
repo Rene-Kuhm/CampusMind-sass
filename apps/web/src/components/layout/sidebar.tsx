@@ -21,6 +21,7 @@ import {
   Library,
   Timer,
   GitBranch,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -82,6 +83,12 @@ const navigation = [
     href: '/app/pomodoro',
     icon: Timer,
     gradient: 'from-rose-500 to-orange-500',
+  },
+  {
+    name: 'Quiz',
+    href: '/app/quiz',
+    icon: ClipboardCheck,
+    gradient: 'from-indigo-500 to-purple-500',
   },
 ];
 
