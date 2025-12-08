@@ -22,6 +22,10 @@ describe("AuthService", () => {
     password: "hashedPassword123",
     createdAt: new Date(),
     updatedAt: new Date(),
+    resetToken: null,
+    resetTokenExpiry: null,
+    emailVerified: true,
+    verificationToken: null,
     profile: {
       id: "profile-123",
       userId: "user-123",
