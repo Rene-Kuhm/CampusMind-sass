@@ -11,6 +11,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { FlashcardsModule } from './modules/flashcards/flashcards.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -42,6 +43,7 @@ import { HealthController } from './health.controller';
     FlashcardsModule,
     QuizzesModule,
     BillingModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })
