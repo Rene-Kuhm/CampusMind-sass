@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { AudioPlayer } from './audio-player';
 import {
   notebook,
-  GeneratedQuestion,
-  GeneratedFlashcard,
+  NotebookGeneratedQuestion,
+  NotebookGeneratedFlashcard,
   VoiceType,
   Resource,
 } from '@/lib/api';
@@ -54,8 +54,8 @@ export function NotebookPanel({ resource, token, className }: NotebookPanelProps
 
   // Data states
   const [studyGuide, setStudyGuide] = useState<StudyGuideData | null>(null);
-  const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
-  const [flashcards, setFlashcards] = useState<GeneratedFlashcard[]>([]);
+  const [questions, setQuestions] = useState<NotebookGeneratedQuestion[]>([]);
+  const [flashcards, setFlashcards] = useState<NotebookGeneratedFlashcard[]>([]);
   const [podcastUrl, setPodcastUrl] = useState<string | null>(null);
   const [podcastScript, setPodcastScript] = useState<string | null>(null);
 

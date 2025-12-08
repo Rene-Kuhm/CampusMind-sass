@@ -137,7 +137,7 @@ export async function subscribeToPush(
 
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey),
+        applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey) as BufferSource,
       });
     }
 
