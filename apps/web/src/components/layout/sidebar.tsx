@@ -22,6 +22,7 @@ import {
   Timer,
   GitBranch,
   ClipboardCheck,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -89,6 +90,12 @@ const navigation = [
     href: '/app/quiz',
     icon: ClipboardCheck,
     gradient: 'from-indigo-500 to-purple-500',
+  },
+  {
+    name: 'Mi Progreso',
+    href: '/app/progress',
+    icon: BarChart3,
+    gradient: 'from-emerald-500 to-teal-500',
   },
 ];
 
