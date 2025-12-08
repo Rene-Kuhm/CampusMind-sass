@@ -23,6 +23,7 @@ import {
   GitBranch,
   ClipboardCheck,
   BarChart3,
+  StickyNote,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -66,6 +67,12 @@ const navigation = [
     href: '/app/calendar',
     icon: Calendar,
     gradient: 'from-orange-500 to-red-500',
+  },
+  {
+    name: 'Notas',
+    href: '/app/notes',
+    icon: StickyNote,
+    gradient: 'from-yellow-500 to-amber-500',
   },
   {
     name: 'Flashcards',
