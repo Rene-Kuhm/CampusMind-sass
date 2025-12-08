@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   BarChart3,
   StickyNote,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -103,6 +104,12 @@ const navigation = [
     href: '/app/progress',
     icon: BarChart3,
     gradient: 'from-emerald-500 to-teal-500',
+  },
+  {
+    name: 'Grupos',
+    href: '/app/groups',
+    icon: Users,
+    gradient: 'from-blue-500 to-indigo-500',
   },
 ];
 
