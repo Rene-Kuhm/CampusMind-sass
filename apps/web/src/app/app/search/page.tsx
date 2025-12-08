@@ -91,7 +91,9 @@ export default function SearchPage() {
   function handleOpenViewer(resource: AcademicResource) {
     // For videos, open in new tab instead of viewer
     if (resource.type === 'video') {
-      window.open(resource.url, '_blank');
+      if (resource.url) {
+        window.open(resource.url, '_blank');
+      }
       return;
     }
     setViewerResource(resource);

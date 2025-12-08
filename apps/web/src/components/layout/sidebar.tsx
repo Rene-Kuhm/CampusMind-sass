@@ -19,6 +19,7 @@ import {
   HelpCircle,
   Zap,
   Library,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -68,6 +69,12 @@ const navigation = [
     href: '/app/flashcards',
     icon: Brain,
     gradient: 'from-pink-500 to-rose-500',
+  },
+  {
+    name: 'Pomodoro',
+    href: '/app/pomodoro',
+    icon: Timer,
+    gradient: 'from-rose-500 to-orange-500',
   },
 ];
 

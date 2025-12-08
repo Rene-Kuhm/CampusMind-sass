@@ -23,16 +23,16 @@ export interface DocumentViewerProps {
   onClose: () => void;
   title: string;
   url: string;
-  pdfUrl?: string;
-  source?: string;
-  externalId?: string;
-  thumbnailUrl?: string;
+  pdfUrl?: string | null;
+  source?: string | null;
+  externalId?: string | null;
+  thumbnailUrl?: string | null;
   authors?: string[];
 }
 
 type ViewerType = 'archive' | 'pdf' | 'google-docs' | 'iframe';
 
-function getViewerType(url: string, source?: string): ViewerType {
+function getViewerType(url: string, source?: string | null): ViewerType {
   if (source === 'archive_org' || url.includes('archive.org')) {
     return 'archive';
   }
@@ -42,7 +42,7 @@ function getViewerType(url: string, source?: string): ViewerType {
   return 'iframe';
 }
 
-function getEmbedUrl(url: string, externalId?: string, viewerType?: ViewerType): string {
+function getEmbedUrl(url: string, externalId?: string | null, viewerType?: ViewerType): string {
   // Internet Archive - use their embed stream
   if (viewerType === 'archive' || url.includes('archive.org')) {
     // Extract identifier from URL if not provided
