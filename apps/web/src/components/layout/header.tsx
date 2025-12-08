@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Search, User, Menu, Settings, LogOut, ChevronDown, Sparkles, Command } from 'lucide-react';
+import { Search, User, Menu, Settings, LogOut, ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { getInitials, cn } from '../../lib/utils';
 import Link from 'next/link';
+import { NotificationPanel } from '../notifications/NotificationPanel';
 
 interface HeaderProps {
   title?: string;
@@ -15,7 +16,6 @@ interface HeaderProps {
 export function Header({ title, subtitle, onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/70 backdrop-blur-xl border-b border-secondary-200/50 flex items-center justify-between px-6">
@@ -68,34 +68,7 @@ export function Header({ title, subtitle, onMenuClick }: HeaderProps) {
         </Link>
 
         {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2.5 rounded-xl text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-all duration-200 active:scale-95"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-full ring-2 ring-white" />
-          </button>
-
-          {showNotifications && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-premium-xl border border-secondary-200/50 overflow-hidden z-50 animate-scale-in">
-                <div className="p-4 border-b border-secondary-100">
-                  <h3 className="font-semibold text-secondary-900">Notificaciones</h3>
-                </div>
-                <div className="p-4">
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center mb-3">
-                      <Bell className="h-6 w-6 text-secondary-400" />
-                    </div>
-                    <p className="text-sm text-secondary-500">No tienes notificaciones</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <NotificationPanel />
 
         {/* User Menu */}
         <div className="relative">
