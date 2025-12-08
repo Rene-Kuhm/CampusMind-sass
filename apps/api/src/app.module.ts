@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './common/redis';
 import { AuthModule } from './modules/auth/auth.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { ResourcesModule } from './modules/resources/resources.module';
@@ -32,6 +33,9 @@ import { HealthController } from './health.controller';
 
     // Database
     DatabaseModule,
+
+    // Redis cache (global)
+    RedisModule.forRoot(),
 
     // Feature modules
     AuthModule,
