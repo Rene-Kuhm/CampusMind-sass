@@ -839,7 +839,7 @@ export interface GenerateQuestionsRequest {
   difficulty?: Difficulty;
 }
 
-export interface GenerateFlashcardsRequest {
+export interface NotebookGenerateFlashcardsRequest {
   resourceId: string;
   count?: number;
   includeFormulas?: boolean;
@@ -879,7 +879,7 @@ export const notebook = {
     }>('/notebook/questions/generate', { method: 'POST', body: data, token }),
 
   // Generate flashcards from a resource
-  generateFlashcards: (token: string, data: GenerateFlashcardsRequest) =>
+  generateFlashcards: (token: string, data: NotebookGenerateFlashcardsRequest) =>
     request<{
       resourceId: string;
       resourceName: string;
