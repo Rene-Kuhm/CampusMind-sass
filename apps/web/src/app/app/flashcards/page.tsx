@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { subjects as subjectsApi, Subject, rag } from '@/lib/api';
+import { exportFlashcardsToPDF } from '@/lib/pdf-export';
 import {
   Card,
   CardContent,
@@ -37,6 +38,7 @@ import {
   Flame,
   Wand2,
   Loader2,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -355,6 +357,16 @@ export default function FlashcardsPage() {
     setGeneratedCards(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Export to PDF
+  const handleExportToPDF = () => {
+    if (!selectedDeck || deckCards.length === 0) return;
+    exportFlashcardsToPDF(selectedDeck.name, deckCards.map(c => ({
+      front: c.front,
+      back: c.back,
+      level: c.level,
+    })));
+  };
+
   // Study session
   const startStudySession = (deck: Deck) => {
     const deckCards = cards.filter(c => c.deckId === deck.id && isDueForReview(c));
@@ -641,6 +653,12 @@ export default function FlashcardsPage() {
               </div>
 
               <div className="flex items-center gap-3">
+                {deckCards.length > 0 && (
+                  <Button variant="outline" onClick={handleExportToPDF}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar PDF
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => openEditDeckModal(selectedDeck)}>
                   <Edit3 className="h-4 w-4 mr-2" />
                   Editar
