@@ -25,6 +25,7 @@ import {
   BarChart3,
   StickyNote,
   Users,
+  Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -110,6 +111,12 @@ const navigation = [
     href: '/app/groups',
     icon: Users,
     gradient: 'from-blue-500 to-indigo-500',
+  },
+  {
+    name: 'Clasificación',
+    href: '/app/leaderboard',
+    icon: Trophy,
+    gradient: 'from-amber-500 to-orange-500',
   },
 ];
 
