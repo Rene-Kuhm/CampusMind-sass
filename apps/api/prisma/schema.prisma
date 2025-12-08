@@ -183,8 +183,9 @@ model ResourceChunk {
   chunkIndex Int      @map("chunk_index")
 
   // Vector embedding (pgvector)
-  // Dimensión 1536 para text-embedding-3-small de OpenAI
-  embedding  Unsupported("vector(1536)")?
+  // Dimensión 768 para text-embedding-004 de Google Gemini (FREE)
+  // Para OpenAI text-embedding-3-small usar 1536
+  embedding  Unsupported("vector(768)")?
 
   createdAt DateTime @default(now()) @map("created_at")
 

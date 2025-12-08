@@ -7,6 +7,7 @@ import { EmbeddingService } from './services/embedding.service';
 import { VectorStoreService } from './services/vector-store.service';
 import { LlmService } from './services/llm.service';
 import { CacheService } from './services/cache.service';
+import { ModelDiscoveryService } from './services/model-discovery.service';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { CacheService } from './services/cache.service';
     VectorStoreService,
     LlmService,
     CacheService,
+    ModelDiscoveryService,
   ],
-  exports: [RagService, CacheService],
+  exports: [RagService, CacheService, ModelDiscoveryService],
 })
 export class RagModule {}

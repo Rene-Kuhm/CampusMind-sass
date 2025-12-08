@@ -12,6 +12,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Calendar,
+  Brain,
+  CreditCard,
+  HelpCircle,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -23,21 +29,38 @@ const navigation = [
     href: '/app',
     icon: LayoutDashboard,
     exact: true,
+    gradient: 'from-blue-500 to-cyan-500',
   },
   {
     name: 'Materias',
     href: '/app/subjects',
     icon: BookOpen,
+    gradient: 'from-violet-500 to-purple-500',
   },
   {
-    name: 'Copiloto',
+    name: 'Copiloto IA',
     href: '/app/copilot',
-    icon: MessageSquare,
+    icon: Sparkles,
+    gradient: 'from-primary-500 to-violet-500',
+    badge: 'IA',
   },
   {
     name: 'Buscar',
     href: '/app/search',
     icon: Search,
+    gradient: 'from-emerald-500 to-teal-500',
+  },
+  {
+    name: 'Calendario',
+    href: '/app/calendar',
+    icon: Calendar,
+    gradient: 'from-orange-500 to-red-500',
+  },
+  {
+    name: 'Flashcards',
+    href: '/app/flashcards',
+    icon: Brain,
+    gradient: 'from-pink-500 to-rose-500',
   },
 ];
 
@@ -46,6 +69,11 @@ const secondaryNavigation = [
     name: 'Configuración',
     href: '/app/settings',
     icon: Settings,
+  },
+  {
+    name: 'Suscripción',
+    href: '/app/billing',
+    icon: CreditCard,
   },
 ];
 
@@ -68,27 +96,41 @@ export function Sidebar({ onClose }: SidebarProps = {}) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-white border-r border-secondary-200 transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64'
+        'fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-out',
+        'bg-white/80 backdrop-blur-xl border-r border-secondary-200/50',
+        'shadow-[4px_0_24px_-2px_rgba(0,0,0,0.05)]',
+        isCollapsed ? 'w-20' : 'w-72'
       )}
     >
       <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-secondary-200">
-          <Link href="/app" className="flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-primary-600 flex-shrink-0" />
+        {/* Logo Section */}
+        <div className="h-20 flex items-center justify-between px-5 border-b border-secondary-200/50">
+          <Link href="/app" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary-500/25 group-hover:shadow-primary-500/40 transition-shadow duration-300">
+                <GraduationCap className="h-6 w-6 text-white" />
+              </div>
+              <div className="absolute -inset-1 bg-primary-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
             {!isCollapsed && (
-              <span className="text-xl font-bold text-secondary-900">
-                CampusMind
-              </span>
+              <div className="overflow-hidden">
+                <span className="text-xl font-bold text-secondary-900 tracking-tight">
+                  Campus<span className="gradient-text">Mind</span>
+                </span>
+                <p className="text-xs text-secondary-400 -mt-0.5">Tu campus inteligente</p>
+              </div>
             )}
           </Link>
           <button
             onClick={() => {
               setIsCollapsed(!isCollapsed);
-              onClose?.();
             }}
-            className="p-1 rounded-lg hover:bg-secondary-100 text-secondary-400 hover:text-secondary-600"
+            className={cn(
+              'p-2 rounded-xl transition-all duration-200',
+              'text-secondary-400 hover:text-secondary-600',
+              'hover:bg-secondary-100 active:scale-95',
+              isCollapsed && 'mx-auto'
+            )}
           >
             {isCollapsed ? (
               <ChevronRight className="h-5 w-5" />
@@ -99,43 +141,75 @@ export function Sidebar({ onClose }: SidebarProps = {}) {
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          <ul className="space-y-1 px-2">
-            {navigation.map((item) => (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
-                    isActive(item.href)
-                      ? 'bg-primary-50 text-primary-700 font-medium'
-                      : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'
-                  )}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <nav className="flex-1 py-6 overflow-y-auto">
+          <div className="px-3">
+            {!isCollapsed && (
+              <p className="text-xs font-semibold text-secondary-400 uppercase tracking-wider mb-3 px-3">
+                Principal
+              </p>
+            )}
+            <ul className="space-y-1">
+              {navigation.map((item) => (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                      isActive(item.href, item.exact)
+                        ? 'bg-gradient-to-r from-primary-50 to-violet-50 text-primary-700 shadow-sm'
+                        : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'
+                    )}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    <div
+                      className={cn(
+                        'p-2 rounded-lg transition-all duration-200',
+                        isActive(item.href, item.exact)
+                          ? `bg-gradient-to-br ${item.gradient} text-white shadow-md`
+                          : 'bg-secondary-100 text-secondary-600 group-hover:bg-secondary-200'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    {!isCollapsed && (
+                      <>
+                        <span className="font-medium flex-1">{item.name}</span>
+                        {item.badge && (
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gradient-to-r from-primary-500 to-violet-500 text-white shadow-sm">
+                            {item.badge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <div className="mt-8">
-            <ul className="space-y-1 px-2">
+          <div className="mt-8 px-3">
+            {!isCollapsed && (
+              <p className="text-xs font-semibold text-secondary-400 uppercase tracking-wider mb-3 px-3">
+                Cuenta
+              </p>
+            )}
+            <ul className="space-y-1">
               {secondaryNavigation.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                      'group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
                       isActive(item.href)
-                        ? 'bg-primary-50 text-primary-700 font-medium'
-                        : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'
+                        ? 'bg-secondary-100 text-secondary-900'
+                        : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700'
                     )}
                     title={isCollapsed ? item.name : undefined}
                   >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span>{item.name}</span>}
+                    <div className="p-2 rounded-lg bg-secondary-100 text-secondary-500 group-hover:bg-secondary-200 transition-colors">
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    {!isCollapsed && <span className="font-medium">{item.name}</span>}
                   </Link>
                 </li>
               ))}
@@ -143,26 +217,58 @@ export function Sidebar({ onClose }: SidebarProps = {}) {
           </div>
         </nav>
 
+        {/* Pro Upgrade Card */}
+        {!isCollapsed && (
+          <div className="px-4 mb-4">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-violet-500 p-4 shadow-lg">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-5 w-5 text-amber-300" />
+                  <span className="text-sm font-semibold text-white">Upgrade a Pro</span>
+                </div>
+                <p className="text-xs text-white/80 mb-3">
+                  Desbloquea todas las funciones de IA y recursos ilimitados.
+                </p>
+                <Link href="/app/billing">
+                  <button className="w-full py-2 px-4 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-xl transition-colors backdrop-blur-sm">
+                    Ver planes
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* User Section */}
-        <div className="p-4 border-t border-secondary-200">
+        <div className="p-4 border-t border-secondary-200/50 bg-secondary-50/50">
           {!isCollapsed && user?.profile && (
-            <div className="mb-3 px-2">
-              <p className="font-medium text-secondary-900 truncate">
-                {user.profile.firstName} {user.profile.lastName}
-              </p>
-              <p className="text-sm text-secondary-500 truncate">{user.email}</p>
+            <div className="flex items-center gap-3 mb-3 px-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white font-semibold shadow-md">
+                {user.profile.firstName?.charAt(0) || user.email.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-secondary-900 truncate">
+                  {user.profile.firstName} {user.profile.lastName}
+                </p>
+                <p className="text-xs text-secondary-500 truncate">{user.email}</p>
+              </div>
             </div>
           )}
           <button
             onClick={logout}
             className={cn(
-              'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-secondary-600 hover:bg-red-50 hover:text-red-600 transition-colors',
+              'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-200',
+              'text-secondary-500 hover:bg-red-50 hover:text-red-600',
               isCollapsed && 'justify-center'
             )}
             title={isCollapsed ? 'Cerrar sesión' : undefined}
           >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>Cerrar sesión</span>}
+            <div className="p-2 rounded-lg bg-secondary-100 group-hover:bg-red-100 transition-colors">
+              <LogOut className="h-4 w-4" />
+            </div>
+            {!isCollapsed && <span className="font-medium">Cerrar sesión</span>}
           </button>
         </div>
       </div>

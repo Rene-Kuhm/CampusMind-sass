@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { RagService } from './rag.service';
 import { CacheService } from './services/cache.service';
+import { LlmService } from './services/llm.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -29,6 +30,7 @@ export class RagController {
   constructor(
     private readonly ragService: RagService,
     private readonly cacheService: CacheService,
+    private readonly llmService: LlmService,
   ) {}
 
   @Post('query')
@@ -43,6 +45,8 @@ export class RagController {
       style: dto.style,
       depth: dto.depth,
       skipCache: dto.skipCache,
+      provider: dto.provider,
+      useFreeProvider: dto.useFreeProvider,
     });
   }
 
@@ -85,6 +89,28 @@ export class RagController {
         embedding: `${(hitRate.embedding * 100).toFixed(1)}%`,
         rag: `${(hitRate.rag * 100).toFixed(1)}%`,
       },
+    };
+  }
+
+  @Get('providers')
+  @ApiOperation({ summary: 'Obtener proveedores de IA disponibles' })
+  @ApiResponse({ status: 200, description: 'Lista de proveedores configurados' })
+  async getProviders() {
+    const configured = this.llmService.getConfiguredProviders();
+    const current = this.llmService.getCurrentProviderInfo();
+
+    return {
+      current: {
+        type: current.type,
+        name: current.name,
+        isFree: current.isFree,
+      },
+      available: configured.map((p) => ({
+        type: p.type,
+        name: p.name,
+        isFree: p.isFree,
+        description: p.description,
+      })),
     };
   }
 }

@@ -146,13 +146,36 @@ export class RagService {
       },
     );
 
+    // Si no hay chunks locales, usar el LLM directamente (modo web/general)
     if (similarChunks.length === 0) {
+      this.logger.log('No local resources found, using LLM general knowledge');
+
+      const generalResponse = await this.llm.generateGeneralAnswer(query, {
+        style: options?.style,
+        depth: options?.depth,
+        provider: options?.provider,
+        useFreeProvider: options?.useFreeProvider,
+      });
+
+      // Guardar query en el log
+      await this.prisma.ragQuery.create({
+        data: {
+          userId,
+          subjectId: options?.subjectId,
+          query,
+          response: generalResponse.content,
+          chunksUsed: [],
+          tokensUsed: queryEmbedding.tokenCount + generalResponse.tokensUsed,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+
       return {
-        answer:
-          'No encontré información relevante en tus recursos para responder esta pregunta. Intenta agregar más recursos sobre el tema o reformular tu consulta.',
+        answer: generalResponse.content,
         citations: [],
-        tokensUsed: queryEmbedding.tokenCount,
+        tokensUsed: queryEmbedding.tokenCount + generalResponse.tokensUsed,
         processingTimeMs: Date.now() - startTime,
+        source: 'general', // Indica que viene del conocimiento general del LLM
       };
     }
 
@@ -163,6 +186,8 @@ export class RagService {
     const llmResponse = await this.llm.generateWithContext(query, contextTexts, {
       style: options?.style,
       depth: options?.depth,
+      provider: options?.provider,
+      useFreeProvider: options?.useFreeProvider,
     });
 
     // Construir citas
