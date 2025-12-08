@@ -72,18 +72,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, newTheme);
   };
 
-  // Prevent flash of incorrect theme
-  if (!mounted) {
-    return (
-      <div style={{ visibility: 'hidden' }}>
-        {children}
-      </div>
-    );
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
-      {children}
+      {mounted ? children : null}
     </ThemeContext.Provider>
   );
 }

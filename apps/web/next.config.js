@@ -5,6 +5,8 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  // Use standalone output for better deployment compatibility
+  output: 'standalone',
   async rewrites() {
     return [
       {

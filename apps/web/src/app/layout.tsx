@@ -4,6 +4,9 @@ import './globals.css';
 import { Providers } from './providers';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 
+// Force dynamic rendering for all pages to avoid SSG issues with React 19
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
