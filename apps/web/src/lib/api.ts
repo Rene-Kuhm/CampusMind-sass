@@ -347,6 +347,16 @@ export interface UnifiedSearchResult {
   totalBySource: Record<AcademicSource, number>;
 }
 
+export interface Career {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  gradient: string;
+  categories: string[];
+  keywords: string[];
+}
+
 export const academic = {
   // Single source search
   search: async (token: string, params: AcademicSearchParams): Promise<AcademicResource[]> => {
@@ -397,6 +407,67 @@ export const academic = {
       body: { subjectId, resource },
       token,
     }),
+
+  // Library - Curated textbooks
+  getTextbooks: async (token: string, category?: string): Promise<{
+    textbooks: AcademicResource[];
+    categories: string[];
+    total: number;
+    source: string;
+    description: string;
+  }> => {
+    const params = category ? `?category=${category}` : '';
+    return request(`/academic/library/textbooks${params}`, { token });
+  },
+
+  getCategories: async (token: string): Promise<{
+    categories: string[];
+    descriptions: Record<string, string>;
+  }> => {
+    return request('/academic/library/categories', { token });
+  },
+
+  getLibraryStats: async (token: string): Promise<{
+    totalBooks: number;
+    totalCategories: number;
+    totalCareers: number;
+    categoriesWithCounts: { category: string; count: number }[];
+    careers: { id: string; name: string; categoriesCount: number }[];
+  }> => {
+    return request('/academic/library/stats', { token });
+  },
+
+  // Careers
+  getCareers: async (token: string): Promise<{
+    careers: Career[];
+    total: number;
+  }> => {
+    return request('/academic/careers', { token });
+  },
+
+  getCareerById: async (token: string, careerId: string): Promise<Career> => {
+    return request(`/academic/careers/${careerId}`, { token });
+  },
+
+  getTextbooksForCareer: async (token: string, careerId: string): Promise<{
+    career: Career;
+    textbooks: AcademicResource[];
+    total: number;
+    categories: string[];
+  }> => {
+    return request(`/academic/careers/${careerId}/textbooks`, { token });
+  },
+
+  // Smart Recommendations
+  getSmartRecommendations: async (token: string, subjectName: string): Promise<{
+    subjectName: string;
+    career: Career | null;
+    recommendations: AcademicResource[];
+    matchedKeywords: string[];
+    total: number;
+  }> => {
+    return request(`/academic/recommendations/smart?subject=${encodeURIComponent(subjectName)}`, { token });
+  },
 };
 
 // ============================================
@@ -658,6 +729,167 @@ export const calendar = {
     request<CalendarEvent>(`/calendar/events/${id}/complete`, { method: 'PATCH', token }),
 };
 
+// ============================================
+// NOTEBOOK ENDPOINTS (NotebookLLM-style features)
+// ============================================
+
+export type VoiceType = 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Aoede';
+export type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'mixed';
+
+export interface GeneratedQuestion {
+  id: string;
+  type: QuestionType;
+  question: string;
+  options?: string[];
+  correctAnswer: string;
+  explanation: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  topic?: string;
+}
+
+export interface GeneratedFlashcard {
+  front: string;
+  back: string;
+  tags: string[];
+}
+
+export interface StudyGuide {
+  summary: string;
+  keyPoints: string[];
+  concepts: Array<{ term: string; definition: string }>;
+  studyTips: string[];
+}
+
+export interface Voice {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface GenerateQuestionsRequest {
+  resourceId: string;
+  count?: number;
+  types?: QuestionType[];
+  difficulty?: Difficulty;
+}
+
+export interface GenerateFlashcardsRequest {
+  resourceId: string;
+  count?: number;
+  includeFormulas?: boolean;
+}
+
+export interface GeneratePodcastRequest {
+  resourceId: string;
+  voice?: VoiceType;
+  style?: 'formal' | 'casual';
+  duration?: 'short' | 'medium' | 'long';
+}
+
+export interface FullNotebookResponse {
+  resourceId: string;
+  resourceName: string;
+  studyGuide: StudyGuide;
+  questions: GeneratedQuestion[];
+  flashcards: GeneratedFlashcard[];
+  podcastScript: string;
+  generatedAt: string;
+}
+
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+export const notebook = {
+  // Get available TTS voices
+  getVoices: (token: string) =>
+    request<Voice[]>('/notebook/voices', { token }),
+
+  // Generate questions from a resource
+  generateQuestions: (token: string, data: GenerateQuestionsRequest) =>
+    request<{
+      resourceId: string;
+      resourceName: string;
+      questions: GeneratedQuestion[];
+      generatedAt: string;
+    }>('/notebook/questions/generate', { method: 'POST', body: data, token }),
+
+  // Generate flashcards from a resource
+  generateFlashcards: (token: string, data: GenerateFlashcardsRequest) =>
+    request<{
+      resourceId: string;
+      resourceName: string;
+      flashcards: GeneratedFlashcard[];
+      generatedAt: string;
+    }>('/notebook/flashcards/generate', { method: 'POST', body: data, token }),
+
+  // Generate study guide from a resource
+  generateStudyGuide: (token: string, resourceId: string) =>
+    request<{
+      resourceId: string;
+      resourceName: string;
+      summary: string;
+      keyPoints: string[];
+      concepts: Array<{ term: string; definition: string }>;
+      studyTips: string[];
+      generatedAt: string;
+    }>('/notebook/study-guide/generate', { method: 'POST', body: { resourceId }, token }),
+
+  // Generate podcast script (text only, no audio)
+  generatePodcastScript: (token: string, data: GeneratePodcastRequest) =>
+    request<{
+      resourceId: string;
+      resourceName: string;
+      script: string;
+      generatedAt: string;
+    }>('/notebook/podcast-script/generate', { method: 'POST', body: data, token }),
+
+  // Generate full notebook (study guide + questions + flashcards + script)
+  generateFullNotebook: (token: string, resourceId: string) =>
+    request<FullNotebookResponse>(`/notebook/full/${resourceId}`, { method: 'POST', token }),
+
+  // Generate audio (returns Blob URL)
+  generateAudio: async (token: string, text: string, voice?: VoiceType): Promise<string> => {
+    const response = await fetch(`${API_URL_BASE}${API_PREFIX}/notebook/audio/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ text, voice }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate audio');
+    }
+
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  // Generate podcast audio (returns Blob URL)
+  generatePodcastAudio: async (
+    token: string,
+    resourceId: string,
+    options?: { voice?: VoiceType; style?: 'formal' | 'casual'; duration?: 'short' | 'medium' | 'long' }
+  ): Promise<string> => {
+    const response = await fetch(`${API_URL_BASE}${API_PREFIX}/notebook/podcast/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ resourceId, ...options }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate podcast');
+    }
+
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -668,4 +900,5 @@ export default {
   rag,
   billing,
   calendar,
+  notebook,
 };

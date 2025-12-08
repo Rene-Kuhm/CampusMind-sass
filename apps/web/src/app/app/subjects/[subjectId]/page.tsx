@@ -19,6 +19,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { HarvardSummaryView } from '@/components/features/harvard-summary';
+import { NotebookPanel } from '@/components/features/notebook-panel';
 import {
   subjects as subjectsApi,
   resources as resourcesApi,
@@ -36,6 +37,7 @@ import {
   FileText,
   Video,
   BookOpen,
+  BookOpenCheck,
   GraduationCap,
   FileQuestion,
   MoreVertical,
@@ -53,6 +55,7 @@ import {
   Library,
   Brain,
   Filter,
+  Headphones,
 } from 'lucide-react';
 import {
   resourceTypeLabels,
@@ -603,6 +606,7 @@ function ResourceCard({
   const [showMenu, setShowMenu] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showNotebook, setShowNotebook] = useState(false);
 
   const handleIndex = async () => {
     setIsIndexing(true);
@@ -655,6 +659,24 @@ function ResourceCard({
 
               {/* Actions */}
               <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Notebook button - siempre visible */}
+                <button
+                  className={cn(
+                    'p-2 rounded-xl transition-all duration-200',
+                    showNotebook
+                      ? 'bg-violet-100 text-violet-600'
+                      : resource.isIndexed
+                        ? 'text-secondary-400 hover:text-violet-600 hover:bg-violet-50'
+                        : 'text-secondary-300 hover:text-violet-400 hover:bg-violet-50/50'
+                  )}
+                  onClick={() => {
+                    setShowNotebook(!showNotebook);
+                    if (!showNotebook) setIsExpanded(false);
+                  }}
+                  title={resource.isIndexed ? "Abrir Notebook de estudio" : "Indexa el recurso primero para usar el Notebook"}
+                >
+                  <BookOpenCheck className="h-5 w-5" />
+                </button>
                 {resource.isIndexed && (
                   <button
                     className={cn(
@@ -663,7 +685,10 @@ function ResourceCard({
                         ? 'bg-primary-100 text-primary-600'
                         : 'text-secondary-400 hover:text-primary-600 hover:bg-primary-50'
                     )}
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={() => {
+                      setIsExpanded(!isExpanded);
+                      if (!isExpanded) setShowNotebook(false);
+                    }}
                     title="Ver resumen Harvard"
                   >
                     {isExpanded ? (
@@ -716,16 +741,30 @@ function ResourceCard({
                             : 'Indexar para RAG'}
                         </button>
                         {resource.isIndexed && (
-                          <button
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
-                            onClick={() => {
-                              setIsExpanded(true);
-                              setShowMenu(false);
-                            }}
-                          >
-                            <Sparkles className="h-4 w-4" />
-                            Generar resumen Harvard
-                          </button>
+                          <>
+                            <button
+                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
+                              onClick={() => {
+                                setShowNotebook(true);
+                                setIsExpanded(false);
+                                setShowMenu(false);
+                              }}
+                            >
+                              <BookOpenCheck className="h-4 w-4" />
+                              Abrir Notebook
+                            </button>
+                            <button
+                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
+                              onClick={() => {
+                                setIsExpanded(true);
+                                setShowNotebook(false);
+                                setShowMenu(false);
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Generar resumen Harvard
+                            </button>
+                          </>
                         )}
                         <div className="my-1 border-t border-secondary-100" />
                         <button
@@ -790,6 +829,42 @@ function ResourceCard({
             token={token}
             isIndexed={resource.isIndexed}
           />
+        </div>
+      )}
+
+      {/* Notebook Panel Section */}
+      {showNotebook && (
+        <div className="border-t border-secondary-100 animate-fade-in">
+          {resource.isIndexed ? (
+            <NotebookPanel
+              resource={resource}
+              token={token}
+            />
+          ) : (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center">
+                <BookOpenCheck className="h-8 w-8 text-violet-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-secondary-900 mb-2">
+                Notebook de Estudio
+              </h3>
+              <p className="text-secondary-500 mb-6 max-w-md mx-auto">
+                Para usar el Notebook necesitas indexar primero el recurso.
+                El proceso de indexado permite que la IA analice el contenido y genere
+                preguntas, flashcards y podcasts personalizados.
+              </p>
+              <button
+                onClick={() => {
+                  setShowNotebook(false);
+                  onIndex();
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-medium hover:from-violet-600 hover:to-purple-600 transition-all shadow-lg shadow-violet-500/25"
+              >
+                <Brain className="h-4 w-4" />
+                Indexar recurso
+              </button>
+            </div>
+          )}
         </div>
       )}
     </Card>

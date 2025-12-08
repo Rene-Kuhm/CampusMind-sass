@@ -13,6 +13,7 @@ import {
   EmptyState,
   Spinner,
   Modal,
+  DocumentViewer,
 } from '@/components/ui';
 import {
   academic,
@@ -84,6 +85,23 @@ export default function SearchPage() {
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [resourceToImport, setResourceToImport] = useState<AcademicResource | null>(null);
+  const [viewerResource, setViewerResource] = useState<AcademicResource | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  function handleOpenViewer(resource: AcademicResource) {
+    // For videos, open in new tab instead of viewer
+    if (resource.type === 'video') {
+      window.open(resource.url, '_blank');
+      return;
+    }
+    setViewerResource(resource);
+    setIsViewerOpen(true);
+  }
+
+  function handleCloseViewer() {
+    setIsViewerOpen(false);
+    setViewerResource(null);
+  }
 
   const [filters, setFilters] = useState<Partial<AcademicSearchParams>>({
     type: undefined,
@@ -426,6 +444,7 @@ export default function SearchPage() {
                     <ResourceGridCard
                       resource={resource}
                       onImport={() => handleImportClick(resource)}
+                      onOpen={() => handleOpenViewer(resource)}
                       isImporting={importingId === resource.externalId}
                       isImported={importedIds.has(resource.externalId)}
                     />
@@ -443,6 +462,7 @@ export default function SearchPage() {
                     <ResourceResultCard
                       resource={resource}
                       onImport={() => handleImportClick(resource)}
+                      onOpen={() => handleOpenViewer(resource)}
                       isImporting={importingId === resource.externalId}
                       isImported={importedIds.has(resource.externalId)}
                     />
@@ -453,6 +473,21 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      {/* Document Viewer */}
+      {viewerResource && (
+        <DocumentViewer
+          isOpen={isViewerOpen}
+          onClose={handleCloseViewer}
+          title={viewerResource.title}
+          url={viewerResource.url || ''}
+          pdfUrl={viewerResource.pdfUrl}
+          source={viewerResource.source}
+          externalId={viewerResource.externalId}
+          thumbnailUrl={viewerResource.thumbnailUrl}
+          authors={viewerResource.authors}
+        />
+      )}
 
       {/* Import Modal - Premium Style */}
       <Modal
@@ -567,10 +602,10 @@ function getResourceIcon(type: string) {
   }
 }
 
-function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'warning' | 'error' {
+function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'warning' | 'danger' {
   switch (source) {
     case 'youtube':
-      return 'error';
+      return 'danger';
     case 'google_books':
       return 'primary';
     case 'archive_org':
@@ -587,11 +622,13 @@ function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'wa
 function ResourceGridCard({
   resource,
   onImport,
+  onOpen,
   isImporting,
   isImported,
 }: {
   resource: AcademicResource;
   onImport: () => void;
+  onOpen: () => void;
   isImporting: boolean;
   isImported: boolean;
 }) {
@@ -613,18 +650,20 @@ function ResourceGridCard({
           </div>
         )}
 
-        {/* Video overlay */}
-        {isVideo && resource.url && (
-          <a
-            href={resource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        {/* Overlay - opens viewer for books, new tab for videos */}
+        {resource.url && (
+          <button
+            onClick={onOpen}
+            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
           >
             <div className="w-16 h-16 bg-white/95 rounded-full flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
-              <Play className="h-8 w-8 text-red-500 ml-1" />
+              {isVideo ? (
+                <Play className="h-8 w-8 text-red-500 ml-1" />
+              ) : (
+                <BookOpen className="h-8 w-8 text-amber-600" />
+              )}
             </div>
-          </a>
+          </button>
         )}
 
         {/* Duration badge for videos */}
@@ -653,14 +692,12 @@ function ResourceGridCard({
         {/* Title */}
         <h3 className="font-semibold text-secondary-900 line-clamp-2 mb-2 group-hover:text-primary-600 transition-colors">
           {resource.url ? (
-            <a
-              href={resource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline"
+            <button
+              onClick={onOpen}
+              className="text-left hover:underline w-full"
             >
               {resource.title}
-            </a>
+            </button>
           ) : (
             resource.title
           )}
@@ -689,12 +726,10 @@ function ResourceGridCard({
         {/* Actions */}
         <div className="flex gap-2">
           {resource.url && (
-            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full">
-                <ExternalLink className="h-4 w-4 mr-1" />
-                {isVideo ? 'Ver' : 'Abrir'}
-              </Button>
-            </a>
+            <Button variant="outline" size="sm" className="flex-1" onClick={onOpen}>
+              {isVideo ? <Play className="h-4 w-4 mr-1" /> : <BookOpen className="h-4 w-4 mr-1" />}
+              {isVideo ? 'Ver' : 'Leer'}
+            </Button>
           )}
           {isImported ? (
             <Button variant="secondary" size="sm" disabled className="bg-emerald-50 text-emerald-600">
@@ -716,11 +751,13 @@ function ResourceGridCard({
 function ResourceResultCard({
   resource,
   onImport,
+  onOpen,
   isImporting,
   isImported,
 }: {
   resource: AcademicResource;
   onImport: () => void;
+  onOpen: () => void;
   isImporting: boolean;
   isImported: boolean;
 }) {
@@ -747,14 +784,12 @@ function ResourceResultCard({
               <div className="flex-1">
                 <h3 className="font-semibold text-secondary-900 group-hover:text-primary-600 transition-colors">
                   {resource.url ? (
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
+                    <button
+                      onClick={onOpen}
+                      className="text-left hover:underline"
                     >
                       {resource.title}
-                    </a>
+                    </button>
                   ) : (
                     resource.title
                   )}
@@ -801,12 +836,10 @@ function ResourceResultCard({
 
               <div className="flex gap-2 flex-shrink-0">
                 {resource.url && (
-                  <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
-                  </a>
+                  <Button variant="outline" size="sm" onClick={onOpen}>
+                    <BookOpen className="h-4 w-4 mr-1" />
+                    Ver
+                  </Button>
                 )}
                 {isImported ? (
                   <Button variant="secondary" size="sm" disabled className="bg-emerald-50 text-emerald-600">

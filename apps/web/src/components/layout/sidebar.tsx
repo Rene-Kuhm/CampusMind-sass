@@ -18,6 +18,7 @@ import {
   CreditCard,
   HelpCircle,
   Zap,
+  Library,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -49,6 +50,12 @@ const navigation = [
     href: '/app/search',
     icon: Search,
     gradient: 'from-emerald-500 to-teal-500',
+  },
+  {
+    name: 'Biblioteca',
+    href: '/app/library',
+    icon: Library,
+    gradient: 'from-amber-500 to-orange-500',
   },
   {
     name: 'Calendario',

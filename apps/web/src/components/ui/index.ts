@@ -7,3 +7,4 @@ export * from './badge';
 export * from './modal';
 export * from './spinner';
 export * from './empty-state';
+export * from './document-viewer';
