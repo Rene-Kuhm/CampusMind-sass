@@ -462,6 +462,120 @@ export const rag = {
     request<RagStats>('/rag/stats', { token }),
 };
 
+// ============================================
+// BILLING ENDPOINTS
+// ============================================
+
+export type PlanType = 'FREE' | 'PRO' | 'PREMIUM';
+export type PaymentProvider = 'MERCADOPAGO' | 'LEMONSQUEEZY';
+export type SubscriptionStatus = 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED' | 'PAUSED';
+
+export interface PlanLimits {
+  ragQueriesPerMonth: number;
+  flashcardsTotal: number;
+  storageMb: number;
+  subjectsActive: number;
+  quizzesPerMonth: number;
+  aiSummaries: boolean;
+  prioritySupport: boolean;
+  exportData: boolean;
+}
+
+export interface PlanPricing {
+  monthly: { ars: number; usd: number };
+  yearly: { ars: number; usd: number };
+}
+
+export interface Plan {
+  id: PlanType;
+  name: string;
+  description: string;
+  limits: PlanLimits;
+  pricing: PlanPricing;
+  features: string[];
+  popular?: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  plan: PlanType;
+  status: SubscriptionStatus;
+  provider?: PaymentProvider;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  trialEndsAt?: string;
+  createdAt: string;
+}
+
+export interface Usage {
+  ragQueries: { used: number; limit: number };
+  flashcards: { used: number; limit: number };
+  storageMb: { used: number; limit: number };
+  subjects: { used: number; limit: number };
+  quizzes: { used: number; limit: number };
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface CheckoutRequest {
+  plan: PlanType;
+  provider: PaymentProvider;
+  billingPeriod?: 'monthly' | 'yearly';
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+export interface CheckoutResponse {
+  checkoutUrl: string;
+  provider: PaymentProvider;
+  externalId?: string;
+}
+
+export interface Payment {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  provider: PaymentProvider;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export const billing = {
+  getPlans: () =>
+    request<Plan[]>('/billing/plans'),
+
+  getSubscription: (token: string) =>
+    request<Subscription>('/billing/subscription', { token }),
+
+  createCheckout: (token: string, data: CheckoutRequest) =>
+    request<CheckoutResponse>('/billing/checkout', { method: 'POST', body: data, token }),
+
+  cancelSubscription: (token: string, cancelAtPeriodEnd = true) =>
+    request<Subscription>('/billing/subscription/cancel', {
+      method: 'PATCH',
+      body: { cancelAtPeriodEnd },
+      token,
+    }),
+
+  changePlan: (token: string, newPlan: PlanType, immediate = true) =>
+    request<CheckoutResponse | Subscription>('/billing/subscription/change-plan', {
+      method: 'PATCH',
+      body: { newPlan, immediate },
+      token,
+    }),
+
+  getUsage: (token: string) =>
+    request<Usage>('/billing/usage', { token }),
+
+  getPaymentHistory: (token: string) =>
+    request<Payment[]>('/billing/payments', { token }),
+
+  getBillingPortal: (token: string) =>
+    request<{ portalUrl: string; provider: PaymentProvider }>('/billing/portal', { token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -470,4 +584,5 @@ export default {
   resources,
   academic,
   rag,
+  billing,
 };

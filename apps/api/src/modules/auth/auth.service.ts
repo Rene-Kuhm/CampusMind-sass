@@ -2,12 +2,15 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from './users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
@@ -15,6 +18,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -92,5 +96,42 @@ export class AuthService {
   private generateToken(userId: string, email: string): string {
     const payload: JwtPayload = { sub: userId, email };
     return this.jwtService.sign(payload);
+  }
+
+  private generateRefreshToken(userId: string): string {
+    const payload = { sub: userId, type: 'refresh' };
+    return this.jwtService.sign(payload, {
+      expiresIn: '7d', // Refresh tokens last longer
+    });
+  }
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const payload = this.jwtService.verify(refreshTokenDto.refreshToken) as any;
+      
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('Token de refresh inválido');
+      }
+
+      const user = await this.usersService.findById(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      const accessToken = this.generateToken(user.id, user.email);
+      const newRefreshToken = this.generateRefreshToken(user.id);
+
+      return {
+        accessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          profile: user.profile,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Token de refresh inválido o expirado');
+    }
   }
 }

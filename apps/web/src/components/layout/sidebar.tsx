@@ -49,7 +49,11 @@ const secondaryNavigation = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps = {}) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -80,7 +84,10 @@ export function Sidebar() {
             )}
           </Link>
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={() => {
+              setIsCollapsed(!isCollapsed);
+              onClose?.();
+            }}
             className="p-1 rounded-lg hover:bg-secondary-100 text-secondary-400 hover:text-secondary-600"
           >
             {isCollapsed ? (

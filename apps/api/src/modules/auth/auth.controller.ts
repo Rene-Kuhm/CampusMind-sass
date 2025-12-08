@@ -19,6 +19,7 @@ import { UsersService } from './users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { User } from '@prisma/client';
@@ -74,5 +75,13 @@ export class AuthController {
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(user.id, updateProfileDto);
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refrescar token de acceso' })
+  @ApiResponse({ status: 200, description: 'Token refrescado' })
+  @ApiResponse({ status: 401, description: 'Token inválido' })
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto);
   }
 }

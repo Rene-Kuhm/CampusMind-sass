@@ -28,6 +28,7 @@ model User {
   queries        RagQuery[]
   studyEvents    StudyEvent[]
   flashcardDecks FlashcardDeck[]
+  subscription   Subscription?
 
   @@map("users")
 }
@@ -433,4 +434,128 @@ enum DifficultyLevel {
   EASY
   MEDIUM
   HARD
+}
+
+// ============================================
+// BILLING & SUBSCRIPTIONS
+// ============================================
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+
+  // Plan info
+  plan      PlanType @default(FREE)
+  status    SubscriptionStatus @default(ACTIVE)
+
+  // Payment provider info
+  provider           PaymentProvider?
+  providerCustomerId String?  @map("provider_customer_id") // MP customer_id or LS customer_id
+  providerSubscriptionId String? @map("provider_subscription_id") // MP preapproval_id or LS subscription_id
+
+  // Billing dates
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+
+  // Trial
+  trialEndsAt DateTime? @map("trial_ends_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  usages   UsageRecord[]
+
+  @@index([providerCustomerId])
+  @@index([providerSubscriptionId])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  subscriptionId String   @map("subscription_id")
+
+  // Payment details
+  amount         Int      // Amount in cents
+  currency       String   @default("ARS")
+  status         PaymentStatus
+
+  // Provider info
+  provider          PaymentProvider
+  providerPaymentId String?  @map("provider_payment_id") // MP payment_id or LS order_id
+  providerInvoiceId String?  @map("provider_invoice_id")
+
+  // Metadata
+  description    String?
+  metadata       Json?
+
+  // Dates
+  paidAt         DateTime? @map("paid_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([providerPaymentId])
+  @@map("payments")
+}
+
+model UsageRecord {
+  id             String   @id @default(cuid())
+  subscriptionId String   @map("subscription_id")
+
+  // Usage type
+  type           UsageType
+  count          Int      @default(0)
+
+  // Period
+  periodStart    DateTime @map("period_start")
+  periodEnd      DateTime @map("period_end")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, type, periodStart])
+  @@index([subscriptionId])
+  @@map("usage_records")
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+  PAUSED
+}
+
+enum PaymentProvider {
+  MERCADOPAGO
+  LEMONSQUEEZY
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum UsageType {
+  RAG_QUERIES
+  FLASHCARDS
+  STORAGE_MB
+  SUBJECTS
 }
