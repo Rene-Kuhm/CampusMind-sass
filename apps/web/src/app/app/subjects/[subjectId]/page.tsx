@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { Header } from '@/components/layout';
 import {
   Card,
   CardContent,
@@ -47,12 +46,20 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  Zap,
+  Calendar,
+  Users,
+  Globe,
+  Library,
+  Brain,
+  Filter,
 } from 'lucide-react';
 import {
   resourceTypeLabels,
   resourceLevelLabels,
   getContrastColor,
   formatDate,
+  cn,
 } from '@/lib/utils';
 
 const resourceTypeIcons: Record<ResourceType, React.ReactNode> = {
@@ -64,6 +71,17 @@ const resourceTypeIcons: Record<ResourceType, React.ReactNode> = {
   MANUAL: <FileText className="h-5 w-5" />,
   NOTES: <FileText className="h-5 w-5" />,
   OTHER: <FileQuestion className="h-5 w-5" />,
+};
+
+const resourceTypeGradients: Record<ResourceType, string> = {
+  BOOK: 'from-violet-500 to-purple-500',
+  PAPER: 'from-blue-500 to-cyan-500',
+  ARTICLE: 'from-emerald-500 to-teal-500',
+  VIDEO: 'from-red-500 to-rose-500',
+  COURSE: 'from-amber-500 to-orange-500',
+  MANUAL: 'from-slate-500 to-zinc-500',
+  NOTES: 'from-pink-500 to-rose-500',
+  OTHER: 'from-secondary-500 to-secondary-600',
 };
 
 export default function SubjectDetailPage() {
@@ -158,7 +176,6 @@ export default function SubjectDetailPage() {
 
     try {
       await resourcesApi.index(token, id);
-      // Reload to get updated status
       const updated = await resourcesApi.get(token, subjectId, id);
       setResources((prev) =>
         prev.map((r) => (r.id === id ? updated : r))
@@ -188,8 +205,16 @@ export default function SubjectDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Spinner size="lg" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative inline-block">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg animate-pulse">
+              <BookOpen className="h-8 w-8 text-white" />
+            </div>
+            <div className="absolute -inset-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse" />
+          </div>
+          <p className="mt-6 text-secondary-500 font-medium">Cargando materia...</p>
+        </div>
       </div>
     );
   }
@@ -198,160 +223,217 @@ export default function SubjectDetailPage() {
     return null;
   }
 
-  return (
-    <>
-      <Header
-        title={subject.name}
-        subtitle={[subject.career, subject.year ? `${subject.year}° año` : null]
-          .filter(Boolean)
-          .join(' · ')}
-      />
+  const indexedCount = resources.filter(r => r.isIndexed).length;
+  const totalChunks = resources.reduce((sum, r) => sum + (r.chunkCount || 0), 0);
 
-      <div className="p-6">
-        {/* Back Link & Actions */}
-        <div className="flex items-center justify-between mb-6">
+  return (
+    <div className="min-h-screen">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden border-b border-secondary-200/50" style={{ backgroundColor: `${subject.color}10` }}>
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+        <div
+          className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"
+          style={{ backgroundColor: `${subject.color}15` }}
+        />
+
+        <div className="relative p-6">
+          {/* Back link */}
           <Link
             href="/app/subjects"
-            className="flex items-center gap-2 text-secondary-600 hover:text-secondary-900"
+            className="inline-flex items-center gap-2 text-sm text-secondary-500 hover:text-secondary-700 mb-4 transition-colors group"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Volver a materias
           </Link>
 
-          <div className="flex gap-2">
+          <div className="flex items-start gap-5">
+            {/* Subject Icon */}
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold flex-shrink-0 shadow-xl transition-transform duration-300 hover:scale-105"
+              style={{
+                backgroundColor: subject.color,
+                color: getContrastColor(subject.color),
+                boxShadow: `0 20px 40px -12px ${subject.color}60`,
+              }}
+            >
+              {subject.name.charAt(0).toUpperCase()}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-secondary-900 tracking-tight">
+                {subject.name}
+              </h1>
+              {subject.description && (
+                <p className="text-secondary-500 mt-1.5 max-w-2xl">{subject.description}</p>
+              )}
+
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                {subject.career && (
+                  <Badge variant="gradient" className="shadow-sm">
+                    <GraduationCap className="h-3 w-3 mr-1" />
+                    {subject.career}
+                  </Badge>
+                )}
+                {subject.year && (
+                  <Badge variant="default" className="bg-white/80">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {subject.year}° año
+                  </Badge>
+                )}
+                {subject.semester && (
+                  <Badge variant="default" className="bg-white/80">
+                    {subject.semester === 'anual'
+                      ? 'Anual'
+                      : `${subject.semester}° cuatrimestre`}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Stats row */}
+              <div className="flex items-center gap-6 mt-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-sm">
+                    <Library className="h-4 w-4 text-secondary-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-secondary-900">{resources.length}</p>
+                    <p className="text-xs text-secondary-500">recursos</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-sm">
+                    <Brain className="h-4 w-4 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-secondary-900">{indexedCount}</p>
+                    <p className="text-xs text-secondary-500">indexados</p>
+                  </div>
+                </div>
+                {totalChunks > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-sm">
+                      <Zap className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-secondary-900">{totalChunks}</p>
+                      <p className="text-xs text-secondary-500">chunks</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-3 mt-6">
             <Link href={`/app/copilot?subject=${subjectId}`}>
               <Button
-                variant="outline"
-                leftIcon={<MessageSquare className="h-4 w-4" />}
+                variant="gradient"
+                className="shadow-lg shadow-primary-500/25"
               >
+                <Sparkles className="h-4 w-4 mr-2" />
                 Preguntar al copiloto
               </Button>
             </Link>
             <Link href={`/app/search?subject=${subjectId}`}>
-              <Button
-                variant="outline"
-                leftIcon={<Search className="h-4 w-4" />}
-              >
+              <Button variant="outline" className="bg-white/80 hover:bg-white">
+                <Search className="h-4 w-4 mr-2" />
                 Buscar recursos
               </Button>
             </Link>
-          </div>
-        </div>
-
-        {/* Subject Info Card */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div
-                className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold flex-shrink-0"
-                style={{
-                  backgroundColor: subject.color,
-                  color: getContrastColor(subject.color),
-                }}
-              >
-                {subject.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-secondary-900">
-                  {subject.name}
-                </h2>
-                {subject.description && (
-                  <p className="text-secondary-600 mt-1">{subject.description}</p>
-                )}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {subject.career && (
-                    <Badge variant="primary">{subject.career}</Badge>
-                  )}
-                  {subject.year && (
-                    <Badge variant="default">{subject.year}° año</Badge>
-                  )}
-                  {subject.semester && (
-                    <Badge variant="default">
-                      {subject.semester === 'anual'
-                        ? 'Anual'
-                        : `${subject.semester}° cuatrimestre`}
-                    </Badge>
-                  )}
-                  <Badge variant="info">
-                    {resources.length} recursos
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Resources Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between p-6 pb-4">
-            <CardTitle>Recursos</CardTitle>
             <Button
+              variant="outline"
+              className="bg-white/80 hover:bg-white"
               onClick={() => setIsCreateModalOpen(true)}
-              leftIcon={<Plus className="h-4 w-4" />}
             >
+              <Plus className="h-4 w-4 mr-2" />
               Agregar recurso
             </Button>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            {/* Filters */}
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1">
-                <Input
-                  placeholder="Buscar recurso..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Search className="h-5 w-5" />}
-                />
-              </div>
-              <Select
-                options={[{ value: '', label: 'Todos los tipos' }, ...typeOptions]}
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-48"
+          </div>
+        </div>
+      </div>
+
+      {/* Resources Section */}
+      <div className="p-6">
+        {/* Filters Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <div className="relative rounded-xl border-2 border-secondary-200 bg-white focus-within:border-primary-300 focus-within:ring-4 focus-within:ring-primary-500/10 transition-all duration-200 overflow-hidden">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary-400" />
+              <input
+                type="text"
+                placeholder="Buscar recurso..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 text-secondary-900 placeholder:text-secondary-400 focus:outline-none bg-transparent"
               />
             </div>
+          </div>
+          <Select
+            options={[{ value: '', label: 'Todos los tipos' }, ...typeOptions]}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="w-full sm:w-48"
+          />
+        </div>
 
-            {/* Resources List */}
-            {filteredResources.length === 0 ? (
-              <EmptyState
-                icon={<BookOpen className="h-8 w-8" />}
-                title={
-                  searchQuery || typeFilter
-                    ? 'No se encontraron recursos'
-                    : 'No hay recursos aún'
-                }
-                description={
-                  searchQuery || typeFilter
-                    ? 'Intenta con otros filtros'
-                    : 'Agrega tu primer recurso para empezar a estudiar'
-                }
-                action={
-                  !searchQuery &&
-                  !typeFilter && (
-                    <Button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      leftIcon={<Plus className="h-4 w-4" />}
-                    >
-                      Agregar recurso
-                    </Button>
-                  )
-                }
-              />
-            ) : (
-              <div className="space-y-3">
-                {filteredResources.map((resource) => (
-                  <ResourceCard
-                    key={resource.id}
-                    resource={resource}
-                    onDelete={() => handleDeleteResource(resource.id)}
-                    onIndex={() => handleIndexResource(resource.id)}
-                    token={token!}
-                  />
-                ))}
+        {/* Resources List */}
+        {filteredResources.length === 0 ? (
+          <div className="text-center py-20 animate-fade-in">
+            <div className="relative inline-block mb-8">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-2xl shadow-violet-500/30 animate-float">
+                <BookOpen className="h-12 w-12 text-white" />
+              </div>
+              <div className="absolute -inset-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-full blur-2xl animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-bold text-secondary-900 mb-3">
+              {searchQuery || typeFilter
+                ? 'No se encontraron recursos'
+                : 'No hay recursos aún'}
+            </h3>
+            <p className="text-secondary-500 max-w-md mx-auto mb-8">
+              {searchQuery || typeFilter
+                ? 'Intenta con otros filtros'
+                : 'Agrega tu primer recurso para empezar a estudiar con tu copiloto IA'}
+            </p>
+            {!searchQuery && !typeFilter && (
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button
+                  variant="gradient"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="shadow-lg shadow-primary-500/25"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar recurso manual
+                </Button>
+                <Link href={`/app/search?subject=${subjectId}`}>
+                  <Button variant="outline">
+                    <Search className="h-4 w-4 mr-2" />
+                    Buscar en internet
+                  </Button>
+                </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredResources.map((resource, index) => (
+              <div
+                key={resource.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <ResourceCard
+                  resource={resource}
+                  onDelete={() => handleDeleteResource(resource.id)}
+                  onIndex={() => handleIndexResource(resource.id)}
+                  token={token!}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Create Resource Modal */}
@@ -361,50 +443,75 @@ export default function SubjectDetailPage() {
         title="Agregar recurso"
         description="Agrega un libro, paper, video o cualquier material de estudio"
         size="lg"
+        variant="glass"
       >
-        <form onSubmit={handleCreateResource} className="space-y-4">
-          <Input
-            label="Título"
-            placeholder="Ej: Cálculo de una variable - Stewart"
-            value={newResource.title}
-            onChange={(e) =>
-              setNewResource((prev) => ({ ...prev, title: e.target.value }))
-            }
-            required
-          />
+        <form onSubmit={handleCreateResource} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Título *
+            </label>
+            <input
+              type="text"
+              placeholder="Ej: Cálculo de una variable - Stewart"
+              value={newResource.title}
+              onChange={(e) =>
+                setNewResource((prev) => ({ ...prev, title: e.target.value }))
+              }
+              required
+              className="w-full px-4 py-3 rounded-xl border-2 border-secondary-200 focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 outline-none"
+            />
+          </div>
 
-          <Input
-            label="Autores (separados por coma)"
-            placeholder="Ej: James Stewart, Daniel Clegg"
-            value={newResource.authors?.join(', ') || ''}
-            onChange={(e) =>
-              setNewResource((prev) => ({
-                ...prev,
-                authors: e.target.value.split(',').map((a) => a.trim()),
-              }))
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Autores (separados por coma)
+            </label>
+            <input
+              type="text"
+              placeholder="Ej: James Stewart, Daniel Clegg"
+              value={newResource.authors?.join(', ') || ''}
+              onChange={(e) =>
+                setNewResource((prev) => ({
+                  ...prev,
+                  authors: e.target.value.split(',').map((a) => a.trim()),
+                }))
+              }
+              className="w-full px-4 py-3 rounded-xl border-2 border-secondary-200 focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 outline-none"
+            />
+          </div>
 
-          <Textarea
-            label="Descripción / Abstract"
-            placeholder="Descripción breve del contenido..."
-            value={newResource.description}
-            onChange={(e) =>
-              setNewResource((prev) => ({
-                ...prev,
-                description: e.target.value,
-              }))
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Descripción / Abstract
+            </label>
+            <textarea
+              placeholder="Descripción breve del contenido..."
+              value={newResource.description}
+              onChange={(e) =>
+                setNewResource((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border-2 border-secondary-200 focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 outline-none resize-none"
+            />
+          </div>
 
-          <Input
-            label="URL (opcional)"
-            placeholder="https://..."
-            value={newResource.url}
-            onChange={(e) =>
-              setNewResource((prev) => ({ ...prev, url: e.target.value }))
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              URL (opcional)
+            </label>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={newResource.url}
+              onChange={(e) =>
+                setNewResource((prev) => ({ ...prev, url: e.target.value }))
+              }
+              className="w-full px-4 py-3 rounded-xl border-2 border-secondary-200 focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 outline-none"
+            />
+          </div>
 
           <div className="grid grid-cols-3 gap-4">
             <Select
@@ -446,7 +553,7 @@ export default function SubjectDetailPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-secondary-50 hover:bg-secondary-100 transition-colors">
             <input
               type="checkbox"
               checked={newResource.isOpenAccess}
@@ -456,14 +563,14 @@ export default function SubjectDetailPage() {
                   isOpenAccess: e.target.checked,
                 }))
               }
-              className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
+              className="w-5 h-5 rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
             />
-            <span className="text-sm text-secondary-700">
+            <span className="text-sm text-secondary-700 font-medium">
               Es de acceso abierto (Open Access)
             </span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary-100">
             <Button
               type="button"
               variant="outline"
@@ -471,13 +578,14 @@ export default function SubjectDetailPage() {
             >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" variant="gradient" isLoading={isSubmitting}>
+              <Plus className="h-4 w-4 mr-2" />
               Agregar recurso
             </Button>
           </div>
         </form>
       </Modal>
-    </>
+    </div>
   );
 }
 
@@ -504,134 +612,178 @@ function ResourceCard({
   };
 
   return (
-    <div className="rounded-lg border border-secondary-200 hover:border-secondary-300 transition-colors overflow-hidden">
-      <div className="flex items-start gap-4 p-4">
-        <div className="w-10 h-10 rounded-lg bg-secondary-100 flex items-center justify-center text-secondary-600">
-          {resourceTypeIcons[resource.type]}
-        </div>
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-secondary-100" hover>
+      {/* Color accent bar */}
+      <div className={cn('h-1 bg-gradient-to-r', resourceTypeGradients[resource.type])} />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-medium text-secondary-900">{resource.title}</h3>
-              {resource.authors.length > 0 && (
-                <p className="text-sm text-secondary-500">
-                  {resource.authors.join(', ')}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Expand/Collapse button for Harvard Summary */}
-              {resource.isIndexed && (
-                <button
-                  className="p-1 rounded-lg text-primary-500 hover:text-primary-700 hover:bg-primary-50"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  title="Ver resumen Harvard"
-                >
-                  {isExpanded ? (
-                    <ChevronUp className="h-5 w-5" />
+      <div className="p-5">
+        <div className="flex items-start gap-4">
+          {/* Type Icon */}
+          <div
+            className={cn(
+              'w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg transition-transform duration-300 group-hover:scale-105',
+              `bg-gradient-to-br ${resourceTypeGradients[resource.type]}`
+            )}
+          >
+            {resourceTypeIcons[resource.type]}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-secondary-900 group-hover:text-primary-600 transition-colors">
+                  {resource.url ? (
+                    <a
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {resource.title}
+                    </a>
                   ) : (
-                    <Sparkles className="h-5 w-5" />
+                    resource.title
                   )}
-                </button>
-              )}
-              <div className="relative">
-                <button
-                  className="p-1 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100"
-                  onClick={() => setShowMenu(!showMenu)}
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </button>
+                </h3>
+                {resource.authors.length > 0 && (
+                  <p className="text-sm text-secondary-500 mt-0.5 flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {resource.authors.join(', ')}
+                  </p>
+                )}
+              </div>
 
-                {showMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowMenu(false)}
-                    />
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-secondary-200 py-1 z-20">
-                      {resource.url && (
-                        <a
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Abrir enlace
-                        </a>
-                      )}
-                      <button
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
-                        onClick={handleIndex}
-                        disabled={isIndexing}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        {isIndexing
-                          ? 'Indexando...'
-                          : resource.isIndexed
-                          ? 'Reindexar para RAG'
-                          : 'Indexar para RAG'}
-                      </button>
-                      {resource.isIndexed && (
+              {/* Actions */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {resource.isIndexed && (
+                  <button
+                    className={cn(
+                      'p-2 rounded-xl transition-all duration-200',
+                      isExpanded
+                        ? 'bg-primary-100 text-primary-600'
+                        : 'text-secondary-400 hover:text-primary-600 hover:bg-primary-50'
+                    )}
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    title="Ver resumen Harvard"
+                  >
+                    {isExpanded ? (
+                      <ChevronUp className="h-5 w-5" />
+                    ) : (
+                      <Sparkles className="h-5 w-5" />
+                    )}
+                  </button>
+                )}
+                <div className="relative">
+                  <button
+                    className={cn(
+                      'p-2 rounded-xl transition-all duration-200',
+                      'text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100',
+                      showMenu && 'bg-secondary-100 text-secondary-600'
+                    )}
+                    onClick={() => setShowMenu(!showMenu)}
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+
+                  {showMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-secondary-100 py-2 z-20 animate-fade-in overflow-hidden">
+                        {resource.url && (
+                          <a
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Abrir enlace
+                          </a>
+                        )}
                         <button
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors disabled:opacity-50"
+                          onClick={handleIndex}
+                          disabled={isIndexing}
+                        >
+                          <Brain className="h-4 w-4" />
+                          {isIndexing
+                            ? 'Indexando...'
+                            : resource.isIndexed
+                            ? 'Reindexar para RAG'
+                            : 'Indexar para RAG'}
+                        </button>
+                        {resource.isIndexed && (
+                          <button
+                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
+                            onClick={() => {
+                              setIsExpanded(true);
+                              setShowMenu(false);
+                            }}
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            Generar resumen Harvard
+                          </button>
+                        )}
+                        <div className="my-1 border-t border-secondary-100" />
+                        <button
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                           onClick={() => {
-                            setIsExpanded(true);
+                            onDelete();
                             setShowMenu(false);
                           }}
                         >
-                          <FileText className="h-4 w-4" />
-                          Generar resumen Harvard
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
                         </button>
-                      )}
-                      <button
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        onClick={() => {
-                          onDelete();
-                          setShowMenu(false);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Eliminar
-                      </button>
-                    </div>
-                  </>
-                )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {resource.description && (
-            <p className="text-sm text-secondary-600 mt-2 line-clamp-2">
-              {resource.description}
-            </p>
-          )}
+            {resource.description && (
+              <p className="text-sm text-secondary-600 mt-2 line-clamp-2 leading-relaxed">
+                {resource.description}
+              </p>
+            )}
 
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <Badge variant="default" size="sm">
-              {resourceTypeLabels[resource.type]}
-            </Badge>
-            <Badge variant="default" size="sm">
-              {resourceLevelLabels[resource.level]}
-            </Badge>
-            {resource.isOpenAccess && (
-              <Badge variant="success" size="sm">
-                Open Access
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              <Badge variant="default" size="sm" className="bg-secondary-100">
+                {resourceTypeLabels[resource.type]}
               </Badge>
-            )}
-            {resource.isIndexed && (
-              <Badge variant="primary" size="sm">
-                Indexado ({resource.chunkCount} chunks)
+              <Badge variant="default" size="sm" className="bg-secondary-100">
+                {resourceLevelLabels[resource.level]}
               </Badge>
-            )}
+              {resource.isOpenAccess && (
+                <Badge variant="success" size="sm">
+                  Open Access
+                </Badge>
+              )}
+              {resource.isIndexed && (
+                <Badge variant="gradient" size="sm">
+                  <Brain className="h-3 w-3 mr-1" />
+                  {resource.chunkCount} chunks
+                </Badge>
+              )}
+              {resource.language && (
+                <Badge variant="default" size="sm" className="bg-secondary-100 uppercase">
+                  <Globe className="h-3 w-3 mr-1" />
+                  {resource.language}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Harvard Summary Section */}
       {isExpanded && (
-        <div className="border-t border-secondary-200 p-4 bg-secondary-50/50">
+        <div className="border-t border-secondary-100 p-5 bg-gradient-to-b from-secondary-50/50 to-white animate-fade-in">
           <HarvardSummaryView
             resourceId={resource.id}
             resourceTitle={resource.title}
@@ -640,6 +792,6 @@ function ResourceCard({
           />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

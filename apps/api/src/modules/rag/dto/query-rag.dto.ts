@@ -81,4 +81,20 @@ export class QueryRagDto {
   @IsOptional()
   @IsBoolean()
   skipCache?: boolean;
+
+  @ApiPropertyOptional({
+    enum: ['openai', 'gemini', 'deepseek', 'groq'],
+    description: 'Proveedor de IA a usar',
+  })
+  @IsOptional()
+  @IsEnum(['openai', 'gemini', 'deepseek', 'groq'])
+  provider?: 'openai' | 'gemini' | 'deepseek' | 'groq';
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Usar proveedor gratuito automáticamente (Groq, Gemini)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  useFreeProvider?: boolean;
 }

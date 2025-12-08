@@ -11,8 +11,9 @@ export interface ModalProps {
   title?: string;
   description?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   showClose?: boolean;
+  variant?: 'default' | 'glass';
 }
 
 const sizes = {
@@ -20,6 +21,7 @@ const sizes = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
+  full: 'max-w-[90vw]',
 };
 
 export function Modal({
@@ -30,10 +32,12 @@ export function Modal({
   children,
   size = 'md',
   showClose = true,
+  variant = 'default',
 }: ModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
+        {/* Backdrop */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -43,7 +47,7 @@ export function Modal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/50" />
+          <div className="fixed inset-0 bg-secondary-900/60 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -51,31 +55,34 @@ export function Modal({
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
+              enterFrom="opacity-0 scale-95 translate-y-4"
+              enterTo="opacity-100 scale-100 translate-y-0"
               leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+              leaveFrom="opacity-100 scale-100 translate-y-0"
+              leaveTo="opacity-0 scale-95 translate-y-4"
             >
               <Dialog.Panel
                 className={cn(
-                  'w-full transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all',
+                  'w-full transform overflow-hidden rounded-2xl text-left align-middle transition-all',
+                  variant === 'default' && 'bg-white shadow-premium-xl',
+                  variant === 'glass' && 'glass shadow-2xl',
                   sizes[size]
                 )}
               >
+                {/* Header */}
                 {(title || showClose) && (
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
+                  <div className="flex items-start justify-between p-6 pb-4 border-b border-secondary-100">
+                    <div className="flex-1 pr-4">
                       {title && (
                         <Dialog.Title
                           as="h3"
-                          className="text-lg font-semibold text-secondary-900"
+                          className="text-xl font-semibold text-secondary-900 tracking-tight"
                         >
                           {title}
                         </Dialog.Title>
                       )}
                       {description && (
-                        <Dialog.Description className="text-sm text-secondary-500 mt-1">
+                        <Dialog.Description className="text-sm text-secondary-500 mt-1.5 leading-relaxed">
                           {description}
                         </Dialog.Description>
                       )}
@@ -83,7 +90,11 @@ export function Modal({
                     {showClose && (
                       <button
                         type="button"
-                        className="text-secondary-400 hover:text-secondary-600 transition-colors"
+                        className={cn(
+                          'p-2 rounded-xl transition-all duration-200',
+                          'text-secondary-400 hover:text-secondary-600',
+                          'hover:bg-secondary-100 active:scale-95'
+                        )}
                         onClick={onClose}
                       >
                         <X className="h-5 w-5" />
@@ -91,7 +102,11 @@ export function Modal({
                     )}
                   </div>
                 )}
-                {children}
+
+                {/* Content */}
+                <div className="p-6">
+                  {children}
+                </div>
               </Dialog.Panel>
             </Transition.Child>
           </div>

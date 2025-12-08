@@ -139,6 +139,8 @@ export interface Subject {
   _count?: {
     resources: number;
     queries: number;
+    flashcards: number;
+    quizzes: number;
   };
 }
 
@@ -449,6 +451,22 @@ export interface RagStats {
   }>;
 }
 
+export interface AIProvider {
+  type: string;
+  name: string;
+  isFree: boolean;
+  description: string;
+}
+
+export interface ProvidersResponse {
+  current: {
+    type: string;
+    name: string;
+    isFree: boolean;
+  };
+  available: AIProvider[];
+}
+
 export const rag = {
   query: (token: string, data: RagQueryRequest) =>
     request<RagResponse>('/rag/query', { method: 'POST', body: data, token }),
@@ -460,6 +478,9 @@ export const rag = {
 
   getStats: (token: string) =>
     request<RagStats>('/rag/stats', { token }),
+
+  getProviders: (token: string) =>
+    request<ProvidersResponse>('/rag/providers', { token }),
 };
 
 // ============================================
@@ -576,6 +597,67 @@ export const billing = {
     request<{ portalUrl: string; provider: PaymentProvider }>('/billing/portal', { token }),
 };
 
+// ============================================
+// CALENDAR ENDPOINTS
+// ============================================
+
+export type EventType = 'CLASS' | 'EXAM' | 'ASSIGNMENT' | 'STUDY' | 'OTHER';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  type: EventType;
+  startDate: string;
+  endDate?: string;
+  isAllDay: boolean;
+  isCompleted: boolean;
+  subjectId?: string;
+  subject?: { name: string; color: string };
+  createdAt: string;
+}
+
+export interface CreateEventRequest {
+  title: string;
+  description?: string;
+  type: EventType;
+  startDate: string;
+  endDate?: string;
+  isAllDay?: boolean;
+  subjectId?: string;
+}
+
+export const calendar = {
+  getEvents: (token: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString();
+    return request<CalendarEvent[]>(`/calendar/events${query ? `?${query}` : ''}`, { token });
+  },
+
+  getTodayEvents: (token: string) =>
+    request<CalendarEvent[]>('/calendar/events/today', { token }),
+
+  getWeekEvents: (token: string) =>
+    request<CalendarEvent[]>('/calendar/events/week', { token }),
+
+  getEvent: (token: string, id: string) =>
+    request<CalendarEvent>(`/calendar/events/${id}`, { token }),
+
+  createEvent: (token: string, data: CreateEventRequest) =>
+    request<CalendarEvent>('/calendar/events', { method: 'POST', body: data, token }),
+
+  updateEvent: (token: string, id: string, data: Partial<CreateEventRequest>) =>
+    request<CalendarEvent>(`/calendar/events/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteEvent: (token: string, id: string) =>
+    request<void>(`/calendar/events/${id}`, { method: 'DELETE', token }),
+
+  completeEvent: (token: string, id: string) =>
+    request<CalendarEvent>(`/calendar/events/${id}/complete`, { method: 'PATCH', token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -585,4 +667,5 @@ export default {
   academic,
   rag,
   billing,
+  calendar,
 };

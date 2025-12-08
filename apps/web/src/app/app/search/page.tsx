@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Header } from '@/components/layout';
 import {
   Card,
   CardContent,
@@ -46,18 +45,23 @@ import {
   Clock,
   File,
   Stethoscope,
+  Sparkles,
+  Zap,
+  TrendingUp,
+  Library,
+  X,
 } from 'lucide-react';
-import { resourceTypeLabels, resourceLevelLabels } from '@/lib/utils';
+import { resourceTypeLabels, resourceLevelLabels, cn } from '@/lib/utils';
 import Image from 'next/image';
 
-// Category configuration
-const categoryConfig: Record<SearchCategory, { label: string; icon: React.ReactNode; description: string }> = {
-  all: { label: 'Todos', icon: <Globe className="h-4 w-4" />, description: 'Buscar en todas las fuentes' },
-  papers: { label: 'Papers', icon: <FileText className="h-4 w-4" />, description: 'Artículos científicos' },
-  books: { label: 'Libros', icon: <BookMarked className="h-4 w-4" />, description: 'Libros y manuales' },
-  videos: { label: 'Videos', icon: <Video className="h-4 w-4" />, description: 'Videos educativos' },
-  courses: { label: 'Cursos', icon: <GraduationCap className="h-4 w-4" />, description: 'Cursos y tutoriales' },
-  medical: { label: 'Medicina', icon: <Stethoscope className="h-4 w-4" />, description: 'PubMed, NCBI y OpenStax' },
+// Category configuration with premium styling
+const categoryConfig: Record<SearchCategory, { label: string; icon: React.ReactNode; description: string; gradient: string }> = {
+  all: { label: 'Todos', icon: <Globe className="h-4 w-4" />, description: 'Buscar en todas las fuentes', gradient: 'from-slate-500 to-slate-600' },
+  papers: { label: 'Papers', icon: <FileText className="h-4 w-4" />, description: 'Artículos científicos', gradient: 'from-blue-500 to-cyan-500' },
+  books: { label: 'Libros', icon: <BookMarked className="h-4 w-4" />, description: 'Libros y manuales', gradient: 'from-violet-500 to-purple-500' },
+  videos: { label: 'Videos', icon: <Video className="h-4 w-4" />, description: 'Videos educativos', gradient: 'from-red-500 to-rose-500' },
+  courses: { label: 'Cursos', icon: <GraduationCap className="h-4 w-4" />, description: 'Cursos y tutoriales', gradient: 'from-emerald-500 to-teal-500' },
+  medical: { label: 'Medicina', icon: <Stethoscope className="h-4 w-4" />, description: 'PubMed, NCBI y OpenStax', gradient: 'from-pink-500 to-rose-500' },
 };
 
 export default function SearchPage() {
@@ -85,7 +89,7 @@ export default function SearchPage() {
     type: undefined,
     level: undefined,
     language: undefined,
-    openAccessOnly: false, // Allow all by default for comprehensive search
+    openAccessOnly: false,
     limit: 30,
   });
 
@@ -111,7 +115,6 @@ export default function SearchPage() {
     setHasSearched(true);
 
     try {
-      // Use unified search for comprehensive results
       const data = await academic.searchAll(token, {
         query: query.trim(),
         category: selectedCategory,
@@ -129,7 +132,6 @@ export default function SearchPage() {
     }
   }
 
-  // Re-search when category changes
   async function handleCategoryChange(category: SearchCategory) {
     setSelectedCategory(category);
     if (hasSearched && query.trim() && token) {
@@ -198,150 +200,213 @@ export default function SearchPage() {
   const subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
 
   return (
-    <>
-      <Header
-        title="Buscar Recursos Educativos"
-        subtitle="Encuentra libros, videos, papers, manuales y cursos de internet"
-      />
+    <div className="min-h-screen">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden border-b border-secondary-200/50 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/80">
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-      <div className="p-6">
-        {/* Search Form */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <form onSubmit={handleSearch}>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input
+        <div className="relative p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                <Search className="h-7 w-7 text-white" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full border-2 border-white flex items-center justify-center">
+                <Sparkles className="h-3 w-3 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-secondary-900 tracking-tight">
+                Buscar <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Recursos</span>
+              </h1>
+              <p className="text-secondary-500 mt-0.5">
+                Encuentra libros, videos, papers, manuales y cursos de internet
+              </p>
+            </div>
+          </div>
+
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="max-w-4xl">
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <div className="relative rounded-2xl border-2 border-secondary-200 bg-white focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-200 overflow-hidden shadow-sm">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary-400" />
+                  <input
+                    type="text"
                     placeholder="Buscar por tema, autor o título..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    leftIcon={<Search className="h-5 w-5" />}
+                    className="w-full pl-12 pr-4 py-4 text-secondary-900 placeholder:text-secondary-400 focus:outline-none bg-transparent"
                   />
                 </div>
-                <Button
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'px-4 rounded-xl',
+                  showFilters && 'bg-secondary-100 border-secondary-300'
+                )}
+              >
+                <Filter className="h-5 w-5" />
+              </Button>
+              <Button type="submit" variant="gradient" isLoading={isLoading} className="px-8 rounded-xl shadow-lg shadow-primary-500/25">
+                <Search className="h-5 w-5 mr-2" />
+                Buscar
+              </Button>
+            </div>
+
+            {/* Category Tabs - Premium Style */}
+            <div className="flex gap-2 mt-4 pt-4 overflow-x-auto pb-2 custom-scrollbar">
+              {(Object.keys(categoryConfig) as SearchCategory[]).map((cat) => (
+                <button
+                  key={cat}
                   type="button"
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  leftIcon={<Filter className="h-4 w-4" />}
+                  onClick={() => handleCategoryChange(cat)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap',
+                    selectedCategory === cat
+                      ? `bg-gradient-to-r ${categoryConfig[cat].gradient} text-white shadow-lg`
+                      : 'bg-white border border-secondary-200 text-secondary-600 hover:bg-secondary-50 hover:border-secondary-300'
+                  )}
                 >
-                  Filtros
-                </Button>
-                <Button type="submit" isLoading={isLoading}>
-                  Buscar
-                </Button>
-              </div>
+                  {categoryConfig[cat].icon}
+                  {categoryConfig[cat].label}
+                </button>
+              ))}
+            </div>
 
-              {/* Category Tabs */}
-              <div className="flex gap-2 mt-4 pt-4 border-t overflow-x-auto">
-                {(Object.keys(categoryConfig) as SearchCategory[]).map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleCategoryChange(cat)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
-                    }`}
-                  >
-                    {categoryConfig[cat].icon}
-                    {categoryConfig[cat].label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Filters */}
-              {showFilters && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
-                  <Select
-                    label="Tipo"
-                    options={typeOptions}
-                    value={filters.type || ''}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        type: (e.target.value as ResourceType) || undefined,
-                      }))
-                    }
-                  />
-                  <Select
-                    label="Nivel"
-                    options={levelOptions}
-                    value={filters.level || ''}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        level: (e.target.value as ResourceLevel) || undefined,
-                      }))
-                    }
-                  />
-                  <Select
-                    label="Idioma"
-                    options={languageOptions}
-                    value={filters.language || ''}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        language: e.target.value || undefined,
-                      }))
-                    }
-                  />
-                  <div className="flex items-end">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.openAccessOnly}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            openAccessOnly: e.target.checked,
-                          }))
-                        }
-                        className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-secondary-700">
-                        Solo Open Access
-                      </span>
-                    </label>
-                  </div>
+            {/* Filters - Animated */}
+            {showFilters && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-secondary-200 animate-fade-in">
+                <Select
+                  label="Tipo"
+                  options={typeOptions}
+                  value={filters.type || ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      type: (e.target.value as ResourceType) || undefined,
+                    }))
+                  }
+                />
+                <Select
+                  label="Nivel"
+                  options={levelOptions}
+                  value={filters.level || ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      level: (e.target.value as ResourceLevel) || undefined,
+                    }))
+                  }
+                />
+                <Select
+                  label="Idioma"
+                  options={languageOptions}
+                  value={filters.language || ''}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      language: e.target.value || undefined,
+                    }))
+                  }
+                />
+                <div className="flex items-end">
+                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-secondary-200 bg-white hover:bg-secondary-50 transition-colors w-full">
+                    <input
+                      type="checkbox"
+                      checked={filters.openAccessOnly}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          openAccessOnly: e.target.checked,
+                        }))
+                      }
+                      className="w-4 h-4 rounded border-secondary-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm text-secondary-700 font-medium">
+                      Solo Open Access
+                    </span>
+                  </label>
                 </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
 
-        {/* Results */}
+      {/* Results Section */}
+      <div className="p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" />
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg animate-pulse">
+                <Search className="h-8 w-8 text-white" />
+              </div>
+              <div className="absolute -inset-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-xl animate-pulse" />
+            </div>
+            <p className="mt-6 text-secondary-500 font-medium">Buscando recursos...</p>
           </div>
         ) : !hasSearched ? (
-          <Card>
-            <EmptyState
-              icon={<Search className="h-8 w-8" />}
-              title="Busca recursos educativos"
-              description="Encuentra libros, videos, papers y cursos en YouTube, Google Books, Archive.org, OpenAlex y más"
-            />
-          </Card>
+          <div className="text-center py-20 animate-fade-in">
+            <div className="relative inline-block mb-8">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-2xl shadow-emerald-500/30 animate-float">
+                <Library className="h-12 w-12 text-white" />
+              </div>
+              <div className="absolute -inset-4 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-2xl animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-bold text-secondary-900 mb-3">
+              Descubre recursos <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">educativos</span>
+            </h3>
+            <p className="text-secondary-500 max-w-md mx-auto mb-8">
+              Encuentra libros, videos, papers y cursos en YouTube, Google Books, Archive.org, OpenAlex y más
+            </p>
+
+            {/* Quick search suggestions */}
+            <div className="flex flex-wrap justify-center gap-2 max-w-lg mx-auto">
+              {['Inteligencia Artificial', 'Cálculo', 'Programación', 'Historia', 'Biología'].map((term) => (
+                <button
+                  key={term}
+                  onClick={() => {
+                    setQuery(term);
+                  }}
+                  className="px-4 py-2 rounded-full bg-white border border-secondary-200 text-sm text-secondary-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : results.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={<BookOpen className="h-8 w-8" />}
-              title="No se encontraron resultados"
-              description="Intenta con otros términos de búsqueda o cambia de categoría"
-            />
-          </Card>
+          <div className="text-center py-20 animate-fade-in">
+            <div className="w-20 h-20 rounded-2xl bg-secondary-100 flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="h-10 w-10 text-secondary-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-secondary-900 mb-2">No se encontraron resultados</h3>
+            <p className="text-secondary-500 max-w-md mx-auto">
+              Intenta con otros términos de búsqueda o cambia de categoría
+            </p>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6 animate-fade-in">
             {/* Results summary with source breakdown */}
-            <div className="flex flex-wrap items-center gap-4">
-              <p className="text-sm text-secondary-500">
-                {results.length} resultado{results.length !== 1 && 's'} encontrado{results.length !== 1 && 's'}
-              </p>
+            <div className="flex flex-wrap items-center gap-4 p-4 bg-white rounded-2xl border border-secondary-100 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-semibold text-secondary-900">
+                  {results.length} resultado{results.length !== 1 && 's'}
+                </span>
+              </div>
               {Object.keys(totalBySource).length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 ml-auto">
                   {Object.entries(totalBySource).map(([source, count]) => (
-                    <Badge key={source} variant="default" size="sm">
+                    <Badge key={source} variant="default" size="sm" className="bg-secondary-100">
                       {sourceLabels[source as AcademicSource] || source}: {typeof count === 'number' && !isNaN(count) ? count : 0}
                     </Badge>
                   ))}
@@ -349,29 +414,39 @@ export default function SearchPage() {
               )}
             </div>
 
-            {/* Results grid - use cards for videos/books, list for papers */}
+            {/* Results grid */}
             {selectedCategory === 'videos' || selectedCategory === 'books' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.map((resource) => (
-                  <ResourceGridCard
+                {results.map((resource, index) => (
+                  <div
                     key={resource.externalId}
-                    resource={resource}
-                    onImport={() => handleImportClick(resource)}
-                    isImporting={importingId === resource.externalId}
-                    isImported={importedIds.has(resource.externalId)}
-                  />
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <ResourceGridCard
+                      resource={resource}
+                      onImport={() => handleImportClick(resource)}
+                      isImporting={importingId === resource.externalId}
+                      isImported={importedIds.has(resource.externalId)}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
-                {results.map((resource) => (
-                  <ResourceResultCard
+                {results.map((resource, index) => (
+                  <div
                     key={resource.externalId}
-                    resource={resource}
-                    onImport={() => handleImportClick(resource)}
-                    isImporting={importingId === resource.externalId}
-                    isImported={importedIds.has(resource.externalId)}
-                  />
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                  >
+                    <ResourceResultCard
+                      resource={resource}
+                      onImport={() => handleImportClick(resource)}
+                      isImporting={importingId === resource.externalId}
+                      isImported={importedIds.has(resource.externalId)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -379,24 +454,26 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Import Modal */}
+      {/* Import Modal - Premium Style */}
       <Modal
         isOpen={isImportModalOpen}
         onClose={() => {
           setIsImportModalOpen(false);
           setResourceToImport(null);
         }}
-        title="Importar recurso"
+        title="Guardar recurso"
         description="Selecciona la materia donde quieres guardar este recurso"
+        variant="glass"
       >
         {resourceToImport && (
-          <div className="space-y-4">
-            <div className="p-4 bg-secondary-50 rounded-lg">
-              <h4 className="font-medium text-secondary-900">
+          <div className="space-y-6">
+            <div className="p-4 bg-gradient-to-r from-secondary-50 to-primary-50/30 rounded-xl border border-secondary-100">
+              <h4 className="font-semibold text-secondary-900 line-clamp-2">
                 {resourceToImport.title}
               </h4>
               {resourceToImport.authors.length > 0 && (
-                <p className="text-sm text-secondary-500 mt-1">
+                <p className="text-sm text-secondary-500 mt-1 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
                   {resourceToImport.authors.slice(0, 3).join(', ')}
                   {resourceToImport.authors.length > 3 && ' y otros'}
                 </p>
@@ -411,7 +488,7 @@ export default function SearchPage() {
               placeholder="Selecciona una materia"
             />
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-4 border-t border-secondary-100">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -422,17 +499,19 @@ export default function SearchPage() {
                 Cancelar
               </Button>
               <Button
+                variant="gradient"
                 onClick={handleImport}
                 isLoading={importingId === resourceToImport.externalId}
                 disabled={!selectedSubjectId}
               >
-                Importar
+                <Plus className="h-4 w-4 mr-2" />
+                Guardar
               </Button>
             </div>
           </div>
         )}
       </Modal>
-    </>
+    </div>
   );
 }
 
@@ -471,7 +550,6 @@ const typeLabels: Record<string, string> = {
   other: 'Otro',
 };
 
-// Get icon based on resource type
 function getResourceIcon(type: string) {
   switch (type) {
     case 'video':
@@ -489,7 +567,6 @@ function getResourceIcon(type: string) {
   }
 }
 
-// Get badge color based on source
 function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'warning' | 'error' {
   switch (source) {
     case 'youtube':
@@ -507,7 +584,6 @@ function getSourceColor(source: string): 'default' | 'primary' | 'success' | 'wa
   }
 }
 
-// Grid card for videos and books (with thumbnails)
 function ResourceGridCard({
   resource,
   onImport,
@@ -522,14 +598,14 @@ function ResourceGridCard({
   const isVideo = resource.type === 'video';
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-secondary-100" hover>
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-secondary-100">
+      <div className="relative aspect-video bg-gradient-to-br from-secondary-100 to-secondary-200 overflow-hidden">
         {resource.thumbnailUrl ? (
           <img
             src={resource.thumbnailUrl}
             alt={resource.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-secondary-400">
@@ -543,38 +619,45 @@ function ResourceGridCard({
             href={resource.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
+            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           >
-            <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-              <Play className="h-8 w-8 text-primary-600 ml-1" />
+            <div className="w-16 h-16 bg-white/95 rounded-full flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
+              <Play className="h-8 w-8 text-red-500 ml-1" />
             </div>
           </a>
         )}
 
         {/* Duration badge for videos */}
         {resource.duration && (
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded-lg font-medium">
             {resource.duration}
           </div>
         )}
 
         {/* Page count for books */}
         {typeof resource.pageCount === 'number' && !isNaN(resource.pageCount) && resource.pageCount > 0 && (
-          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded-lg font-medium">
             {resource.pageCount} págs.
           </div>
         )}
+
+        {/* Source badge */}
+        <div className="absolute top-2 left-2">
+          <Badge variant={getSourceColor(resource.source)} size="sm" className="shadow-sm">
+            {sourceLabels[resource.source] || resource.source}
+          </Badge>
+        </div>
       </div>
 
       <CardContent className="p-4">
         {/* Title */}
-        <h3 className="font-semibold text-secondary-900 line-clamp-2 mb-2">
+        <h3 className="font-semibold text-secondary-900 line-clamp-2 mb-2 group-hover:text-primary-600 transition-colors">
           {resource.url ? (
             <a
               href={resource.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-primary-600 hover:underline"
+              className="hover:underline"
             >
               {resource.title}
             </a>
@@ -585,23 +668,21 @@ function ResourceGridCard({
 
         {/* Authors/Channel */}
         {resource.authors.length > 0 && (
-          <p className="text-sm text-secondary-500 mb-2 line-clamp-1">
+          <p className="text-sm text-secondary-500 mb-3 line-clamp-1 flex items-center gap-1">
+            <Users className="h-3 w-3" />
             {resource.authors[0]}
           </p>
         )}
 
         {/* Metadata row */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <Badge variant={getSourceColor(resource.source)} size="sm">
-            {sourceLabels[resource.source] || resource.source}
-          </Badge>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           {resource.isOpenAccess && (
             <Badge variant="success" size="sm">
               Gratis
             </Badge>
           )}
           {resource.language && (
-            <span className="text-xs text-secondary-400">{resource.language.toUpperCase()}</span>
+            <span className="text-xs text-secondary-400 uppercase">{resource.language}</span>
           )}
         </div>
 
@@ -609,17 +690,20 @@ function ResourceGridCard({
         <div className="flex gap-2">
           {resource.url && (
             <a href={resource.url} target="_blank" rel="noopener noreferrer" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full" leftIcon={<ExternalLink className="h-4 w-4" />}>
+              <Button variant="outline" size="sm" className="w-full">
+                <ExternalLink className="h-4 w-4 mr-1" />
                 {isVideo ? 'Ver' : 'Abrir'}
               </Button>
             </a>
           )}
           {isImported ? (
-            <Button variant="secondary" size="sm" leftIcon={<CheckCircle className="h-4 w-4" />} disabled>
+            <Button variant="secondary" size="sm" disabled className="bg-emerald-50 text-emerald-600">
+              <CheckCircle className="h-4 w-4 mr-1" />
               Guardado
             </Button>
           ) : (
-            <Button size="sm" onClick={onImport} isLoading={isImporting} leftIcon={<Plus className="h-4 w-4" />}>
+            <Button variant="gradient" size="sm" onClick={onImport} isLoading={isImporting}>
+              <Plus className="h-4 w-4 mr-1" />
               Guardar
             </Button>
           )}
@@ -629,7 +713,6 @@ function ResourceGridCard({
   );
 }
 
-// List card for papers and general results
 function ResourceResultCard({
   resource,
   onImport,
@@ -642,16 +725,19 @@ function ResourceResultCard({
   isImported: boolean;
 }) {
   return (
-    <Card>
+    <Card className="hover:shadow-lg transition-all duration-300 group border-secondary-100" hover>
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           {/* Icon or thumbnail */}
           {resource.thumbnailUrl ? (
-            <div className="w-16 h-20 bg-secondary-100 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={resource.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+            <div className="w-20 h-24 bg-secondary-100 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+              <img src={resource.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
           ) : (
-            <div className="w-10 h-10 bg-secondary-100 rounded-lg flex items-center justify-center text-secondary-600 flex-shrink-0">
+            <div className={cn(
+              'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+              'bg-gradient-to-br from-secondary-100 to-secondary-200 text-secondary-500'
+            )}>
               {getResourceIcon(resource.type)}
             </div>
           )}
@@ -659,7 +745,7 @@ function ResourceResultCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-secondary-900 hover:text-primary-600">
+                <h3 className="font-semibold text-secondary-900 group-hover:text-primary-600 transition-colors">
                   {resource.url ? (
                     <a
                       href={resource.url}
@@ -675,7 +761,7 @@ function ResourceResultCard({
                 </h3>
 
                 {resource.authors.length > 0 && (
-                  <div className="flex items-center gap-1 text-sm text-secondary-500 mt-1">
+                  <div className="flex items-center gap-2 text-sm text-secondary-500 mt-1">
                     <Users className="h-4 w-4" />
                     <span>
                       {resource.authors.slice(0, 3).join(', ')}
@@ -684,57 +770,64 @@ function ResourceResultCard({
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-sm text-secondary-500 mt-1">
+                <div className="flex items-center gap-3 text-sm text-secondary-500 mt-2">
                   {(() => {
                     const year = resource.publicationYear ||
                       (resource.publicationDate ? new Date(resource.publicationDate).getFullYear() : null);
                     return typeof year === 'number' && !isNaN(year) && year > 0 ? (
-                      <>
+                      <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{year}</span>
-                      </>
+                        {year}
+                      </span>
                     ) : null;
                   })()}
                   {typeof resource.citationCount === 'number' && !isNaN(resource.citationCount) && resource.citationCount > 0 && (
-                    <span>· {resource.citationCount} citas</span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4" />
+                      {resource.citationCount} citas
+                    </span>
                   )}
                   {resource.duration && (
-                    <>
-                      <Clock className="h-4 w-4 ml-2" />
-                      <span>{resource.duration}</span>
-                    </>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {resource.duration}
+                    </span>
                   )}
-                  {typeof resource.pageCount === 'number' && !isNaN(resource.pageCount) && resource.pageCount > 0 && <span>· {resource.pageCount} págs.</span>}
-                  {resource.fileSize && <span>· {resource.fileSize}</span>}
+                  {typeof resource.pageCount === 'number' && !isNaN(resource.pageCount) && resource.pageCount > 0 && (
+                    <span>{resource.pageCount} págs.</span>
+                  )}
                 </div>
               </div>
 
               <div className="flex gap-2 flex-shrink-0">
                 {resource.url && (
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />}>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
                   </a>
                 )}
                 {isImported ? (
-                  <Button variant="secondary" size="sm" leftIcon={<CheckCircle className="h-4 w-4" />} disabled>
-                    Importado
+                  <Button variant="secondary" size="sm" disabled className="bg-emerald-50 text-emerald-600">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Guardado
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={onImport} isLoading={isImporting} leftIcon={<Plus className="h-4 w-4" />}>
-                    Importar
+                  <Button variant="gradient" size="sm" onClick={onImport} isLoading={isImporting}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Guardar
                   </Button>
                 )}
               </div>
             </div>
 
             {resource.abstract && (
-              <p className="text-sm text-secondary-600 mt-3 line-clamp-3">{resource.abstract}</p>
+              <p className="text-sm text-secondary-600 mt-3 line-clamp-2 leading-relaxed">{resource.abstract}</p>
             )}
 
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <Badge variant="default" size="sm">
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              <Badge variant="default" size="sm" className="bg-secondary-100">
                 {typeLabels[resource.type] || resource.type}
               </Badge>
               <Badge variant={getSourceColor(resource.source)} size="sm">
@@ -746,8 +839,8 @@ function ResourceResultCard({
                 </Badge>
               )}
               {resource.extension && (
-                <Badge variant="default" size="sm">
-                  {resource.extension.toUpperCase()}
+                <Badge variant="default" size="sm" className="bg-secondary-100 uppercase">
+                  {resource.extension}
                 </Badge>
               )}
               {resource.pdfUrl && (
@@ -755,7 +848,7 @@ function ResourceResultCard({
                   href={resource.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
+                  className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
                 >
                   <Download className="h-3 w-3" />
                   PDF

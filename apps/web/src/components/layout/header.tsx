@@ -1,8 +1,10 @@
 'use client';
 
-import { Bell, Search, User, Menu } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Search, User, Menu, Settings, LogOut, ChevronDown, Sparkles, Command } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
-import { getInitials } from '../../lib/utils';
+import { getInitials, cn } from '../../lib/utils';
+import Link from 'next/link';
 
 interface HeaderProps {
   title?: string;
@@ -11,56 +13,153 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, onMenuClick }: HeaderProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <header className="sticky top-0 z-30 h-16 bg-white/70 backdrop-blur-xl border-b border-secondary-200/50 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         {/* Mobile menu button */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="lg:hidden p-2.5 rounded-xl text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-all duration-200 active:scale-95"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5" />
         </button>
 
         <div>
           {title && (
-            <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+            <h1 className="text-lg font-semibold text-secondary-900 tracking-tight">{title}</h1>
           )}
           {subtitle && (
-            <p className="text-sm text-gray-500">{subtitle}</p>
+            <p className="text-sm text-secondary-500">{subtitle}</p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Search */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="relative hidden md:block group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
           <input
             type="text"
             placeholder="Buscar..."
-            className="w-64 pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className={cn(
+              'w-72 pl-11 pr-4 py-2.5 rounded-xl',
+              'bg-secondary-50/80 border-2 border-transparent',
+              'text-sm text-secondary-900 placeholder:text-secondary-400',
+              'focus:outline-none focus:bg-white focus:border-primary-200 focus:ring-4 focus:ring-primary-500/10',
+              'transition-all duration-200'
+            )}
           />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1 text-secondary-300">
+            <kbd className="px-1.5 py-0.5 text-xs bg-secondary-100 rounded font-mono">⌘</kbd>
+            <kbd className="px-1.5 py-0.5 text-xs bg-secondary-100 rounded font-mono">K</kbd>
+          </div>
         </div>
 
-        {/* Notifications */}
-        <button className="relative p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        {/* AI Assistant Quick Access */}
+        <Link href="/app/copilot">
+          <button className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-primary-500 to-violet-500 text-white text-sm font-medium hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-200 active:scale-95">
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden lg:inline">Copiloto IA</span>
+          </button>
+        </Link>
 
-        {/* User Avatar */}
-        <button className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium text-sm">
-            {user?.profile ? (
-              getInitials(`${user.profile.firstName} ${user.profile.lastName}`)
-            ) : (
-              <User className="h-4 w-4" />
-            )}
-          </div>
-        </button>
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2.5 rounded-xl text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-all duration-200 active:scale-95"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-full ring-2 ring-white" />
+          </button>
+
+          {showNotifications && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-premium-xl border border-secondary-200/50 overflow-hidden z-50 animate-scale-in">
+                <div className="p-4 border-b border-secondary-100">
+                  <h3 className="font-semibold text-secondary-900">Notificaciones</h3>
+                </div>
+                <div className="p-4">
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center mb-3">
+                      <Bell className="h-6 w-6 text-secondary-400" />
+                    </div>
+                    <p className="text-sm text-secondary-500">No tienes notificaciones</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* User Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-secondary-100 transition-all duration-200 active:scale-98"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white font-medium text-sm shadow-md">
+              {user?.profile ? (
+                getInitials(`${user.profile.firstName} ${user.profile.lastName}`)
+              ) : (
+                <User className="h-4 w-4" />
+              )}
+            </div>
+            <ChevronDown className={cn(
+              'h-4 w-4 text-secondary-400 transition-transform duration-200',
+              showUserMenu && 'rotate-180'
+            )} />
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-premium-xl border border-secondary-200/50 overflow-hidden z-50 animate-scale-in">
+                {/* User Info */}
+                <div className="p-4 bg-gradient-to-br from-primary-50 to-violet-50 border-b border-secondary-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white font-semibold shadow-lg">
+                      {user?.profile?.firstName?.charAt(0) || user?.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-secondary-900 truncate">
+                        {user?.profile?.firstName} {user?.profile?.lastName}
+                      </p>
+                      <p className="text-xs text-secondary-500 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="p-2">
+                  <Link
+                    href="/app/settings"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900 transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="text-sm font-medium">Configuración</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      logout();
+                    }}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-secondary-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="text-sm font-medium">Cerrar sesión</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
