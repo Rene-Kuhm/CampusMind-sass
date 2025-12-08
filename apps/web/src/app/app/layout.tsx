@@ -6,6 +6,7 @@ import { Sidebar } from '../../components/layout';
 import { LoadingScreen } from '../../components/ui';
 import Header from '../../components/layout/header';
 import { Sparkles } from 'lucide-react';
+import { OnboardingModal } from '../../components/onboarding/OnboardingModal';
 
 export default function DashboardLayout({
   children,
@@ -77,6 +78,9 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal />
     </div>
   );
 }
