@@ -802,7 +802,7 @@ export type VoiceType = 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Aoede';
 export type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'mixed';
 
-export interface GeneratedQuestion {
+export interface NotebookGeneratedQuestion {
   id: string;
   type: QuestionType;
   question: string;
@@ -813,7 +813,7 @@ export interface GeneratedQuestion {
   topic?: string;
 }
 
-export interface GeneratedFlashcard {
+export interface NotebookGeneratedFlashcard {
   front: string;
   back: string;
   tags: string[];
@@ -856,8 +856,8 @@ export interface FullNotebookResponse {
   resourceId: string;
   resourceName: string;
   studyGuide: StudyGuide;
-  questions: GeneratedQuestion[];
-  flashcards: GeneratedFlashcard[];
+  questions: NotebookGeneratedQuestion[];
+  flashcards: NotebookGeneratedFlashcard[];
   podcastScript: string;
   generatedAt: string;
 }
@@ -874,7 +874,7 @@ export const notebook = {
     request<{
       resourceId: string;
       resourceName: string;
-      questions: GeneratedQuestion[];
+      questions: NotebookGeneratedQuestion[];
       generatedAt: string;
     }>('/notebook/questions/generate', { method: 'POST', body: data, token }),
 
@@ -883,7 +883,7 @@ export const notebook = {
     request<{
       resourceId: string;
       resourceName: string;
-      flashcards: GeneratedFlashcard[];
+      flashcards: NotebookGeneratedFlashcard[];
       generatedAt: string;
     }>('/notebook/flashcards/generate', { method: 'POST', body: data, token }),
 
