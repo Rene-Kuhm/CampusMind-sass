@@ -6,27 +6,27 @@ import {
   Param,
   Query,
   UseGuards,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
-} from '@nestjs/swagger';
-import { RagService } from './rag.service';
-import { CacheService } from './services/cache.service';
-import { LlmService } from './services/llm.service';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
-import { QueryRagDto } from './dto/query-rag.dto';
+} from "@nestjs/swagger";
+import { RagService } from "./rag.service";
+import { CacheService } from "./services/cache.service";
+import { LlmService } from "./services/llm.service";
+import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import { CurrentUser } from "@/common/decorators/current-user.decorator";
+import { User } from "@prisma/client";
+import { QueryRagDto } from "./dto/query-rag.dto";
 
 // DTOs para generación con IA
 class GenerateFlashcardsDto {
   topic: string;
   count?: number;
-  difficulty?: 'basic' | 'intermediate' | 'advanced';
+  difficulty?: "basic" | "intermediate" | "advanced";
   language?: string;
   content?: string;
 }
@@ -34,23 +34,23 @@ class GenerateFlashcardsDto {
 class GenerateQuizDto {
   topic: string;
   questionCount?: number;
-  difficulty?: 'basic' | 'intermediate' | 'advanced';
-  questionTypes?: ('multiple_choice' | 'true_false' | 'short_answer')[];
+  difficulty?: "basic" | "intermediate" | "advanced";
+  questionTypes?: ("multiple_choice" | "true_false" | "short_answer")[];
   language?: string;
   content?: string;
 }
 
 class GenerateSummaryDto {
   content: string;
-  style?: 'bullet_points' | 'paragraph' | 'outline';
-  length?: 'short' | 'medium' | 'long';
+  style?: "bullet_points" | "paragraph" | "outline";
+  length?: "short" | "medium" | "long";
   language?: string;
 }
 
-@ApiTags('rag')
+@ApiTags("rag")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('rag')
+@Controller("rag")
 export class RagController {
   constructor(
     private readonly ragService: RagService,
@@ -58,9 +58,9 @@ export class RagController {
     private readonly llmService: LlmService,
   ) {}
 
-  @Post('query')
-  @ApiOperation({ summary: 'Consultar al copiloto académico' })
-  @ApiResponse({ status: 200, description: 'Respuesta generada con citas' })
+  @Post("query")
+  @ApiOperation({ summary: "Consultar al copiloto académico" })
+  @ApiResponse({ status: 200, description: "Respuesta generada con citas" })
   async query(@CurrentUser() user: User, @Body() dto: QueryRagDto) {
     return this.ragService.queryRAG(user.id, dto.query, {
       subjectId: dto.subjectId,
@@ -75,35 +75,39 @@ export class RagController {
     });
   }
 
-  @Post('ingest/:resourceId')
-  @ApiOperation({ summary: 'Indexar un recurso para búsqueda semántica' })
-  @ApiResponse({ status: 200, description: 'Recurso indexado' })
-  async ingestResource(@Param('resourceId') resourceId: string) {
+  @Post("ingest/:resourceId")
+  @ApiOperation({ summary: "Indexar un recurso para búsqueda semántica" })
+  @ApiResponse({ status: 200, description: "Recurso indexado" })
+  async ingestResource(@Param("resourceId") resourceId: string) {
     return this.ragService.ingestResource(resourceId);
   }
 
-  @Get('summary/:resourceId')
-  @ApiOperation({ summary: 'Generar resumen estilo Harvard de un recurso' })
-  @ApiQuery({ name: 'depth', enum: ['basic', 'intermediate', 'advanced'], required: false })
-  @ApiResponse({ status: 200, description: 'Resumen generado' })
+  @Get("summary/:resourceId")
+  @ApiOperation({ summary: "Generar resumen estilo Harvard de un recurso" })
+  @ApiQuery({
+    name: "depth",
+    enum: ["basic", "intermediate", "advanced"],
+    required: false,
+  })
+  @ApiResponse({ status: 200, description: "Resumen generado" })
   async generateSummary(
     @CurrentUser() user: User,
-    @Param('resourceId') resourceId: string,
-    @Query('depth') depth?: 'basic' | 'intermediate' | 'advanced',
+    @Param("resourceId") resourceId: string,
+    @Query("depth") depth?: "basic" | "intermediate" | "advanced",
   ) {
     return this.ragService.generateSummary(resourceId, user.id, { depth });
   }
 
-  @Get('stats')
-  @ApiOperation({ summary: 'Obtener estadísticas de uso del usuario' })
-  @ApiResponse({ status: 200, description: 'Estadísticas de uso' })
+  @Get("stats")
+  @ApiOperation({ summary: "Obtener estadísticas de uso del usuario" })
+  @ApiResponse({ status: 200, description: "Estadísticas de uso" })
   async getStats(@CurrentUser() user: User) {
     return this.ragService.getUserStats(user.id);
   }
 
-  @Get('cache/stats')
-  @ApiOperation({ summary: 'Obtener estadísticas del cache RAG' })
-  @ApiResponse({ status: 200, description: 'Estadísticas de cache' })
+  @Get("cache/stats")
+  @ApiOperation({ summary: "Obtener estadísticas del cache RAG" })
+  @ApiResponse({ status: 200, description: "Estadísticas de cache" })
   async getCacheStats() {
     const stats = this.cacheService.getStats();
     const hitRate = this.cacheService.getCacheHitRate();
@@ -117,9 +121,12 @@ export class RagController {
     };
   }
 
-  @Get('providers')
-  @ApiOperation({ summary: 'Obtener proveedores de IA disponibles' })
-  @ApiResponse({ status: 200, description: 'Lista de proveedores configurados' })
+  @Get("providers")
+  @ApiOperation({ summary: "Obtener proveedores de IA disponibles" })
+  @ApiResponse({
+    status: 200,
+    description: "Lista de proveedores configurados",
+  })
   async getProviders() {
     const configured = this.llmService.getConfiguredProviders();
     const current = this.llmService.getCurrentProviderInfo();
@@ -139,9 +146,9 @@ export class RagController {
     };
   }
 
-  @Post('generate/flashcards')
-  @ApiOperation({ summary: 'Generar flashcards con IA a partir de un tema' })
-  @ApiResponse({ status: 200, description: 'Flashcards generadas' })
+  @Post("generate/flashcards")
+  @ApiOperation({ summary: "Generar flashcards con IA a partir de un tema" })
+  @ApiResponse({ status: 200, description: "Flashcards generadas" })
   async generateFlashcards(@Body() dto: GenerateFlashcardsDto) {
     return this.ragService.generateFlashcards(dto.topic, {
       count: dto.count,
@@ -151,9 +158,9 @@ export class RagController {
     });
   }
 
-  @Post('generate/quiz')
-  @ApiOperation({ summary: 'Generar quiz/examen de práctica con IA' })
-  @ApiResponse({ status: 200, description: 'Quiz generado' })
+  @Post("generate/quiz")
+  @ApiOperation({ summary: "Generar quiz/examen de práctica con IA" })
+  @ApiResponse({ status: 200, description: "Quiz generado" })
   async generateQuiz(@Body() dto: GenerateQuizDto) {
     return this.ragService.generateQuiz(dto.topic, {
       questionCount: dto.questionCount,
@@ -164,9 +171,9 @@ export class RagController {
     });
   }
 
-  @Post('generate/summary')
-  @ApiOperation({ summary: 'Generar resumen automático con IA' })
-  @ApiResponse({ status: 200, description: 'Resumen generado' })
+  @Post("generate/summary")
+  @ApiOperation({ summary: "Generar resumen automático con IA" })
+  @ApiResponse({ status: 200, description: "Resumen generado" })
   async generateSummary(@Body() dto: GenerateSummaryDto) {
     return this.ragService.generateAutoSummary(dto.content, {
       style: dto.style,

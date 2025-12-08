@@ -1,8 +1,13 @@
-import { Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
-import { ILlmProvider, LlmOptions, LlmResponse, LlmProviderType } from '../interfaces/rag.interface';
+import { Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { AxiosResponse } from "axios";
+import { firstValueFrom } from "rxjs";
+import {
+  ILlmProvider,
+  LlmOptions,
+  LlmResponse,
+  LlmProviderType,
+} from "../interfaces/rag.interface";
 
 /**
  * Base class for LLM providers with common functionality
@@ -27,7 +32,10 @@ export abstract class BaseLlmProvider implements ILlmProvider {
     this.baseUrl = baseUrl;
   }
 
-  abstract generateCompletion(prompt: string, options?: LlmOptions): Promise<LlmResponse>;
+  abstract generateCompletion(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<LlmResponse>;
 
   /**
    * Helper to make HTTP requests with error handling
@@ -43,7 +51,8 @@ export abstract class BaseLlmProvider implements ILlmProvider {
       );
       return response.data;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       this.logger.error(`Request failed: ${errorMessage}`);
       throw new Error(`${this.providerType} request failed: ${errorMessage}`);
     }
@@ -59,10 +68,10 @@ export abstract class BaseLlmProvider implements ILlmProvider {
     const messages: Array<{ role: string; content: string }> = [];
 
     if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
+      messages.push({ role: "system", content: systemPrompt });
     }
 
-    messages.push({ role: 'user', content: prompt });
+    messages.push({ role: "user", content: prompt });
 
     return messages;
   }

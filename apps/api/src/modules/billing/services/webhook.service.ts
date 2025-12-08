@@ -1,11 +1,16 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma.service';
-import { PaymentProvider, PaymentStatus, PlanType, SubscriptionStatus } from '@prisma/client';
-import { MercadoPagoProvider } from '../providers/mercadopago.provider';
-import { LemonSqueezyProvider } from '../providers/lemonsqueezy.provider';
-import { SubscriptionService } from './subscription.service';
-import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../../../database/prisma.service";
+import {
+  PaymentProvider,
+  PaymentStatus,
+  PlanType,
+  SubscriptionStatus,
+} from "@prisma/client";
+import { MercadoPagoProvider } from "../providers/mercadopago.provider";
+import { LemonSqueezyProvider } from "../providers/lemonsqueezy.provider";
+import { SubscriptionService } from "./subscription.service";
+import { ConfigService } from "@nestjs/config";
+import * as crypto from "crypto";
 
 interface MercadoPagoWebhookPayload {
   action: string;
@@ -46,26 +51,31 @@ export class WebhookService {
     private subscriptionService: SubscriptionService,
   ) {}
 
-  async handleMercadoPagoWebhook(payload: MercadoPagoWebhookPayload): Promise<void> {
+  async handleMercadoPagoWebhook(
+    payload: MercadoPagoWebhookPayload,
+  ): Promise<void> {
     this.logger.log(`MP Webhook received: ${payload.type} - ${payload.action}`);
 
     try {
       switch (payload.type) {
-        case 'payment':
+        case "payment":
           await this.handleMPPayment(payload.data.id);
           break;
-        case 'subscription_preapproval':
-        case 'preapproval':
+        case "subscription_preapproval":
+        case "preapproval":
           await this.handleMPSubscription(payload.data.id);
           break;
-        case 'subscription_authorized_payment':
+        case "subscription_authorized_payment":
           await this.handleMPAuthorizedPayment(payload.data.id);
           break;
         default:
           this.logger.log(`Unhandled MP webhook type: ${payload.type}`);
       }
     } catch (error) {
-      this.logger.error(`Error processing MP webhook: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(
+        `Error processing MP webhook: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw error;
     }
   }
@@ -78,9 +88,8 @@ export class WebhookService {
       return;
     }
 
-    const { userId, plan, billingPeriod } = this.mercadoPago.parseExternalReference(
-      payment.external_reference,
-    );
+    const { userId, plan, billingPeriod } =
+      this.mercadoPago.parseExternalReference(payment.external_reference);
 
     const subscription = await this.prisma.subscription.findUnique({
       where: { userId },
@@ -94,18 +103,18 @@ export class WebhookService {
     // Map MP payment status to our status
     let paymentStatus: PaymentStatus;
     switch (payment.status) {
-      case 'approved':
+      case "approved":
         paymentStatus = PaymentStatus.SUCCEEDED;
         break;
-      case 'pending':
-      case 'in_process':
+      case "pending":
+      case "in_process":
         paymentStatus = PaymentStatus.PROCESSING;
         break;
-      case 'rejected':
-      case 'cancelled':
+      case "rejected":
+      case "cancelled":
         paymentStatus = PaymentStatus.FAILED;
         break;
-      case 'refunded':
+      case "refunded":
         paymentStatus = PaymentStatus.REFUNDED;
         break;
       default:
@@ -117,7 +126,7 @@ export class WebhookService {
       subscription.id,
       PaymentProvider.MERCADOPAGO,
       Math.round((payment.transaction_amount || 0) * 100), // Convert to cents
-      payment.currency_id || 'ARS',
+      payment.currency_id || "ARS",
       paymentId,
       paymentStatus,
     );
@@ -128,17 +137,20 @@ export class WebhookService {
         userId,
         plan,
         PaymentProvider.MERCADOPAGO,
-        (payment.id || '').toString(),
+        (payment.id || "").toString(),
         payment.payer?.id?.toString(),
       );
     }
   }
 
   private async handleMPSubscription(subscriptionId: string): Promise<void> {
-    const mpSubscription = await this.mercadoPago.getSubscription(subscriptionId);
+    const mpSubscription =
+      await this.mercadoPago.getSubscription(subscriptionId);
 
     if (!mpSubscription.external_reference) {
-      this.logger.warn(`MP subscription ${subscriptionId} has no external reference`);
+      this.logger.warn(
+        `MP subscription ${subscriptionId} has no external reference`,
+      );
       return;
     }
 
@@ -149,14 +161,14 @@ export class WebhookService {
     // Map MP subscription status to our status
     let status: SubscriptionStatus;
     switch (mpSubscription.status) {
-      case 'authorized':
-      case 'active':
+      case "authorized":
+      case "active":
         status = SubscriptionStatus.ACTIVE;
         break;
-      case 'paused':
+      case "paused":
         status = SubscriptionStatus.PAUSED;
         break;
-      case 'cancelled':
+      case "cancelled":
         status = SubscriptionStatus.CANCELLED;
         break;
       default:
@@ -197,7 +209,7 @@ export class WebhookService {
   ): Promise<void> {
     // Verify webhook signature
     if (!this.lemonSqueezy.verifyWebhookSignature(rawBody, signature)) {
-      throw new BadRequestException('Invalid webhook signature');
+      throw new BadRequestException("Invalid webhook signature");
     }
 
     const eventName = payload.meta.event_name;
@@ -205,46 +217,51 @@ export class WebhookService {
 
     try {
       switch (eventName) {
-        case 'subscription_created':
+        case "subscription_created":
           await this.handleLSSubscriptionCreated(payload);
           break;
-        case 'subscription_updated':
+        case "subscription_updated":
           await this.handleLSSubscriptionUpdated(payload);
           break;
-        case 'subscription_cancelled':
+        case "subscription_cancelled":
           await this.handleLSSubscriptionCancelled(payload);
           break;
-        case 'subscription_resumed':
+        case "subscription_resumed":
           await this.handleLSSubscriptionResumed(payload);
           break;
-        case 'subscription_expired':
+        case "subscription_expired":
           await this.handleLSSubscriptionExpired(payload);
           break;
-        case 'subscription_payment_success':
+        case "subscription_payment_success":
           await this.handleLSPaymentSuccess(payload);
           break;
-        case 'subscription_payment_failed':
+        case "subscription_payment_failed":
           await this.handleLSPaymentFailed(payload);
           break;
-        case 'order_created':
+        case "order_created":
           await this.handleLSOrderCreated(payload);
           break;
         default:
           this.logger.log(`Unhandled LS webhook event: ${eventName}`);
       }
     } catch (error) {
-      this.logger.error(`Error processing LS webhook: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(
+        `Error processing LS webhook: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw error;
     }
   }
 
-  private async handleLSSubscriptionCreated(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSSubscriptionCreated(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data, meta } = payload;
     const userId = meta.custom_data?.user_id;
     const plan = (meta.custom_data?.plan as PlanType) || PlanType.PRO;
 
     if (!userId) {
-      this.logger.warn('LS subscription created without user_id');
+      this.logger.warn("LS subscription created without user_id");
       return;
     }
 
@@ -258,7 +275,9 @@ export class WebhookService {
         provider: PaymentProvider.LEMONSQUEEZY,
         providerSubscriptionId: data.id,
         providerCustomerId: attrs.customer_id?.toString(),
-        currentPeriodStart: attrs.created_at ? new Date(attrs.created_at) : new Date(),
+        currentPeriodStart: attrs.created_at
+          ? new Date(attrs.created_at)
+          : new Date(),
         currentPeriodEnd: attrs.renews_at ? new Date(attrs.renews_at) : null,
         trialEndsAt: attrs.trial_ends_at ? new Date(attrs.trial_ends_at) : null,
       },
@@ -269,7 +288,9 @@ export class WebhookService {
         provider: PaymentProvider.LEMONSQUEEZY,
         providerSubscriptionId: data.id,
         providerCustomerId: attrs.customer_id?.toString(),
-        currentPeriodStart: attrs.created_at ? new Date(attrs.created_at) : new Date(),
+        currentPeriodStart: attrs.created_at
+          ? new Date(attrs.created_at)
+          : new Date(),
         currentPeriodEnd: attrs.renews_at ? new Date(attrs.renews_at) : null,
         trialEndsAt: attrs.trial_ends_at ? new Date(attrs.trial_ends_at) : null,
       },
@@ -278,7 +299,9 @@ export class WebhookService {
     this.logger.log(`Created LS subscription for user ${userId}`);
   }
 
-  private async handleLSSubscriptionUpdated(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSSubscriptionUpdated(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
     const attrs = data.attributes;
 
@@ -303,7 +326,9 @@ export class WebhookService {
     this.logger.log(`Updated LS subscription ${data.id}`);
   }
 
-  private async handleLSSubscriptionCancelled(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSSubscriptionCancelled(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
     const attrs = data.attributes;
 
@@ -319,7 +344,9 @@ export class WebhookService {
     this.logger.log(`Cancelled LS subscription ${data.id}`);
   }
 
-  private async handleLSSubscriptionResumed(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSSubscriptionResumed(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
 
     await this.prisma.subscription.updateMany({
@@ -333,7 +360,9 @@ export class WebhookService {
     this.logger.log(`Resumed LS subscription ${data.id}`);
   }
 
-  private async handleLSSubscriptionExpired(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSSubscriptionExpired(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
 
     await this.prisma.subscription.updateMany({
@@ -347,7 +376,9 @@ export class WebhookService {
     this.logger.log(`Expired LS subscription ${data.id}`);
   }
 
-  private async handleLSPaymentSuccess(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSPaymentSuccess(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
     const attrs = data.attributes;
 
@@ -360,7 +391,7 @@ export class WebhookService {
         subscription.id,
         PaymentProvider.LEMONSQUEEZY,
         attrs.total || 0,
-        attrs.currency || 'USD',
+        attrs.currency || "USD",
         data.id,
         PaymentStatus.SUCCEEDED,
       );
@@ -379,7 +410,9 @@ export class WebhookService {
     this.logger.log(`Recorded LS payment success for invoice ${data.id}`);
   }
 
-  private async handleLSPaymentFailed(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSPaymentFailed(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     const { data } = payload;
     const attrs = data.attributes;
 
@@ -392,7 +425,7 @@ export class WebhookService {
         subscription.id,
         PaymentProvider.LEMONSQUEEZY,
         attrs.total || 0,
-        attrs.currency || 'USD',
+        attrs.currency || "USD",
         data.id,
         PaymentStatus.FAILED,
       );
@@ -406,25 +439,27 @@ export class WebhookService {
     this.logger.log(`Recorded LS payment failure for invoice ${data.id}`);
   }
 
-  private async handleLSOrderCreated(payload: LemonSqueezyWebhookPayload): Promise<void> {
+  private async handleLSOrderCreated(
+    payload: LemonSqueezyWebhookPayload,
+  ): Promise<void> {
     // Handle one-time purchases if needed
     this.logger.log(`LS order created: ${payload.data.id}`);
   }
 
   private mapLSStatus(status: string): SubscriptionStatus {
     switch (status) {
-      case 'active':
+      case "active":
         return SubscriptionStatus.ACTIVE;
-      case 'on_trial':
+      case "on_trial":
         return SubscriptionStatus.TRIALING;
-      case 'paused':
+      case "paused":
         return SubscriptionStatus.PAUSED;
-      case 'past_due':
-      case 'unpaid':
+      case "past_due":
+      case "unpaid":
         return SubscriptionStatus.PAST_DUE;
-      case 'cancelled':
+      case "cancelled":
         return SubscriptionStatus.CANCELLED;
-      case 'expired':
+      case "expired":
         return SubscriptionStatus.EXPIRED;
       default:
         return SubscriptionStatus.ACTIVE;
@@ -436,20 +471,21 @@ export class WebhookService {
     xRequestId: string,
     dataId: string,
   ): boolean {
-    const secret = this.configService.get<string>('MERCADOPAGO_WEBHOOK_SECRET');
+    const secret = this.configService.get<string>("MERCADOPAGO_WEBHOOK_SECRET");
     if (!secret) {
-      this.logger.warn('MP webhook secret not configured');
+      this.logger.warn("MP webhook secret not configured");
       return true; // Allow in development
     }
 
     // Parse x-signature header
-    const parts = xSignature.split(',');
-    let ts: string = '', v1: string = '';
+    const parts = xSignature.split(",");
+    let ts: string = "",
+      v1: string = "";
 
     for (const part of parts) {
-      const [key, value] = part.split('=');
-      if (key === 'ts') ts = value;
-      if (key === 'v1') v1 = value;
+      const [key, value] = part.split("=");
+      if (key === "ts") ts = value;
+      if (key === "v1") v1 = value;
     }
 
     if (!ts || !v1) return false;
@@ -458,9 +494,9 @@ export class WebhookService {
     const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
 
     // Calculate HMAC
-    const hmac = crypto.createHmac('sha256', secret);
+    const hmac = crypto.createHmac("sha256", secret);
     hmac.update(manifest);
-    const hash = hmac.digest('hex');
+    const hash = hmac.digest("hex");
 
     return hash === v1;
   }

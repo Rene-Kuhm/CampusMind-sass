@@ -1,6 +1,10 @@
-import { HttpService } from '@nestjs/axios';
-import { BaseLlmProvider } from './base.provider';
-import { LlmOptions, LlmResponse, LlmProviderType } from '../interfaces/rag.interface';
+import { HttpService } from "@nestjs/axios";
+import { BaseLlmProvider } from "./base.provider";
+import {
+  LlmOptions,
+  LlmResponse,
+  LlmProviderType,
+} from "../interfaces/rag.interface";
 
 interface DeepSeekResponse {
   choices: Array<{
@@ -23,13 +27,16 @@ interface DeepSeekResponse {
  * - deepseek-coder: Code-optimized
  */
 export class DeepSeekProvider extends BaseLlmProvider {
-  readonly providerType: LlmProviderType = 'deepseek';
+  readonly providerType: LlmProviderType = "deepseek";
 
   constructor(http: HttpService, apiKey: string, model: string) {
-    super(http, apiKey, model, 'https://api.deepseek.com');
+    super(http, apiKey, model, "https://api.deepseek.com");
   }
 
-  async generateCompletion(prompt: string, options?: LlmOptions): Promise<LlmResponse> {
+  async generateCompletion(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<LlmResponse> {
     const messages = this.buildMessages(prompt, options?.systemPrompt);
     const modelToUse = options?.model || this.model;
 
@@ -43,7 +50,7 @@ export class DeepSeekProvider extends BaseLlmProvider {
       },
       {
         Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     );
 

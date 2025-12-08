@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsString,
   IsOptional,
@@ -9,12 +9,12 @@ import {
   MaxLength,
   Min,
   Max,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateFlashcardDto {
   @ApiProperty({
-    example: '¿Qué es una derivada?',
-    description: 'Pregunta o frente de la tarjeta',
+    example: "¿Qué es una derivada?",
+    description: "Pregunta o frente de la tarjeta",
   })
   @IsString()
   @MinLength(1)
@@ -22,8 +22,8 @@ export class CreateFlashcardDto {
   front!: string;
 
   @ApiProperty({
-    example: 'La derivada mide la tasa de cambio instantánea de una función.',
-    description: 'Respuesta o reverso de la tarjeta',
+    example: "La derivada mide la tasa de cambio instantánea de una función.",
+    description: "Respuesta o reverso de la tarjeta",
   })
   @IsString()
   @MinLength(1)
@@ -31,15 +31,15 @@ export class CreateFlashcardDto {
   back!: string;
 
   @ApiPropertyOptional({
-    description: 'ID del deck al que pertenece',
+    description: "ID del deck al que pertenece",
   })
   @IsOptional()
   @IsString()
   deckId?: string;
 
   @ApiPropertyOptional({
-    example: ['cálculo', 'derivadas', 'matemáticas'],
-    description: 'Tags para categorizar la tarjeta',
+    example: ["cálculo", "derivadas", "matemáticas"],
+    description: "Tags para categorizar la tarjeta",
   })
   @IsOptional()
   @IsArray()
@@ -47,8 +47,8 @@ export class CreateFlashcardDto {
   tags?: string[];
 
   @ApiPropertyOptional({
-    example: 'f\'(x) = lim[h→0] (f(x+h) - f(x))/h',
-    description: 'Fórmula o código relacionado (opcional)',
+    example: "f'(x) = lim[h→0] (f(x+h) - f(x))/h",
+    description: "Fórmula o código relacionado (opcional)",
   })
   @IsOptional()
   @IsString()
@@ -91,8 +91,8 @@ export class UpdateFlashcardDto {
 
 export class CreateDeckDto {
   @ApiProperty({
-    example: 'Cálculo Diferencial - Derivadas',
-    description: 'Nombre del deck',
+    example: "Cálculo Diferencial - Derivadas",
+    description: "Nombre del deck",
   })
   @IsString()
   @MinLength(1)
@@ -100,8 +100,8 @@ export class CreateDeckDto {
   name!: string;
 
   @ApiPropertyOptional({
-    example: 'Tarjetas para estudiar conceptos de derivadas',
-    description: 'Descripción del deck',
+    example: "Tarjetas para estudiar conceptos de derivadas",
+    description: "Descripción del deck",
   })
   @IsOptional()
   @IsString()
@@ -109,15 +109,15 @@ export class CreateDeckDto {
   description?: string;
 
   @ApiPropertyOptional({
-    description: 'ID de la materia asociada',
+    description: "ID de la materia asociada",
   })
   @IsOptional()
   @IsString()
   subjectId?: string;
 
   @ApiPropertyOptional({
-    example: '#6366f1',
-    description: 'Color del deck (hex)',
+    example: "#6366f1",
+    description: "Color del deck (hex)",
   })
   @IsOptional()
   @IsString()
@@ -152,7 +152,7 @@ export class UpdateDeckDto {
 export class ReviewFlashcardDto {
   @ApiProperty({
     example: 3,
-    description: 'Calidad de la respuesta (1-5, donde 1=fail, 5=perfecto)',
+    description: "Calidad de la respuesta (1-5, donde 1=fail, 5=perfecto)",
     minimum: 1,
     maximum: 5,
   })
@@ -164,14 +164,14 @@ export class ReviewFlashcardDto {
 
 export class GenerateFlashcardsDto {
   @ApiProperty({
-    description: 'ID del recurso del cual generar flashcards',
+    description: "ID del recurso del cual generar flashcards",
   })
   @IsString()
   resourceId!: string;
 
   @ApiPropertyOptional({
     example: 10,
-    description: 'Número máximo de flashcards a generar',
+    description: "Número máximo de flashcards a generar",
     default: 10,
   })
   @IsOptional()
@@ -182,7 +182,7 @@ export class GenerateFlashcardsDto {
 
   @ApiPropertyOptional({
     example: true,
-    description: 'Incluir fórmulas/código si están presentes',
+    description: "Incluir fórmulas/código si están presentes",
   })
   @IsOptional()
   @IsBoolean()

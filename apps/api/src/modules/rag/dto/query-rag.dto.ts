@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsString,
   IsOptional,
@@ -11,12 +11,12 @@ import {
   MaxLength,
   Min,
   Max,
-} from 'class-validator';
+} from "class-validator";
 
 export class QueryRagDto {
   @ApiProperty({
-    example: 'Explícame el teorema de Stokes con un ejemplo práctico',
-    description: 'Pregunta o consulta del estudiante',
+    example: "Explícame el teorema de Stokes con un ejemplo práctico",
+    description: "Pregunta o consulta del estudiante",
   })
   @IsString()
   @MinLength(5)
@@ -24,14 +24,14 @@ export class QueryRagDto {
   query!: string;
 
   @ApiPropertyOptional({
-    description: 'ID de la materia para limitar la búsqueda',
+    description: "ID de la materia para limitar la búsqueda",
   })
   @IsOptional()
   @IsString()
   subjectId?: string;
 
   @ApiPropertyOptional({
-    description: 'IDs de recursos específicos para buscar',
+    description: "IDs de recursos específicos para buscar",
   })
   @IsOptional()
   @IsArray()
@@ -40,7 +40,7 @@ export class QueryRagDto {
 
   @ApiPropertyOptional({
     example: 5,
-    description: 'Número de chunks a recuperar',
+    description: "Número de chunks a recuperar",
   })
   @IsOptional()
   @IsInt()
@@ -50,7 +50,7 @@ export class QueryRagDto {
 
   @ApiPropertyOptional({
     example: 0.7,
-    description: 'Score mínimo de similitud (0-1)',
+    description: "Score mínimo de similitud (0-1)",
   })
   @IsOptional()
   @IsNumber()
@@ -59,40 +59,40 @@ export class QueryRagDto {
   minScore?: number;
 
   @ApiPropertyOptional({
-    enum: ['formal', 'practical', 'balanced'],
-    description: 'Estilo de respuesta',
+    enum: ["formal", "practical", "balanced"],
+    description: "Estilo de respuesta",
   })
   @IsOptional()
-  @IsEnum(['formal', 'practical', 'balanced'])
-  style?: 'formal' | 'practical' | 'balanced';
+  @IsEnum(["formal", "practical", "balanced"])
+  style?: "formal" | "practical" | "balanced";
 
   @ApiPropertyOptional({
-    enum: ['basic', 'intermediate', 'advanced'],
-    description: 'Profundidad de la respuesta',
+    enum: ["basic", "intermediate", "advanced"],
+    description: "Profundidad de la respuesta",
   })
   @IsOptional()
-  @IsEnum(['basic', 'intermediate', 'advanced'])
-  depth?: 'basic' | 'intermediate' | 'advanced';
+  @IsEnum(["basic", "intermediate", "advanced"])
+  depth?: "basic" | "intermediate" | "advanced";
 
   @ApiPropertyOptional({
     example: false,
-    description: 'Omitir cache y forzar respuesta fresca',
+    description: "Omitir cache y forzar respuesta fresca",
   })
   @IsOptional()
   @IsBoolean()
   skipCache?: boolean;
 
   @ApiPropertyOptional({
-    enum: ['openai', 'gemini', 'deepseek', 'groq'],
-    description: 'Proveedor de IA a usar',
+    enum: ["openai", "gemini", "deepseek", "groq"],
+    description: "Proveedor de IA a usar",
   })
   @IsOptional()
-  @IsEnum(['openai', 'gemini', 'deepseek', 'groq'])
-  provider?: 'openai' | 'gemini' | 'deepseek' | 'groq';
+  @IsEnum(["openai", "gemini", "deepseek", "groq"])
+  provider?: "openai" | "gemini" | "deepseek" | "groq";
 
   @ApiPropertyOptional({
     example: true,
-    description: 'Usar proveedor gratuito automáticamente (Groq, Gemini)',
+    description: "Usar proveedor gratuito automáticamente (Groq, Gemini)",
   })
   @IsOptional()
   @IsBoolean()

@@ -9,20 +9,20 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-} from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
-import { UsersService } from './users.service';
+} from "@nestjs/swagger";
+import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import { CurrentUser } from "@/common/decorators/current-user.decorator";
+import { User } from "@prisma/client";
+import { UsersService } from "./users.service";
 
 interface SocialAuthCallbackDto {
   code: string;
@@ -59,8 +59,8 @@ interface GitHubUser {
   avatar_url: string;
 }
 
-@ApiTags('auth')
-@Controller('auth/social')
+@ApiTags("auth")
+@Controller("auth/social")
 export class SocialAuthController {
   constructor(
     private readonly configService: ConfigService,
@@ -71,16 +71,19 @@ export class SocialAuthController {
   /**
    * Google OAuth callback
    */
-  @Post('google/callback')
+  @Post("google/callback")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Authenticate with Google OAuth' })
-  @ApiResponse({ status: 200, description: 'Authentication successful' })
-  @ApiResponse({ status: 400, description: 'Invalid code or authentication failed' })
+  @ApiOperation({ summary: "Authenticate with Google OAuth" })
+  @ApiResponse({ status: 200, description: "Authentication successful" })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid code or authentication failed",
+  })
   async googleCallback(@Body() body: SocialAuthCallbackDto) {
     const { code } = body;
 
     if (!code) {
-      throw new BadRequestException('Código de autorización requerido');
+      throw new BadRequestException("Código de autorización requerido");
     }
 
     try {
@@ -91,7 +94,7 @@ export class SocialAuthController {
       const googleUser = await this.getGoogleUserInfo(tokens.access_token);
 
       // Find or create user
-      const user = await this.findOrCreateSocialUser('google', googleUser.sub, {
+      const user = await this.findOrCreateSocialUser("google", googleUser.sub, {
         email: googleUser.email,
         firstName: googleUser.given_name,
         lastName: googleUser.family_name,
@@ -108,12 +111,13 @@ export class SocialAuthController {
           email: user.email,
           name: googleUser.name,
           avatar: googleUser.picture,
-          provider: 'google',
+          provider: "google",
         },
       };
     } catch (error) {
       throw new BadRequestException(
-        'Error al autenticar con Google: ' + (error instanceof Error ? error.message : 'Unknown error')
+        "Error al autenticar con Google: " +
+          (error instanceof Error ? error.message : "Unknown error"),
       );
     }
   }
@@ -121,16 +125,19 @@ export class SocialAuthController {
   /**
    * GitHub OAuth callback
    */
-  @Post('github/callback')
+  @Post("github/callback")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Authenticate with GitHub OAuth' })
-  @ApiResponse({ status: 200, description: 'Authentication successful' })
-  @ApiResponse({ status: 400, description: 'Invalid code or authentication failed' })
+  @ApiOperation({ summary: "Authenticate with GitHub OAuth" })
+  @ApiResponse({ status: 200, description: "Authentication successful" })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid code or authentication failed",
+  })
   async githubCallback(@Body() body: SocialAuthCallbackDto) {
     const { code } = body;
 
     if (!code) {
-      throw new BadRequestException('Código de autorización requerido');
+      throw new BadRequestException("Código de autorización requerido");
     }
 
     try {
@@ -147,12 +154,16 @@ export class SocialAuthController {
       }
 
       // Find or create user
-      const user = await this.findOrCreateSocialUser('github', githubUser.id.toString(), {
-        email: email || `${githubUser.login}@github.local`,
-        firstName: githubUser.name?.split(' ')[0],
-        lastName: githubUser.name?.split(' ').slice(1).join(' '),
-        avatar: githubUser.avatar_url,
-      });
+      const user = await this.findOrCreateSocialUser(
+        "github",
+        githubUser.id.toString(),
+        {
+          email: email || `${githubUser.login}@github.local`,
+          firstName: githubUser.name?.split(" ")[0],
+          lastName: githubUser.name?.split(" ").slice(1).join(" "),
+          avatar: githubUser.avatar_url,
+        },
+      );
 
       // Generate JWT
       const jwtToken = this.generateToken(user.id, user.email);
@@ -164,12 +175,13 @@ export class SocialAuthController {
           email: user.email,
           name: githubUser.name || githubUser.login,
           avatar: githubUser.avatar_url,
-          provider: 'github',
+          provider: "github",
         },
       };
     } catch (error) {
       throw new BadRequestException(
-        'Error al autenticar con GitHub: ' + (error instanceof Error ? error.message : 'Unknown error')
+        "Error al autenticar con GitHub: " +
+          (error instanceof Error ? error.message : "Unknown error"),
       );
     }
   }
@@ -177,28 +189,28 @@ export class SocialAuthController {
   /**
    * Connect social account to existing user
    */
-  @Post(':provider/connect')
+  @Post(":provider/connect")
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Connect a social account to existing user' })
-  @ApiParam({ name: 'provider', enum: ['google', 'github'] })
-  @ApiResponse({ status: 200, description: 'Account connected successfully' })
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Connect a social account to existing user" })
+  @ApiParam({ name: "provider", enum: ["google", "github"] })
+  @ApiResponse({ status: 200, description: "Account connected successfully" })
   async connectSocialAccount(
-    @Param('provider') provider: 'google' | 'github',
+    @Param("provider") provider: "google" | "github",
     @Body() body: SocialAuthCallbackDto,
     @CurrentUser() user: User,
   ) {
     const { code } = body;
 
     if (!code) {
-      throw new BadRequestException('Código de autorización requerido');
+      throw new BadRequestException("Código de autorización requerido");
     }
 
     try {
       let socialId: string;
       let socialEmail: string;
 
-      if (provider === 'google') {
+      if (provider === "google") {
         const tokens = await this.exchangeGoogleCode(code);
         const googleUser = await this.getGoogleUserInfo(tokens.access_token);
         socialId = googleUser.sub;
@@ -211,7 +223,12 @@ export class SocialAuthController {
       }
 
       // Link social account to user
-      await this.usersService.linkSocialAccount(user.id, provider, socialId, socialEmail);
+      await this.usersService.linkSocialAccount(
+        user.id,
+        provider,
+        socialId,
+        socialEmail,
+      );
 
       return {
         success: true,
@@ -219,7 +236,8 @@ export class SocialAuthController {
       };
     } catch (error) {
       throw new BadRequestException(
-        `Error al conectar cuenta de ${provider}: ` + (error instanceof Error ? error.message : 'Unknown error')
+        `Error al conectar cuenta de ${provider}: ` +
+          (error instanceof Error ? error.message : "Unknown error"),
       );
     }
   }
@@ -227,14 +245,17 @@ export class SocialAuthController {
   /**
    * Disconnect social account from user
    */
-  @Delete(':provider/disconnect')
+  @Delete(":provider/disconnect")
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Disconnect a social account from user' })
-  @ApiParam({ name: 'provider', enum: ['google', 'github'] })
-  @ApiResponse({ status: 200, description: 'Account disconnected successfully' })
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Disconnect a social account from user" })
+  @ApiParam({ name: "provider", enum: ["google", "github"] })
+  @ApiResponse({
+    status: 200,
+    description: "Account disconnected successfully",
+  })
   async disconnectSocialAccount(
-    @Param('provider') provider: 'google' | 'github',
+    @Param("provider") provider: "google" | "github",
     @CurrentUser() user: User,
   ) {
     await this.usersService.unlinkSocialAccount(user.id, provider);
@@ -248,11 +269,11 @@ export class SocialAuthController {
   /**
    * Get connected social accounts
    */
-  @Get('accounts')
+  @Get("accounts")
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get all connected social accounts' })
-  @ApiResponse({ status: 200, description: 'List of connected accounts' })
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({ summary: "Get all connected social accounts" })
+  @ApiResponse({ status: 200, description: "List of connected accounts" })
   async getConnectedAccounts(@CurrentUser() user: User) {
     return this.usersService.getSocialAccounts(user.id);
   }
@@ -260,19 +281,19 @@ export class SocialAuthController {
   // === Private helper methods ===
 
   private async exchangeGoogleCode(code: string): Promise<GoogleTokenResponse> {
-    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri = this.configService.get<string>('GOOGLE_REDIRECT_URI');
+    const clientId = this.configService.get<string>("GOOGLE_CLIENT_ID");
+    const clientSecret = this.configService.get<string>("GOOGLE_CLIENT_SECRET");
+    const redirectUri = this.configService.get<string>("GOOGLE_REDIRECT_URI");
 
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: clientId || '',
-        client_secret: clientSecret || '',
-        redirect_uri: redirectUri || '',
-        grant_type: 'authorization_code',
+        client_id: clientId || "",
+        client_secret: clientSecret || "",
+        redirect_uri: redirectUri || "",
+        grant_type: "authorization_code",
       }),
     });
 
@@ -284,37 +305,45 @@ export class SocialAuthController {
     return response.json();
   }
 
-  private async getGoogleUserInfo(accessToken: string): Promise<GoogleUserInfo> {
-    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+  private async getGoogleUserInfo(
+    accessToken: string,
+  ): Promise<GoogleUserInfo> {
+    const response = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to get Google user info');
+      throw new Error("Failed to get Google user info");
     }
 
     return response.json();
   }
 
   private async exchangeGitHubCode(code: string): Promise<string> {
-    const clientId = this.configService.get<string>('GITHUB_CLIENT_ID');
-    const clientSecret = this.configService.get<string>('GITHUB_CLIENT_SECRET');
+    const clientId = this.configService.get<string>("GITHUB_CLIENT_ID");
+    const clientSecret = this.configService.get<string>("GITHUB_CLIENT_SECRET");
 
-    const response = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+    const response = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+        }),
       },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error('GitHub token exchange failed');
+      throw new Error("GitHub token exchange failed");
     }
 
     const data: GitHubAccessToken = await response.json();
@@ -322,25 +351,27 @@ export class SocialAuthController {
   }
 
   private async getGitHubUserInfo(accessToken: string): Promise<GitHubUser> {
-    const response = await fetch('https://api.github.com/user', {
+    const response = await fetch("https://api.github.com/user", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/vnd.github+json',
+        Accept: "application/vnd.github+json",
       },
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get GitHub user info');
+      throw new Error("Failed to get GitHub user info");
     }
 
     return response.json();
   }
 
-  private async getGitHubPrimaryEmail(accessToken: string): Promise<string | null> {
-    const response = await fetch('https://api.github.com/user/emails', {
+  private async getGitHubPrimaryEmail(
+    accessToken: string,
+  ): Promise<string | null> {
+    const response = await fetch("https://api.github.com/user/emails", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/vnd.github+json',
+        Accept: "application/vnd.github+json",
       },
     });
 
@@ -348,14 +379,18 @@ export class SocialAuthController {
       return null;
     }
 
-    const emails: Array<{ email: string; primary: boolean; verified: boolean }> = await response.json();
+    const emails: Array<{
+      email: string;
+      primary: boolean;
+      verified: boolean;
+    }> = await response.json();
     const primaryEmail = emails.find((e) => e.primary && e.verified);
 
     return primaryEmail?.email || emails[0]?.email || null;
   }
 
   private async findOrCreateSocialUser(
-    provider: 'google' | 'github',
+    provider: "google" | "github",
     socialId: string,
     userData: {
       email: string;
@@ -376,7 +411,12 @@ export class SocialAuthController {
 
     if (user) {
       // Link social account to existing user
-      await this.usersService.linkSocialAccount(user.id, provider, socialId, userData.email);
+      await this.usersService.linkSocialAccount(
+        user.id,
+        provider,
+        socialId,
+        userData.email,
+      );
       return user;
     }
 

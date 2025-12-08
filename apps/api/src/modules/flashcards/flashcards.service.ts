@@ -1,15 +1,11 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
 import {
   CreateFlashcardDto,
   UpdateFlashcardDto,
   CreateDeckDto,
   UpdateDeckDto,
-} from './dto/flashcard.dto';
+} from "./dto/flashcard.dto";
 
 // Tipos extendidos para Prisma
 type PrismaWithFlashcards = PrismaService & {
@@ -89,7 +85,7 @@ export class FlashcardsService {
         where: { id: dto.subjectId, userId },
       });
       if (!subject) {
-        throw new NotFoundException('Materia no encontrada');
+        throw new NotFoundException("Materia no encontrada");
       }
     }
 
@@ -125,7 +121,7 @@ export class FlashcardsService {
           select: { id: true, name: true },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
 
     return decks.map((deck: any) => ({
@@ -151,7 +147,7 @@ export class FlashcardsService {
     });
 
     if (!deck) {
-      throw new NotFoundException('Deck no encontrado');
+      throw new NotFoundException("Deck no encontrado");
     }
 
     return { ...deck, cardCount: deck._count.flashcards } as FlashcardDeck;
@@ -230,7 +226,12 @@ export class FlashcardsService {
   async createFlashcards(
     userId: string,
     deckId: string,
-    cards: Array<{ front: string; back: string; formula?: string; tags?: string[] }>,
+    cards: Array<{
+      front: string;
+      back: string;
+      formula?: string;
+      tags?: string[];
+    }>,
   ): Promise<Flashcard[]> {
     await this.getDeck(deckId, userId);
 
@@ -264,7 +265,7 @@ export class FlashcardsService {
 
     const cards = await this.prisma.flashcard.findMany({
       where: { deckId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
 
     return cards as Flashcard[];
@@ -284,7 +285,7 @@ export class FlashcardsService {
     });
 
     if (!card || card.deck.userId !== userId) {
-      throw new NotFoundException('Flashcard no encontrada');
+      throw new NotFoundException("Flashcard no encontrada");
     }
 
     return card as Flashcard;
@@ -341,7 +342,7 @@ export class FlashcardsService {
 
     const cards = await this.prisma.flashcard.findMany({
       where,
-      orderBy: { nextReviewDate: 'asc' },
+      orderBy: { nextReviewDate: "asc" },
       take: 20, // Limitar a 20 tarjetas por sesión
     });
 
@@ -430,7 +431,7 @@ export class FlashcardsService {
         },
       },
       select: { createdAt: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     if (reviews.length === 0) return 0;
@@ -438,13 +439,13 @@ export class FlashcardsService {
     // Extraer fechas únicas (solo día, sin hora)
     const uniqueDates = new Set<string>();
     reviews.forEach((review: { createdAt: Date }) => {
-      const dateStr = review.createdAt.toISOString().split('T')[0];
+      const dateStr = review.createdAt.toISOString().split("T")[0];
       uniqueDates.add(dateStr);
     });
 
     // Convertir a array y ordenar de más reciente a más antiguo
-    const sortedDates = Array.from(uniqueDates).sort((a, b) =>
-      new Date(b).getTime() - new Date(a).getTime()
+    const sortedDates = Array.from(uniqueDates).sort(
+      (a, b) => new Date(b).getTime() - new Date(a).getTime(),
     );
 
     // Verificar si estudió hoy o ayer (para mantener el streak)
@@ -453,8 +454,8 @@ export class FlashcardsService {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const todayStr = today.toISOString().split('T')[0];
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split("T")[0];
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
 
     // Si no estudió ni hoy ni ayer, el streak es 0
     if (sortedDates[0] !== todayStr && sortedDates[0] !== yesterdayStr) {
@@ -463,10 +464,10 @@ export class FlashcardsService {
 
     // Contar días consecutivos
     let streak = 0;
-    let currentDate = sortedDates[0] === todayStr ? today : yesterday;
+    const currentDate = sortedDates[0] === todayStr ? today : yesterday;
 
     for (const dateStr of sortedDates) {
-      const expectedDateStr = currentDate.toISOString().split('T')[0];
+      const expectedDateStr = currentDate.toISOString().split("T")[0];
 
       if (dateStr === expectedDateStr) {
         streak++;

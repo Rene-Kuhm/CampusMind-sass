@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '@/database/prisma.service';
-import { QdrantClient } from '@qdrant/js-client-rest';
-import { SimilarChunk, ChunkMetadata } from '../interfaces/rag.interface';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "@/database/prisma.service";
+import { QdrantClient } from "@qdrant/js-client-rest";
+import { SimilarChunk, ChunkMetadata } from "../interfaces/rag.interface";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Servicio de almacenamiento vectorial
@@ -14,18 +14,18 @@ export class VectorStoreService implements OnModuleInit {
   private readonly logger = new Logger(VectorStoreService.name);
   private readonly provider: string;
   private qdrantClient: QdrantClient | null = null;
-  private readonly qdrantCollectionName = 'campusmind_chunks';
+  private readonly qdrantCollectionName = "campusmind_chunks";
   private readonly vectorDimension = 1536; // OpenAI embedding dimension
 
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.provider = this.config.get<string>('VECTOR_DB_PROVIDER', 'pgvector');
+    this.provider = this.config.get<string>("VECTOR_DB_PROVIDER", "pgvector");
   }
 
   async onModuleInit(): Promise<void> {
-    if (this.provider === 'qdrant') {
+    if (this.provider === "qdrant") {
       await this.initializeQdrant();
     }
   }
@@ -35,8 +35,11 @@ export class VectorStoreService implements OnModuleInit {
    */
   private async initializeQdrant(): Promise<void> {
     try {
-      const qdrantUrl = this.config.get<string>('QDRANT_URL', 'http://localhost:6333');
-      const qdrantApiKey = this.config.get<string>('QDRANT_API_KEY');
+      const qdrantUrl = this.config.get<string>(
+        "QDRANT_URL",
+        "http://localhost:6333",
+      );
+      const qdrantApiKey = this.config.get<string>("QDRANT_API_KEY");
 
       this.qdrantClient = new QdrantClient({
         url: qdrantUrl,
@@ -53,7 +56,7 @@ export class VectorStoreService implements OnModuleInit {
         await this.qdrantClient.createCollection(this.qdrantCollectionName, {
           vectors: {
             size: this.vectorDimension,
-            distance: 'Cosine',
+            distance: "Cosine",
           },
           optimizers_config: {
             default_segment_number: 2,
@@ -63,21 +66,23 @@ export class VectorStoreService implements OnModuleInit {
 
         // Crear índices para filtrado eficiente
         await this.qdrantClient.createPayloadIndex(this.qdrantCollectionName, {
-          field_name: 'resourceId',
-          field_schema: 'keyword',
+          field_name: "resourceId",
+          field_schema: "keyword",
         });
 
         await this.qdrantClient.createPayloadIndex(this.qdrantCollectionName, {
-          field_name: 'subjectId',
-          field_schema: 'keyword',
+          field_name: "subjectId",
+          field_schema: "keyword",
         });
 
-        this.logger.log(`Created Qdrant collection: ${this.qdrantCollectionName}`);
+        this.logger.log(
+          `Created Qdrant collection: ${this.qdrantCollectionName}`,
+        );
       }
 
-      this.logger.log('Qdrant client initialized successfully');
+      this.logger.log("Qdrant client initialized successfully");
     } catch (error) {
-      this.logger.error('Failed to initialize Qdrant client', error);
+      this.logger.error("Failed to initialize Qdrant client", error);
       throw error;
     }
   }
@@ -92,9 +97,9 @@ export class VectorStoreService implements OnModuleInit {
     metadata: Partial<ChunkMetadata>,
   ): Promise<string> {
     switch (this.provider) {
-      case 'pgvector':
+      case "pgvector":
         return this.storePgVector(resourceId, content, embedding, metadata);
-      case 'qdrant':
+      case "qdrant":
         return this.storeQdrant(resourceId, content, embedding, metadata);
       default:
         return this.storePgVector(resourceId, content, embedding, metadata);
@@ -113,7 +118,7 @@ export class VectorStoreService implements OnModuleInit {
     }>,
   ): Promise<string[]> {
     // Usar batch para Qdrant (más eficiente)
-    if (this.provider === 'qdrant') {
+    if (this.provider === "qdrant") {
       return this.storeQdrantBatch(chunks);
     }
 
@@ -145,9 +150,9 @@ export class VectorStoreService implements OnModuleInit {
     },
   ): Promise<SimilarChunk[]> {
     switch (this.provider) {
-      case 'pgvector':
+      case "pgvector":
         return this.searchPgVector(queryEmbedding, options);
-      case 'qdrant':
+      case "qdrant":
         return this.searchQdrant(queryEmbedding, options);
       default:
         return this.searchPgVector(queryEmbedding, options);
@@ -158,7 +163,7 @@ export class VectorStoreService implements OnModuleInit {
    * Elimina todos los chunks de un recurso
    */
   async deleteByResource(resourceId: string): Promise<void> {
-    if (this.provider === 'qdrant') {
+    if (this.provider === "qdrant") {
       await this.deleteQdrantByResource(resourceId);
     } else {
       await this.prisma.resourceChunk.deleteMany({
@@ -178,7 +183,7 @@ export class VectorStoreService implements OnModuleInit {
     metadata: Partial<ChunkMetadata>,
   ): Promise<string> {
     // Usar raw query para insertar el vector
-    const embeddingStr = `[${embedding.join(',')}]`;
+    const embeddingStr = `[${embedding.join(",")}]`;
 
     const result = await this.prisma.$queryRaw<{ id: string }[]>`
       INSERT INTO resource_chunks (id, resource_id, content, metadata, chunk_index, embedding, created_at)
@@ -208,10 +213,10 @@ export class VectorStoreService implements OnModuleInit {
   ): Promise<SimilarChunk[]> {
     const topK = options.topK || 5;
     const minScore = options.minScore || 0.7;
-    const embeddingStr = `[${queryEmbedding.join(',')}]`;
+    const embeddingStr = `[${queryEmbedding.join(",")}]`;
 
     // Construir condiciones WHERE dinámicamente
-    let whereConditions = '';
+    let whereConditions = "";
     const params: any[] = [];
 
     if (options.resourceIds && options.resourceIds.length > 0) {
@@ -285,7 +290,7 @@ export class VectorStoreService implements OnModuleInit {
     metadata: Partial<ChunkMetadata>,
   ): Promise<string> {
     if (!this.qdrantClient) {
-      throw new Error('Qdrant client not initialized');
+      throw new Error("Qdrant client not initialized");
     }
 
     const pointId = uuidv4();
@@ -300,7 +305,7 @@ export class VectorStoreService implements OnModuleInit {
             resourceId,
             content,
             chunkIndex: metadata.chunkIndex || 0,
-            resourceTitle: metadata.resourceTitle || '',
+            resourceTitle: metadata.resourceTitle || "",
             page: metadata.page,
             section: metadata.section,
             timestamp: metadata.timestamp,
@@ -325,7 +330,7 @@ export class VectorStoreService implements OnModuleInit {
     }>,
   ): Promise<string[]> {
     if (!this.qdrantClient) {
-      throw new Error('Qdrant client not initialized');
+      throw new Error("Qdrant client not initialized");
     }
 
     const points = chunks.map((chunk) => ({
@@ -335,7 +340,7 @@ export class VectorStoreService implements OnModuleInit {
         resourceId: chunk.resourceId,
         content: chunk.content,
         chunkIndex: chunk.metadata.chunkIndex || 0,
-        resourceTitle: chunk.metadata.resourceTitle || '',
+        resourceTitle: chunk.metadata.resourceTitle || "",
         page: chunk.metadata.page,
         section: chunk.metadata.section,
         timestamp: chunk.metadata.timestamp,
@@ -361,7 +366,7 @@ export class VectorStoreService implements OnModuleInit {
     },
   ): Promise<SimilarChunk[]> {
     if (!this.qdrantClient) {
-      throw new Error('Qdrant client not initialized');
+      throw new Error("Qdrant client not initialized");
     }
 
     const topK = options.topK || 5;
@@ -372,32 +377,35 @@ export class VectorStoreService implements OnModuleInit {
 
     if (options.resourceIds && options.resourceIds.length > 0) {
       filter.must.push({
-        key: 'resourceId',
+        key: "resourceId",
         match: { any: options.resourceIds },
       });
     }
 
     if (options.subjectId) {
       filter.must.push({
-        key: 'subjectId',
+        key: "subjectId",
         match: { value: options.subjectId },
       });
     }
 
-    const searchResult = await this.qdrantClient.search(this.qdrantCollectionName, {
-      vector: queryEmbedding,
-      limit: topK,
-      score_threshold: minScore,
-      filter: filter.must.length > 0 ? filter : undefined,
-      with_payload: true,
-    });
+    const searchResult = await this.qdrantClient.search(
+      this.qdrantCollectionName,
+      {
+        vector: queryEmbedding,
+        limit: topK,
+        score_threshold: minScore,
+        filter: filter.must.length > 0 ? filter : undefined,
+        with_payload: true,
+      },
+    );
 
     return searchResult.map((result) => ({
       id: result.id as string,
-      content: (result.payload?.content as string) || '',
+      content: (result.payload?.content as string) || "",
       metadata: {
-        resourceId: (result.payload?.resourceId as string) || '',
-        resourceTitle: (result.payload?.resourceTitle as string) || '',
+        resourceId: (result.payload?.resourceId as string) || "",
+        resourceTitle: (result.payload?.resourceTitle as string) || "",
         chunkIndex: (result.payload?.chunkIndex as number) || 0,
         page: result.payload?.page as number | undefined,
         section: result.payload?.section as string | undefined,
@@ -411,7 +419,7 @@ export class VectorStoreService implements OnModuleInit {
    */
   private async deleteQdrantByResource(resourceId: string): Promise<void> {
     if (!this.qdrantClient) {
-      throw new Error('Qdrant client not initialized');
+      throw new Error("Qdrant client not initialized");
     }
 
     await this.qdrantClient.delete(this.qdrantCollectionName, {
@@ -419,7 +427,7 @@ export class VectorStoreService implements OnModuleInit {
       filter: {
         must: [
           {
-            key: 'resourceId',
+            key: "resourceId",
             match: { value: resourceId },
           },
         ],
@@ -436,7 +444,7 @@ export class VectorStoreService implements OnModuleInit {
     segmentsCount: number;
     status: string;
   } | null> {
-    if (!this.qdrantClient || this.provider !== 'qdrant') {
+    if (!this.qdrantClient || this.provider !== "qdrant") {
       return null;
     }
 
@@ -452,7 +460,7 @@ export class VectorStoreService implements OnModuleInit {
         status: collectionInfo.status,
       };
     } catch (error) {
-      this.logger.error('Error getting Qdrant stats', error);
+      this.logger.error("Error getting Qdrant stats", error);
       return null;
     }
   }

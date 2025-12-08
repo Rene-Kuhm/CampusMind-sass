@@ -1,11 +1,11 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
-import { Reflector } from '@nestjs/core';
+import { Injectable, ExecutionContext } from "@nestjs/common";
+import { ThrottlerGuard, ThrottlerException } from "@nestjs/throttler";
+import { Reflector } from "@nestjs/core";
 
 /**
  * Custom throttle options metadata key
  */
-export const THROTTLE_OPTIONS_KEY = 'throttle:options';
+export const THROTTLE_OPTIONS_KEY = "throttle:options";
 
 /**
  * Throttle options interface
@@ -53,26 +53,32 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     const headers = req.headers as Record<string, string | string[]>;
 
     // Check for forwarded headers (behind proxy/load balancer)
-    const forwarded = headers['x-forwarded-for'];
+    const forwarded = headers["x-forwarded-for"];
     if (forwarded) {
-      const ip = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
+      const ip = Array.isArray(forwarded)
+        ? forwarded[0]
+        : forwarded.split(",")[0];
       return ip.trim();
     }
 
-    const realIp = headers['x-real-ip'];
+    const realIp = headers["x-real-ip"];
     if (realIp) {
       return Array.isArray(realIp) ? realIp[0] : realIp;
     }
 
     // Fall back to socket address
-    return (req as any).ip || (req as any).connection?.remoteAddress || 'unknown';
+    return (
+      (req as any).ip || (req as any).connection?.remoteAddress || "unknown"
+    );
   }
 
   /**
    * Custom error response
    */
   protected throwThrottlingException(): Promise<void> {
-    throw new ThrottlerException('Demasiadas solicitudes. Por favor espera antes de intentar de nuevo.');
+    throw new ThrottlerException(
+      "Demasiadas solicitudes. Por favor espera antes de intentar de nuevo.",
+    );
   }
 
   /**

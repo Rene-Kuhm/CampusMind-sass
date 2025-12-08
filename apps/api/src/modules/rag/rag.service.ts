@@ -1,15 +1,15 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { ChunkingService } from './services/chunking.service';
-import { EmbeddingService } from './services/embedding.service';
-import { VectorStoreService } from './services/vector-store.service';
-import { LlmService } from './services/llm.service';
-import { CacheService } from './services/cache.service';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
+import { ChunkingService } from "./services/chunking.service";
+import { EmbeddingService } from "./services/embedding.service";
+import { VectorStoreService } from "./services/vector-store.service";
+import { LlmService } from "./services/llm.service";
+import { CacheService } from "./services/cache.service";
 import {
   RagQueryOptions,
   RagResponse,
   HarvardSummary,
-} from './interfaces/rag.interface';
+} from "./interfaces/rag.interface";
 
 @Injectable()
 export class RagService {
@@ -39,15 +39,17 @@ export class RagService {
     });
 
     if (!resource) {
-      throw new NotFoundException('Recurso no encontrado');
+      throw new NotFoundException("Recurso no encontrado");
     }
 
     // Por ahora, usamos la descripción/abstract como contenido
     // En el futuro, aquí se procesarían PDFs, videos, etc.
-    const content = resource.description || '';
+    const content = resource.description || "";
 
     if (!content || content.length < 50) {
-      this.logger.warn(`Resource ${resourceId} has insufficient content for indexing`);
+      this.logger.warn(
+        `Resource ${resourceId} has insufficient content for indexing`,
+      );
       return { chunksCreated: 0, tokensUsed: 0 };
     }
 
@@ -60,7 +62,9 @@ export class RagService {
       resourceTitle: resource.title,
     });
 
-    this.logger.log(`Created ${chunks.length} chunks for resource ${resourceId}`);
+    this.logger.log(
+      `Created ${chunks.length} chunks for resource ${resourceId}`,
+    );
 
     // Generar embeddings en batch
     const embeddings = await this.embedding.generateEmbeddings(
@@ -121,7 +125,9 @@ export class RagService {
       });
 
       if (cached) {
-        this.logger.debug(`RAG cache hit for query: "${query.substring(0, 30)}..."`);
+        this.logger.debug(
+          `RAG cache hit for query: "${query.substring(0, 30)}..."`,
+        );
         return {
           answer: cached.answer,
           citations: cached.citations,
@@ -148,7 +154,7 @@ export class RagService {
 
     // Si no hay chunks locales, usar el LLM directamente (modo web/general)
     if (similarChunks.length === 0) {
-      this.logger.log('No local resources found, using LLM general knowledge');
+      this.logger.log("No local resources found, using LLM general knowledge");
 
       const generalResponse = await this.llm.generateGeneralAnswer(query, {
         style: options?.style,
@@ -175,7 +181,7 @@ export class RagService {
         citations: [],
         tokensUsed: queryEmbedding.tokenCount + generalResponse.tokensUsed,
         processingTimeMs: Date.now() - startTime,
-        source: 'general', // Indica que viene del conocimiento general del LLM
+        source: "general", // Indica que viene del conocimiento general del LLM
       };
     }
 
@@ -183,12 +189,16 @@ export class RagService {
     const contextTexts = similarChunks.map((chunk) => chunk.content);
 
     // Generar respuesta con LLM
-    const llmResponse = await this.llm.generateWithContext(query, contextTexts, {
-      style: options?.style,
-      depth: options?.depth,
-      provider: options?.provider,
-      useFreeProvider: options?.useFreeProvider,
-    });
+    const llmResponse = await this.llm.generateWithContext(
+      query,
+      contextTexts,
+      {
+        style: options?.style,
+        depth: options?.depth,
+        provider: options?.provider,
+        useFreeProvider: options?.useFreeProvider,
+      },
+    );
 
     // Construir citas
     const citations = similarChunks.map((chunk) => ({
@@ -196,7 +206,7 @@ export class RagService {
       resourceTitle: chunk.metadata.resourceTitle,
       chunkContent:
         chunk.content.length > 200
-          ? chunk.content.substring(0, 200) + '...'
+          ? chunk.content.substring(0, 200) + "..."
           : chunk.content,
       page: chunk.metadata.page,
       section: chunk.metadata.section,
@@ -240,7 +250,7 @@ export class RagService {
     resourceId: string,
     userId: string,
     options?: {
-      depth?: 'basic' | 'intermediate' | 'advanced';
+      depth?: "basic" | "intermediate" | "advanced";
     },
   ): Promise<HarvardSummary> {
     const resource = await this.prisma.resource.findFirst({
@@ -248,34 +258,34 @@ export class RagService {
       include: {
         subject: true,
         chunks: {
-          orderBy: { chunkIndex: 'asc' },
+          orderBy: { chunkIndex: "asc" },
           take: 10, // Limitar chunks para el resumen
         },
       },
     });
 
     if (!resource) {
-      throw new NotFoundException('Recurso no encontrado');
+      throw new NotFoundException("Recurso no encontrado");
     }
 
     // Verificar ownership a través de la materia
     if (resource.subject.userId !== userId) {
-      throw new NotFoundException('Recurso no encontrado');
+      throw new NotFoundException("Recurso no encontrado");
     }
 
     // Usar contenido de chunks o descripción
     let content =
       resource.chunks.length > 0
-        ? resource.chunks.map((c) => c.content).join('\n\n')
-        : resource.description || '';
+        ? resource.chunks.map((c) => c.content).join("\n\n")
+        : resource.description || "";
 
     if (!content) {
-      throw new Error('El recurso no tiene contenido para resumir');
+      throw new Error("El recurso no tiene contenido para resumir");
     }
 
     // Limitar contenido para no exceder contexto del LLM
     if (content.length > 15000) {
-      content = content.substring(0, 15000) + '...';
+      content = content.substring(0, 15000) + "...";
     }
 
     const response = await this.llm.generateHarvardSummary(content, {
@@ -285,7 +295,7 @@ export class RagService {
     try {
       return JSON.parse(response.content) as HarvardSummary;
     } catch {
-      this.logger.error('Failed to parse Harvard summary JSON');
+      this.logger.error("Failed to parse Harvard summary JSON");
       // Retornar estructura básica si falla el parsing
       return {
         theoreticalContext: response.content,
@@ -306,7 +316,7 @@ export class RagService {
     topic: string,
     options?: {
       count?: number;
-      difficulty?: 'basic' | 'intermediate' | 'advanced';
+      difficulty?: "basic" | "intermediate" | "advanced";
       language?: string;
       content?: string; // Contenido opcional para basar las flashcards
     },
@@ -318,28 +328,28 @@ export class RagService {
     tokensUsed: number;
   }> {
     const count = options?.count || 5;
-    const difficulty = options?.difficulty || 'intermediate';
-    const language = options?.language || 'es';
+    const difficulty = options?.difficulty || "intermediate";
+    const language = options?.language || "es";
 
     const difficultyGuide = {
       basic:
-        'Preguntas simples y directas, enfocadas en definiciones y conceptos fundamentales.',
+        "Preguntas simples y directas, enfocadas en definiciones y conceptos fundamentales.",
       intermediate:
-        'Preguntas que requieren comprensión y relación de conceptos.',
+        "Preguntas que requieren comprensión y relación de conceptos.",
       advanced:
-        'Preguntas que requieren análisis, síntesis y aplicación de conocimientos.',
+        "Preguntas que requieren análisis, síntesis y aplicación de conocimientos.",
     };
 
     const contentSection = options?.content
       ? `\n\nCONTENIDO DE REFERENCIA:\n${options.content.substring(0, 8000)}`
-      : '';
+      : "";
 
     const prompt = `Genera exactamente ${count} flashcards educativas sobre el siguiente tema.${contentSection}
 
 TEMA: ${topic}
 
 NIVEL DE DIFICULTAD: ${difficultyGuide[difficulty]}
-IDIOMA: ${language === 'es' ? 'Español' : language}
+IDIOMA: ${language === "es" ? "Español" : language}
 
 INSTRUCCIONES:
 1. Cada flashcard debe tener una pregunta (front) y una respuesta (back)
@@ -370,7 +380,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
         tokensUsed: response.tokensUsed,
       };
     } catch {
-      this.logger.error('Failed to parse flashcards JSON');
+      this.logger.error("Failed to parse flashcards JSON");
       return {
         flashcards: [],
         tokensUsed: response.tokensUsed,
@@ -385,14 +395,14 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
     topic: string,
     options?: {
       questionCount?: number;
-      difficulty?: 'basic' | 'intermediate' | 'advanced';
-      questionTypes?: ('multiple_choice' | 'true_false' | 'short_answer')[];
+      difficulty?: "basic" | "intermediate" | "advanced";
+      questionTypes?: ("multiple_choice" | "true_false" | "short_answer")[];
       language?: string;
       content?: string;
     },
   ): Promise<{
     questions: Array<{
-      type: 'multiple_choice' | 'true_false' | 'short_answer';
+      type: "multiple_choice" | "true_false" | "short_answer";
       question: string;
       options?: string[];
       correctAnswer: string;
@@ -402,21 +412,25 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
     tokensUsed: number;
   }> {
     const count = options?.questionCount || 5;
-    const difficulty = options?.difficulty || 'intermediate';
-    const language = options?.language || 'es';
-    const types = options?.questionTypes || ['multiple_choice', 'true_false', 'short_answer'];
+    const difficulty = options?.difficulty || "intermediate";
+    const language = options?.language || "es";
+    const types = options?.questionTypes || [
+      "multiple_choice",
+      "true_false",
+      "short_answer",
+    ];
 
     const contentSection = options?.content
       ? `\n\nCONTENIDO DE REFERENCIA:\n${options.content.substring(0, 8000)}`
-      : '';
+      : "";
 
     const prompt = `Genera exactamente ${count} preguntas de examen sobre el siguiente tema.${contentSection}
 
 TEMA: ${topic}
 
 NIVEL DE DIFICULTAD: ${difficulty}
-IDIOMA: ${language === 'es' ? 'Español' : language}
-TIPOS DE PREGUNTAS A INCLUIR: ${types.join(', ')}
+IDIOMA: ${language === "es" ? "Español" : language}
+TIPOS DE PREGUNTAS A INCLUIR: ${types.join(", ")}
 
 INSTRUCCIONES:
 1. Distribuye los tipos de preguntas de manera equilibrada
@@ -468,7 +482,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
         tokensUsed: response.tokensUsed,
       };
     } catch {
-      this.logger.error('Failed to parse quiz JSON');
+      this.logger.error("Failed to parse quiz JSON");
       return {
         questions: [],
         tokensUsed: response.tokensUsed,
@@ -482,8 +496,8 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
   async generateAutoSummary(
     content: string,
     options?: {
-      style?: 'bullet_points' | 'paragraph' | 'outline';
-      length?: 'short' | 'medium' | 'long';
+      style?: "bullet_points" | "paragraph" | "outline";
+      length?: "short" | "medium" | "long";
       language?: string;
     },
   ): Promise<{
@@ -491,20 +505,20 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
     keyPoints: string[];
     tokensUsed: number;
   }> {
-    const style = options?.style || 'bullet_points';
-    const length = options?.length || 'medium';
-    const language = options?.language || 'es';
+    const style = options?.style || "bullet_points";
+    const length = options?.length || "medium";
+    const language = options?.language || "es";
 
     const lengthGuide = {
-      short: '3-5 puntos clave o 1-2 párrafos',
-      medium: '5-8 puntos clave o 2-3 párrafos',
-      long: '8-12 puntos clave o 4-5 párrafos',
+      short: "3-5 puntos clave o 1-2 párrafos",
+      medium: "5-8 puntos clave o 2-3 párrafos",
+      long: "8-12 puntos clave o 4-5 párrafos",
     };
 
     const styleGuide = {
-      bullet_points: 'Usa viñetas para cada punto clave',
-      paragraph: 'Escribe en formato de párrafos fluidos',
-      outline: 'Usa formato de esquema con secciones y subsecciones',
+      bullet_points: "Usa viñetas para cada punto clave",
+      paragraph: "Escribe en formato de párrafos fluidos",
+      outline: "Usa formato de esquema con secciones y subsecciones",
     };
 
     const prompt = `Genera un resumen del siguiente contenido.
@@ -514,7 +528,7 @@ ${content.substring(0, 12000)}
 
 ESTILO: ${styleGuide[style]}
 LONGITUD: ${lengthGuide[length]}
-IDIOMA: ${language === 'es' ? 'Español' : language}
+IDIOMA: ${language === "es" ? "Español" : language}
 
 INSTRUCCIONES:
 1. Captura las ideas principales y conceptos clave
@@ -542,12 +556,12 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
     try {
       const parsed = JSON.parse(response.content);
       return {
-        summary: parsed.summary || '',
+        summary: parsed.summary || "",
         keyPoints: parsed.keyPoints || [],
         tokensUsed: response.tokensUsed,
       };
     } catch {
-      this.logger.error('Failed to parse summary JSON');
+      this.logger.error("Failed to parse summary JSON");
       return {
         summary: response.content,
         keyPoints: [],
@@ -568,7 +582,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
       }),
       this.prisma.ragQuery.findMany({
         where: { userId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: 10,
         select: {
           id: true,

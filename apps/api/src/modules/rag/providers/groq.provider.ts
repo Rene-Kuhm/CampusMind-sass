@@ -1,6 +1,10 @@
-import { HttpService } from '@nestjs/axios';
-import { BaseLlmProvider } from './base.provider';
-import { LlmOptions, LlmResponse, LlmProviderType } from '../interfaces/rag.interface';
+import { HttpService } from "@nestjs/axios";
+import { BaseLlmProvider } from "./base.provider";
+import {
+  LlmOptions,
+  LlmResponse,
+  LlmProviderType,
+} from "../interfaces/rag.interface";
 
 interface GroqResponse {
   choices: Array<{
@@ -27,13 +31,16 @@ interface GroqResponse {
  * Free limits: 30 RPM, 14,400 RPD
  */
 export class GroqProvider extends BaseLlmProvider {
-  readonly providerType: LlmProviderType = 'groq';
+  readonly providerType: LlmProviderType = "groq";
 
   constructor(http: HttpService, apiKey: string, model: string) {
-    super(http, apiKey, model, 'https://api.groq.com/openai/v1');
+    super(http, apiKey, model, "https://api.groq.com/openai/v1");
   }
 
-  async generateCompletion(prompt: string, options?: LlmOptions): Promise<LlmResponse> {
+  async generateCompletion(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<LlmResponse> {
     const messages = this.buildMessages(prompt, options?.systemPrompt);
     const modelToUse = options?.model || this.model;
 
@@ -47,7 +54,7 @@ export class GroqProvider extends BaseLlmProvider {
       },
       {
         Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     );
 

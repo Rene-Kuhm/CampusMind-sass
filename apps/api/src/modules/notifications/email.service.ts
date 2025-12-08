@@ -1,18 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 export type EmailTemplate =
-  | 'welcome'
-  | 'password-reset'
-  | 'email-verification'
-  | 'study-reminder'
-  | 'achievement-unlocked'
-  | 'streak-warning'
-  | 'weekly-summary'
-  | 'quiz-results'
-  | 'subscription-confirmation'
-  | 'subscription-cancelled'
-  | 'payment-failed';
+  | "welcome"
+  | "password-reset"
+  | "email-verification"
+  | "study-reminder"
+  | "achievement-unlocked"
+  | "streak-warning"
+  | "weekly-summary"
+  | "quiz-results"
+  | "subscription-confirmation"
+  | "subscription-cancelled"
+  | "payment-failed";
 
 export interface EmailOptions {
   to: string;
@@ -22,7 +22,7 @@ export interface EmailOptions {
 }
 
 export interface EmailConfig {
-  provider: 'smtp' | 'sendgrid' | 'resend' | 'ses';
+  provider: "smtp" | "sendgrid" | "resend" | "ses";
   from: string;
   fromName: string;
   replyTo?: string;
@@ -45,28 +45,33 @@ export class EmailService {
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
-      provider: (configService.get<string>('EMAIL_PROVIDER') as EmailConfig['provider']) || 'smtp',
-      from: configService.get<string>('EMAIL_FROM') || 'noreply@campusmind.com',
-      fromName: configService.get<string>('EMAIL_FROM_NAME') || 'CampusMind',
-      replyTo: configService.get<string>('EMAIL_REPLY_TO'),
+      provider:
+        (configService.get<string>(
+          "EMAIL_PROVIDER",
+        ) as EmailConfig["provider"]) || "smtp",
+      from: configService.get<string>("EMAIL_FROM") || "noreply@campusmind.com",
+      fromName: configService.get<string>("EMAIL_FROM_NAME") || "CampusMind",
+      replyTo: configService.get<string>("EMAIL_REPLY_TO"),
     };
   }
 
   /**
    * Send an email using the configured provider
    */
-  async send(options: EmailOptions): Promise<{ success: boolean; messageId?: string }> {
+  async send(
+    options: EmailOptions,
+  ): Promise<{ success: boolean; messageId?: string }> {
     const html = this.renderTemplate(options.template, options.data);
 
     try {
       switch (this.config.provider) {
-        case 'sendgrid':
+        case "sendgrid":
           return await this.sendWithSendGrid(options, html);
-        case 'resend':
+        case "resend":
           return await this.sendWithResend(options, html);
-        case 'ses':
+        case "ses":
           return await this.sendWithSES(options, html);
-        case 'smtp':
+        case "smtp":
         default:
           return await this.sendWithSMTP(options, html);
       }
@@ -79,11 +84,14 @@ export class EmailService {
   /**
    * Send welcome email
    */
-  async sendWelcome(to: string, data: { name: string; verificationLink?: string }): Promise<boolean> {
+  async sendWelcome(
+    to: string,
+    data: { name: string; verificationLink?: string },
+  ): Promise<boolean> {
     const result = await this.send({
       to,
-      subject: '¡Bienvenido a CampusMind!',
-      template: 'welcome',
+      subject: "¡Bienvenido a CampusMind!",
+      template: "welcome",
       data,
     });
     return result.success;
@@ -92,11 +100,14 @@ export class EmailService {
   /**
    * Send password reset email
    */
-  async sendPasswordReset(to: string, data: { name: string; resetLink: string; expiresIn: string }): Promise<boolean> {
+  async sendPasswordReset(
+    to: string,
+    data: { name: string; resetLink: string; expiresIn: string },
+  ): Promise<boolean> {
     const result = await this.send({
       to,
-      subject: 'Restablecer tu contraseña - CampusMind',
-      template: 'password-reset',
+      subject: "Restablecer tu contraseña - CampusMind",
+      template: "password-reset",
       data,
     });
     return result.success;
@@ -105,11 +116,14 @@ export class EmailService {
   /**
    * Send email verification
    */
-  async sendEmailVerification(to: string, data: { name: string; verificationLink: string }): Promise<boolean> {
+  async sendEmailVerification(
+    to: string,
+    data: { name: string; verificationLink: string },
+  ): Promise<boolean> {
     const result = await this.send({
       to,
-      subject: 'Verifica tu email - CampusMind',
-      template: 'email-verification',
+      subject: "Verifica tu email - CampusMind",
+      template: "email-verification",
       data,
     });
     return result.success;
@@ -125,12 +139,12 @@ export class EmailService {
       pendingCards: number;
       subjectName: string;
       studyLink: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       to,
       subject: `Tienes ${data.pendingCards} tarjetas pendientes en ${data.subjectName}`,
-      template: 'study-reminder',
+      template: "study-reminder",
       data,
     });
     return result.success;
@@ -147,12 +161,12 @@ export class EmailService {
       achievementDescription: string;
       xpEarned: number;
       achievementIcon?: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       to,
       subject: `¡Logro desbloqueado: ${data.achievementName}!`,
-      template: 'achievement-unlocked',
+      template: "achievement-unlocked",
       data,
     });
     return result.success;
@@ -168,12 +182,12 @@ export class EmailService {
       currentStreak: number;
       hoursRemaining: number;
       studyLink: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       to,
       subject: `¡Tu racha de ${data.currentStreak} días está en riesgo!`,
-      template: 'streak-warning',
+      template: "streak-warning",
       data,
     });
     return result.success;
@@ -195,12 +209,12 @@ export class EmailService {
       currentLevel: number;
       streakDays: number;
       topSubject?: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       to,
       subject: `Tu resumen semanal - CampusMind`,
-      template: 'weekly-summary',
+      template: "weekly-summary",
       data,
     });
     return result.success;
@@ -218,12 +232,12 @@ export class EmailService {
       currency: string;
       nextBillingDate: string;
       features: string[];
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       to,
       subject: `Suscripción ${data.planName} activada - CampusMind`,
-      template: 'subscription-confirmation',
+      template: "subscription-confirmation",
       data,
     });
     return result.success;
@@ -234,19 +248,26 @@ export class EmailService {
   /**
    * Render email template
    */
-  private renderTemplate(template: EmailTemplate, data: Record<string, unknown>): string {
-    const templates: Record<EmailTemplate, (data: Record<string, unknown>) => string> = {
-      'welcome': this.renderWelcome.bind(this),
-      'password-reset': this.renderPasswordReset.bind(this),
-      'email-verification': this.renderEmailVerification.bind(this),
-      'study-reminder': this.renderStudyReminder.bind(this),
-      'achievement-unlocked': this.renderAchievementUnlocked.bind(this),
-      'streak-warning': this.renderStreakWarning.bind(this),
-      'weekly-summary': this.renderWeeklySummary.bind(this),
-      'quiz-results': this.renderQuizResults.bind(this),
-      'subscription-confirmation': this.renderSubscriptionConfirmation.bind(this),
-      'subscription-cancelled': this.renderSubscriptionCancelled.bind(this),
-      'payment-failed': this.renderPaymentFailed.bind(this),
+  private renderTemplate(
+    template: EmailTemplate,
+    data: Record<string, unknown>,
+  ): string {
+    const templates: Record<
+      EmailTemplate,
+      (data: Record<string, unknown>) => string
+    > = {
+      welcome: this.renderWelcome.bind(this),
+      "password-reset": this.renderPasswordReset.bind(this),
+      "email-verification": this.renderEmailVerification.bind(this),
+      "study-reminder": this.renderStudyReminder.bind(this),
+      "achievement-unlocked": this.renderAchievementUnlocked.bind(this),
+      "streak-warning": this.renderStreakWarning.bind(this),
+      "weekly-summary": this.renderWeeklySummary.bind(this),
+      "quiz-results": this.renderQuizResults.bind(this),
+      "subscription-confirmation":
+        this.renderSubscriptionConfirmation.bind(this),
+      "subscription-cancelled": this.renderSubscriptionCancelled.bind(this),
+      "payment-failed": this.renderPaymentFailed.bind(this),
     };
 
     return templates[template]?.(data) || this.renderDefaultTemplate(data);
@@ -306,7 +327,7 @@ export class EmailService {
         <li>Hacer consultas inteligentes con RAG</li>
         <li>Ganar XP y desbloquear logros</li>
       </ul>
-      ${data.verificationLink ? `<a href="${data.verificationLink}" class="button">Verificar mi email</a>` : ''}
+      ${data.verificationLink ? `<a href="${data.verificationLink}" class="button">Verificar mi email</a>` : ""}
       <p>¿Listo para empezar a estudiar de forma más inteligente?</p>
       <a href="https://campusmind.com/dashboard" class="button">Ir al Dashboard</a>
     `);
@@ -348,7 +369,7 @@ export class EmailService {
     return this.wrapTemplate(`
       <h2>¡Felicitaciones, ${data.name}!</h2>
       <div class="highlight" style="text-align: center;">
-        ${data.achievementIcon ? `<div style="font-size: 48px;">${data.achievementIcon}</div>` : ''}
+        ${data.achievementIcon ? `<div style="font-size: 48px;">${data.achievementIcon}</div>` : ""}
         <h3 style="margin: 10px 0; color: #667eea;">${data.achievementName}</h3>
         <p style="margin: 0; color: #6c757d;">${data.achievementDescription}</p>
         <p style="margin-top: 15px;"><strong>+${data.xpEarned} XP</strong></p>
@@ -396,7 +417,7 @@ export class EmailService {
       <p><strong>XP ganado esta semana:</strong> ${data.xpEarned}</p>
       <p><strong>Nivel actual:</strong> ${data.currentLevel}</p>
       <p><strong>Racha:</strong> ${data.streakDays} días</p>
-      ${data.topSubject ? `<p><strong>Materia más estudiada:</strong> ${data.topSubject}</p>` : ''}
+      ${data.topSubject ? `<p><strong>Materia más estudiada:</strong> ${data.topSubject}</p>` : ""}
 
       <a href="https://campusmind.com/stats" class="button">Ver Estadísticas Completas</a>
     `);
@@ -414,7 +435,9 @@ export class EmailService {
     `);
   }
 
-  private renderSubscriptionConfirmation(data: Record<string, unknown>): string {
+  private renderSubscriptionConfirmation(
+    data: Record<string, unknown>,
+  ): string {
     const features = data.features as string[];
     return this.wrapTemplate(`
       <h2>¡Gracias por suscribirte, ${data.name}!</h2>
@@ -425,7 +448,7 @@ export class EmailService {
       </div>
       <p>Tu suscripción incluye:</p>
       <ul>
-        ${features.map(f => `<li>${f}</li>`).join('')}
+        ${features.map((f) => `<li>${f}</li>`).join("")}
       </ul>
       <a href="https://campusmind.com/billing" class="button">Gestionar Suscripción</a>
     `);
@@ -455,43 +478,53 @@ export class EmailService {
 
   private renderDefaultTemplate(data: Record<string, unknown>): string {
     return this.wrapTemplate(`
-      <h2>${data.title || 'Notificación de CampusMind'}</h2>
-      <p>${data.message || ''}</p>
-      ${data.actionUrl ? `<a href="${data.actionUrl}" class="button">${data.actionText || 'Ver más'}</a>` : ''}
+      <h2>${data.title || "Notificación de CampusMind"}</h2>
+      <p>${data.message || ""}</p>
+      ${data.actionUrl ? `<a href="${data.actionUrl}" class="button">${data.actionText || "Ver más"}</a>` : ""}
     `);
   }
 
   // === Provider implementations ===
 
-  private async sendWithSMTP(options: EmailOptions, html: string): Promise<{ success: boolean; messageId?: string }> {
+  private async sendWithSMTP(
+    options: EmailOptions,
+    html: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
     // In production, use nodemailer
-    this.logger.log(`[SMTP Mock] Sending email to ${options.to}: ${options.subject}`);
+    this.logger.log(
+      `[SMTP Mock] Sending email to ${options.to}: ${options.subject}`,
+    );
     return { success: true, messageId: `smtp-${Date.now()}` };
   }
 
-  private async sendWithSendGrid(options: EmailOptions, html: string): Promise<{ success: boolean; messageId?: string }> {
-    const apiKey = this.configService.get<string>('SENDGRID_API_KEY');
+  private async sendWithSendGrid(
+    options: EmailOptions,
+    html: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
+    const apiKey = this.configService.get<string>("SENDGRID_API_KEY");
 
     if (!apiKey) {
-      this.logger.warn('SendGrid API key not configured');
+      this.logger.warn("SendGrid API key not configured");
       return { success: false };
     }
 
     const payload: SendGridPayload = {
-      personalizations: [{ to: [{ email: options.to }], subject: options.subject }],
+      personalizations: [
+        { to: [{ email: options.to }], subject: options.subject },
+      ],
       from: { email: this.config.from, name: this.config.fromName },
-      content: [{ type: 'text/html', value: html }],
+      content: [{ type: "text/html", value: html }],
     };
 
     if (this.config.replyTo) {
       payload.reply_to = { email: this.config.replyTo };
     }
 
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
@@ -504,23 +537,26 @@ export class EmailService {
 
     return {
       success: true,
-      messageId: response.headers.get('X-Message-Id') || undefined
+      messageId: response.headers.get("X-Message-Id") || undefined,
     };
   }
 
-  private async sendWithResend(options: EmailOptions, html: string): Promise<{ success: boolean; messageId?: string }> {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+  private async sendWithResend(
+    options: EmailOptions,
+    html: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
+    const apiKey = this.configService.get<string>("RESEND_API_KEY");
 
     if (!apiKey) {
-      this.logger.warn('Resend API key not configured');
+      this.logger.warn("Resend API key not configured");
       return { success: false };
     }
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         from: `${this.config.fromName} <${this.config.from}>`,
@@ -541,9 +577,14 @@ export class EmailService {
     return { success: true, messageId: data.id };
   }
 
-  private async sendWithSES(options: EmailOptions, html: string): Promise<{ success: boolean; messageId?: string }> {
+  private async sendWithSES(
+    options: EmailOptions,
+    html: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
     // In production, use AWS SDK
-    this.logger.log(`[SES Mock] Sending email to ${options.to}: ${options.subject}`);
+    this.logger.log(
+      `[SES Mock] Sending email to ${options.to}: ${options.subject}`,
+    );
     return { success: true, messageId: `ses-${Date.now()}` };
   }
 }

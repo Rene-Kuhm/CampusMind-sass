@@ -1,6 +1,10 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as crypto from "crypto";
 
 export interface TwoFactorSetup {
   secret: string;
@@ -15,12 +19,15 @@ export interface TwoFactorVerification {
 }
 
 // In-memory storage for demo - use database in production
-const userSecrets = new Map<string, {
-  secret: string;
-  enabled: boolean;
-  backupCodes: string[];
-  usedBackupCodes: string[];
-}>();
+const userSecrets = new Map<
+  string,
+  {
+    secret: string;
+    enabled: boolean;
+    backupCodes: string[];
+    usedBackupCodes: string[];
+  }
+>();
 
 @Injectable()
 export class TwoFactorService {
@@ -29,13 +36,16 @@ export class TwoFactorService {
   private readonly timeStep = 30; // seconds
 
   constructor(private readonly configService: ConfigService) {
-    this.issuer = configService.get<string>('APP_NAME') || 'CampusMind';
+    this.issuer = configService.get<string>("APP_NAME") || "CampusMind";
   }
 
   /**
    * Generate 2FA setup for a user
    */
-  async generateSetup(userId: string, userEmail: string): Promise<TwoFactorSetup> {
+  async generateSetup(
+    userId: string,
+    userEmail: string,
+  ): Promise<TwoFactorSetup> {
     // Generate random secret (20 bytes = 160 bits)
     const secretBuffer = crypto.randomBytes(20);
     const secret = this.base32Encode(secretBuffer);
@@ -68,22 +78,29 @@ export class TwoFactorService {
   /**
    * Enable 2FA after verification
    */
-  async enable(userId: string, code: string): Promise<{ success: boolean; backupCodes: string[] }> {
+  async enable(
+    userId: string,
+    code: string,
+  ): Promise<{ success: boolean; backupCodes: string[] }> {
     const userData = userSecrets.get(userId);
 
     if (!userData) {
-      throw new BadRequestException('2FA no ha sido configurado. Genera una nueva configuración primero.');
+      throw new BadRequestException(
+        "2FA no ha sido configurado. Genera una nueva configuración primero.",
+      );
     }
 
     if (userData.enabled) {
-      throw new BadRequestException('2FA ya está habilitado');
+      throw new BadRequestException("2FA ya está habilitado");
     }
 
     // Verify the code before enabling
     const isValid = this.verifyTOTP(userData.secret, code);
 
     if (!isValid) {
-      throw new BadRequestException('Código inválido. Por favor intenta de nuevo.');
+      throw new BadRequestException(
+        "Código inválido. Por favor intenta de nuevo.",
+      );
     }
 
     // Enable 2FA
@@ -103,14 +120,14 @@ export class TwoFactorService {
     const userData = userSecrets.get(userId);
 
     if (!userData || !userData.enabled) {
-      throw new BadRequestException('2FA no está habilitado');
+      throw new BadRequestException("2FA no está habilitado");
     }
 
     // Verify the code before disabling
     const verification = this.verify(userId, code);
 
     if (!verification.valid) {
-      throw new UnauthorizedException('Código inválido');
+      throw new UnauthorizedException("Código inválido");
     }
 
     // Remove 2FA data
@@ -136,7 +153,7 @@ export class TwoFactorService {
 
     // Then try backup code
     const backupCodeIndex = userData.backupCodes.findIndex(
-      (bc) => bc === code && !userData.usedBackupCodes.includes(bc)
+      (bc) => bc === code && !userData.usedBackupCodes.includes(bc),
     );
 
     if (backupCodeIndex !== -1) {
@@ -175,12 +192,12 @@ export class TwoFactorService {
     const userData = userSecrets.get(userId);
 
     if (!userData || !userData.enabled) {
-      throw new BadRequestException('2FA no está habilitado');
+      throw new BadRequestException("2FA no está habilitado");
     }
 
     // Verify current code
     if (!this.verifyTOTP(userData.secret, code)) {
-      throw new UnauthorizedException('Código inválido');
+      throw new UnauthorizedException("Código inválido");
     }
 
     // Generate new backup codes
@@ -222,7 +239,7 @@ export class TwoFactorService {
     timeBuffer.writeBigInt64BE(BigInt(time));
 
     const secretBuffer = this.base32Decode(secret);
-    const hmac = crypto.createHmac('sha1', secretBuffer);
+    const hmac = crypto.createHmac("sha1", secretBuffer);
     hmac.update(timeBuffer);
     const hash = hmac.digest();
 
@@ -234,13 +251,17 @@ export class TwoFactorService {
       (hash[offset + 3] & 0xff);
 
     const otp = binary % Math.pow(10, this.codeDigits);
-    return otp.toString().padStart(this.codeDigits, '0');
+    return otp.toString().padStart(this.codeDigits, "0");
   }
 
   /**
    * Verify TOTP code with time window
    */
-  private verifyTOTP(secret: string, code: string, window: number = 1): boolean {
+  private verifyTOTP(
+    secret: string,
+    code: string,
+    window: number = 1,
+  ): boolean {
     const currentTime = Math.floor(Date.now() / 1000 / this.timeStep);
 
     // Check current time and +/- window
@@ -275,7 +296,7 @@ export class TwoFactorService {
     const params = new URLSearchParams({
       secret,
       issuer: this.issuer,
-      algorithm: 'SHA1',
+      algorithm: "SHA1",
       digits: this.codeDigits.toString(),
       period: this.timeStep.toString(),
     });
@@ -304,7 +325,7 @@ export class TwoFactorService {
     const codes: string[] = [];
 
     for (let i = 0; i < count; i++) {
-      const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+      const code = crypto.randomBytes(4).toString("hex").toUpperCase();
       // Format: XXXX-XXXX
       codes.push(`${code.slice(0, 4)}-${code.slice(4)}`);
     }
@@ -316,8 +337,8 @@ export class TwoFactorService {
    * Base32 encode
    */
   private base32Encode(buffer: Buffer): string {
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    let result = '';
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    let result = "";
     let bits = 0;
     let value = 0;
 
@@ -342,8 +363,8 @@ export class TwoFactorService {
    * Base32 decode
    */
   private base32Decode(encoded: string): Buffer {
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    const cleanEncoded = encoded.toUpperCase().replace(/[^A-Z2-7]/g, '');
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    const cleanEncoded = encoded.toUpperCase().replace(/[^A-Z2-7]/g, "");
 
     let bits = 0;
     let value = 0;

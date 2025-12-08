@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { UpdateSubjectDto } from "./dto/update-subject.dto";
 
 @Injectable()
 export class SubjectsService {
@@ -30,7 +30,7 @@ export class SubjectsService {
           select: { resources: true },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
   }
 
@@ -39,13 +39,13 @@ export class SubjectsService {
       where: { id, userId },
       include: {
         resources: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
 
     if (!subject) {
-      throw new NotFoundException('Materia no encontrada');
+      throw new NotFoundException("Materia no encontrada");
     }
 
     return subject;

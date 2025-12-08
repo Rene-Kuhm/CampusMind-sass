@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { LlmService } from '../rag/services/llm.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { LlmService } from "../rag/services/llm.service";
 
 export interface EssayEvaluationResult {
   score: number;
@@ -36,7 +36,9 @@ export class EssayEvaluationService {
   /**
    * Evalúa un essay usando LLM
    */
-  async evaluateEssay(input: EssayEvaluationInput): Promise<EssayEvaluationResult> {
+  async evaluateEssay(
+    input: EssayEvaluationInput,
+  ): Promise<EssayEvaluationResult> {
     const rubric = input.rubric || {
       relevance: 30,
       coherence: 25,
@@ -52,17 +54,22 @@ export class EssayEvaluationService {
         temperature: 0.2,
       });
 
-      return this.parseEvaluationResponse(response.content, input.maxPoints, rubric);
+      return this.parseEvaluationResponse(
+        response.content,
+        input.maxPoints,
+        rubric,
+      );
     } catch (error) {
-      this.logger.error('Error evaluating essay with LLM', error);
+      this.logger.error("Error evaluating essay with LLM", error);
       // Fallback: devolver evaluación pendiente
       return {
         score: 0,
         maxScore: input.maxPoints,
         percentage: 0,
-        feedback: 'La evaluación automática no está disponible en este momento. Un instructor revisará tu respuesta.',
+        feedback:
+          "La evaluación automática no está disponible en este momento. Un instructor revisará tu respuesta.",
         strengths: [],
-        improvements: ['Pendiente de revisión manual'],
+        improvements: ["Pendiente de revisión manual"],
         grammarIssues: [],
         relevanceScore: 0,
         coherenceScore: 0,
@@ -89,14 +96,19 @@ export class EssayEvaluationService {
 
   private buildEvaluationPrompt(
     input: EssayEvaluationInput,
-    rubric: { relevance: number; coherence: number; depth: number; grammar: number },
+    rubric: {
+      relevance: number;
+      coherence: number;
+      depth: number;
+      grammar: number;
+    },
   ): string {
     return `Eres un evaluador académico experto. Evalúa el siguiente ensayo de un estudiante.
 
 PREGUNTA/TEMA:
 ${input.questionText}
 
-${input.expectedCriteria ? `CRITERIOS ESPERADOS:\n${input.expectedCriteria}\n` : ''}
+${input.expectedCriteria ? `CRITERIOS ESPERADOS:\n${input.expectedCriteria}\n` : ""}
 
 RESPUESTA DEL ESTUDIANTE:
 ${input.studentAnswer}
@@ -127,18 +139,23 @@ Responde SOLO con el JSON, sin texto adicional ni markdown.`;
   private parseEvaluationResponse(
     content: string,
     maxPoints: number,
-    rubric: { relevance: number; coherence: number; depth: number; grammar: number },
+    rubric: {
+      relevance: number;
+      coherence: number;
+      depth: number;
+      grammar: number;
+    },
   ): EssayEvaluationResult {
     try {
       // Limpiar el contenido de posibles markdown
       let cleanContent = content.trim();
-      if (cleanContent.startsWith('```json')) {
+      if (cleanContent.startsWith("```json")) {
         cleanContent = cleanContent.slice(7);
       }
-      if (cleanContent.startsWith('```')) {
+      if (cleanContent.startsWith("```")) {
         cleanContent = cleanContent.slice(3);
       }
-      if (cleanContent.endsWith('```')) {
+      if (cleanContent.endsWith("```")) {
         cleanContent = cleanContent.slice(0, -3);
       }
       cleanContent = cleanContent.trim();
@@ -146,8 +163,14 @@ Responde SOLO con el JSON, sin texto adicional ni markdown.`;
       const parsed = JSON.parse(cleanContent);
 
       // Calcular puntuación ponderada
-      const relevanceScore = Math.min(100, Math.max(0, parsed.relevanceScore || 0));
-      const coherenceScore = Math.min(100, Math.max(0, parsed.coherenceScore || 0));
+      const relevanceScore = Math.min(
+        100,
+        Math.max(0, parsed.relevanceScore || 0),
+      );
+      const coherenceScore = Math.min(
+        100,
+        Math.max(0, parsed.coherenceScore || 0),
+      );
       const depthScore = Math.min(100, Math.max(0, parsed.depthScore || 0));
       const grammarScore = Math.min(100, Math.max(0, parsed.grammarScore || 0));
 
@@ -158,13 +181,14 @@ Responde SOLO con el JSON, sin texto adicional ni markdown.`;
           grammarScore * rubric.grammar) /
         100;
 
-      const score = Math.round((weightedPercentage / 100) * maxPoints * 100) / 100;
+      const score =
+        Math.round((weightedPercentage / 100) * maxPoints * 100) / 100;
 
       return {
         score,
         maxScore: maxPoints,
         percentage: Math.round(weightedPercentage * 100) / 100,
-        feedback: parsed.feedback || 'Evaluación completada.',
+        feedback: parsed.feedback || "Evaluación completada.",
         strengths: parsed.strengths || [],
         improvements: parsed.improvements || [],
         grammarIssues: parsed.grammarIssues || [],
@@ -173,15 +197,15 @@ Responde SOLO con el JSON, sin texto adicional ni markdown.`;
         depthScore,
       };
     } catch (error) {
-      this.logger.error('Error parsing LLM evaluation response', error);
+      this.logger.error("Error parsing LLM evaluation response", error);
       // Fallback con evaluación parcial
       return {
         score: maxPoints * 0.5,
         maxScore: maxPoints,
         percentage: 50,
-        feedback: 'Evaluación automática parcial. Considera revisión manual.',
-        strengths: ['Respuesta enviada'],
-        improvements: ['Verificar con instructor'],
+        feedback: "Evaluación automática parcial. Considera revisión manual.",
+        strengths: ["Respuesta enviada"],
+        improvements: ["Verificar con instructor"],
         grammarIssues: [],
         relevanceScore: 50,
         coherenceScore: 50,

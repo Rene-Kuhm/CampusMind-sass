@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsString,
   IsOptional,
@@ -10,29 +10,29 @@ import {
   MaxLength,
   Min,
   Max,
-} from 'class-validator';
+} from "class-validator";
 
 export enum StudyEventType {
-  STUDY_SESSION = 'STUDY_SESSION',
-  REVIEW = 'REVIEW',
-  EXAM = 'EXAM',
-  DEADLINE = 'DEADLINE',
-  CLASS = 'CLASS',
-  BREAK = 'BREAK',
+  STUDY_SESSION = "STUDY_SESSION",
+  REVIEW = "REVIEW",
+  EXAM = "EXAM",
+  DEADLINE = "DEADLINE",
+  CLASS = "CLASS",
+  BREAK = "BREAK",
 }
 
 export enum RecurrenceType {
-  NONE = 'NONE',
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  BIWEEKLY = 'BIWEEKLY',
-  MONTHLY = 'MONTHLY',
+  NONE = "NONE",
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  BIWEEKLY = "BIWEEKLY",
+  MONTHLY = "MONTHLY",
 }
 
 export class CreateStudyEventDto {
   @ApiProperty({
-    example: 'Estudiar Capítulo 3 - Derivadas',
-    description: 'Título del evento de estudio',
+    example: "Estudiar Capítulo 3 - Derivadas",
+    description: "Título del evento de estudio",
   })
   @IsString()
   @MinLength(1)
@@ -40,8 +40,8 @@ export class CreateStudyEventDto {
   title!: string;
 
   @ApiPropertyOptional({
-    example: 'Revisar ejemplos del libro y resolver ejercicios',
-    description: 'Descripción o notas del evento',
+    example: "Revisar ejemplos del libro y resolver ejercicios",
+    description: "Descripción o notas del evento",
   })
   @IsOptional()
   @IsString()
@@ -49,15 +49,15 @@ export class CreateStudyEventDto {
   description?: string;
 
   @ApiProperty({
-    example: '2024-03-15T10:00:00Z',
-    description: 'Fecha y hora de inicio',
+    example: "2024-03-15T10:00:00Z",
+    description: "Fecha y hora de inicio",
   })
   @IsDateString()
   startTime!: string;
 
   @ApiProperty({
-    example: '2024-03-15T12:00:00Z',
-    description: 'Fecha y hora de fin',
+    example: "2024-03-15T12:00:00Z",
+    description: "Fecha y hora de fin",
   })
   @IsDateString()
   endTime!: string;
@@ -65,29 +65,29 @@ export class CreateStudyEventDto {
   @ApiPropertyOptional({
     enum: StudyEventType,
     default: StudyEventType.STUDY_SESSION,
-    description: 'Tipo de evento',
+    description: "Tipo de evento",
   })
   @IsOptional()
   @IsEnum(StudyEventType)
   type?: StudyEventType;
 
   @ApiPropertyOptional({
-    description: 'ID de la materia asociada',
+    description: "ID de la materia asociada",
   })
   @IsOptional()
   @IsString()
   subjectId?: string;
 
   @ApiPropertyOptional({
-    description: 'ID del recurso a estudiar',
+    description: "ID del recurso a estudiar",
   })
   @IsOptional()
   @IsString()
   resourceId?: string;
 
   @ApiPropertyOptional({
-    example: '#6366f1',
-    description: 'Color del evento (hex)',
+    example: "#6366f1",
+    description: "Color del evento (hex)",
   })
   @IsOptional()
   @IsString()
@@ -96,7 +96,7 @@ export class CreateStudyEventDto {
   @ApiPropertyOptional({
     enum: RecurrenceType,
     default: RecurrenceType.NONE,
-    description: 'Tipo de recurrencia',
+    description: "Tipo de recurrencia",
   })
   @IsOptional()
   @IsEnum(RecurrenceType)
@@ -104,7 +104,7 @@ export class CreateStudyEventDto {
 
   @ApiPropertyOptional({
     example: 15,
-    description: 'Minutos antes para recordatorio',
+    description: "Minutos antes para recordatorio",
   })
   @IsOptional()
   @IsInt()
@@ -114,7 +114,7 @@ export class CreateStudyEventDto {
 
   @ApiPropertyOptional({
     example: false,
-    description: 'Indica si es un evento de todo el día',
+    description: "Indica si es un evento de todo el día",
   })
   @IsOptional()
   @IsBoolean()
@@ -183,7 +183,7 @@ export class UpdateStudyEventDto {
   isAllDay?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Marcar evento como completado',
+    description: "Marcar evento como completado",
   })
   @IsOptional()
   @IsBoolean()

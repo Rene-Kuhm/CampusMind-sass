@@ -1,14 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
+import { firstValueFrom } from "rxjs";
 import {
   AcademicProvider,
   AcademicResource,
   SearchQuery,
   SearchResult,
   AcademicResourceType,
-} from '../interfaces/academic-resource.interface';
+} from "../interfaces/academic-resource.interface";
 
 /**
  * Semantic Scholar Provider
@@ -17,8 +17,8 @@ import {
  */
 @Injectable()
 export class SemanticScholarProvider implements AcademicProvider {
-  readonly name = 'semantic_scholar' as const;
-  private readonly baseUrl = 'https://api.semanticscholar.org/graph/v1';
+  readonly name = "semantic_scholar" as const;
+  private readonly baseUrl = "https://api.semanticscholar.org/graph/v1";
   private readonly logger = new Logger(SemanticScholarProvider.name);
   private readonly apiKey?: string;
 
@@ -26,26 +26,26 @@ export class SemanticScholarProvider implements AcademicProvider {
     private readonly http: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.apiKey = this.config.get<string>('SEMANTIC_SCHOLAR_API_KEY');
+    this.apiKey = this.config.get<string>("SEMANTIC_SCHOLAR_API_KEY");
   }
 
   async search(query: SearchQuery): Promise<SearchResult> {
     try {
       const fields = [
-        'paperId',
-        'title',
-        'abstract',
-        'authors',
-        'year',
-        'publicationDate',
-        'venue',
-        'isOpenAccess',
-        'openAccessPdf',
-        'citationCount',
-        'referenceCount',
-        'publicationTypes',
-        'externalIds',
-      ].join(',');
+        "paperId",
+        "title",
+        "abstract",
+        "authors",
+        "year",
+        "publicationDate",
+        "venue",
+        "isOpenAccess",
+        "openAccessPdf",
+        "citationCount",
+        "referenceCount",
+        "publicationTypes",
+        "externalIds",
+      ].join(",");
 
       const offset =
         ((query.pagination?.page || 1) - 1) * (query.pagination?.perPage || 25);
@@ -63,19 +63,21 @@ export class SemanticScholarProvider implements AcademicProvider {
       }
 
       if (query.filters?.isOpenAccess) {
-        url += '&openAccessPdf';
+        url += "&openAccessPdf";
       }
 
       const response = await firstValueFrom(
         this.http.get(url, {
-          headers: this.apiKey ? { 'x-api-key': this.apiKey } : {},
+          headers: this.apiKey ? { "x-api-key": this.apiKey } : {},
         }),
       );
 
       const data = response.data;
 
       return {
-        items: (data.data || []).map((paper: any) => this.normalizePaper(paper)),
+        items: (data.data || []).map((paper: any) =>
+          this.normalizePaper(paper),
+        ),
         total: data.total || 0,
         page: query.pagination?.page || 1,
         perPage: limit,
@@ -96,41 +98,43 @@ export class SemanticScholarProvider implements AcademicProvider {
   async getById(externalId: string): Promise<AcademicResource | null> {
     try {
       const fields = [
-        'paperId',
-        'title',
-        'abstract',
-        'authors',
-        'year',
-        'publicationDate',
-        'venue',
-        'isOpenAccess',
-        'openAccessPdf',
-        'citationCount',
-        'referenceCount',
-        'publicationTypes',
-        'externalIds',
-      ].join(',');
+        "paperId",
+        "title",
+        "abstract",
+        "authors",
+        "year",
+        "publicationDate",
+        "venue",
+        "isOpenAccess",
+        "openAccessPdf",
+        "citationCount",
+        "referenceCount",
+        "publicationTypes",
+        "externalIds",
+      ].join(",");
 
       const url = `${this.baseUrl}/paper/${externalId}?fields=${fields}`;
 
       const response = await firstValueFrom(
         this.http.get(url, {
-          headers: this.apiKey ? { 'x-api-key': this.apiKey } : {},
+          headers: this.apiKey ? { "x-api-key": this.apiKey } : {},
         }),
       );
 
       return this.normalizePaper(response.data);
     } catch (error) {
-      this.logger.error(`Semantic Scholar getById failed for ${externalId}: ${error}`);
+      this.logger.error(
+        `Semantic Scholar getById failed for ${externalId}: ${error}`,
+      );
       return null;
     }
   }
 
   private normalizePaper(paper: any): AcademicResource {
     return {
-      externalId: paper.paperId || '',
+      externalId: paper.paperId || "",
       source: this.name,
-      title: paper.title || 'Sin título',
+      title: paper.title || "Sin título",
       authors: (paper.authors || [])
         .map((a: any) => a.name)
         .filter(Boolean)
@@ -150,21 +154,21 @@ export class SemanticScholarProvider implements AcademicProvider {
   }
 
   private mapPaperType(types: string[] | null): AcademicResourceType {
-    if (!types || types.length === 0) return 'paper';
+    if (!types || types.length === 0) return "paper";
 
     const typeMap: Record<string, AcademicResourceType> = {
-      JournalArticle: 'article',
-      Conference: 'conference',
-      Book: 'book',
-      BookSection: 'book_chapter',
-      Dataset: 'dataset',
-      Review: 'article',
+      JournalArticle: "article",
+      Conference: "conference",
+      Book: "book",
+      BookSection: "book_chapter",
+      Dataset: "dataset",
+      Review: "article",
     };
 
     for (const type of types) {
       if (typeMap[type]) return typeMap[type];
     }
 
-    return 'paper';
+    return "paper";
   }
 }

@@ -1,6 +1,10 @@
-import { SetMetadata, applyDecorators, UseGuards } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { THROTTLE_OPTIONS_KEY, ThrottleOptions, RateLimits } from '../guards/throttle.guard';
+import { SetMetadata, applyDecorators, UseGuards } from "@nestjs/common";
+import { ThrottlerGuard } from "@nestjs/throttler";
+import {
+  THROTTLE_OPTIONS_KEY,
+  ThrottleOptions,
+  RateLimits,
+} from "../guards/throttle.guard";
 
 /**
  * Custom rate limit decorator
@@ -17,10 +21,8 @@ import { THROTTLE_OPTIONS_KEY, ThrottleOptions, RateLimits } from '../guards/thr
  * @RateLimit({ limit: 50, ttl: 60000 })
  * async customEndpoint() { ... }
  */
-export function RateLimit(
-  options: keyof typeof RateLimits | ThrottleOptions,
-) {
-  const config = typeof options === 'string' ? RateLimits[options] : options;
+export function RateLimit(options: keyof typeof RateLimits | ThrottleOptions) {
+  const config = typeof options === "string" ? RateLimits[options] : options;
 
   return applyDecorators(
     SetMetadata(THROTTLE_OPTIONS_KEY, config),
@@ -33,7 +35,7 @@ export function RateLimit(
  * Useful for internal/admin endpoints
  */
 export function SkipThrottle() {
-  return SetMetadata('skipThrottle', true);
+  return SetMetadata("skipThrottle", true);
 }
 
 /**
@@ -41,7 +43,7 @@ export function SkipThrottle() {
  * 10 requests per minute
  */
 export function AuthRateLimit() {
-  return RateLimit('AUTH');
+  return RateLimit("AUTH");
 }
 
 /**
@@ -49,7 +51,7 @@ export function AuthRateLimit() {
  * 5 attempts per minute
  */
 export function LoginRateLimit() {
-  return RateLimit('LOGIN');
+  return RateLimit("LOGIN");
 }
 
 /**
@@ -57,7 +59,7 @@ export function LoginRateLimit() {
  * 20 requests per minute
  */
 export function SearchRateLimit() {
-  return RateLimit('SEARCH');
+  return RateLimit("SEARCH");
 }
 
 /**
@@ -65,7 +67,7 @@ export function SearchRateLimit() {
  * 10 requests per minute
  */
 export function AIRateLimit() {
-  return RateLimit('AI');
+  return RateLimit("AI");
 }
 
 /**
@@ -73,7 +75,7 @@ export function AIRateLimit() {
  * 5 requests per minute
  */
 export function HeavyOperationRateLimit() {
-  return RateLimit('HEAVY');
+  return RateLimit("HEAVY");
 }
 
 /**

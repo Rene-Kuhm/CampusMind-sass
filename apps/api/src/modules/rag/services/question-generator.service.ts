@@ -1,14 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { LlmService } from './llm.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { LlmService } from "./llm.service";
 
 export interface GeneratedQuestion {
   id: string;
-  type: 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
+  type: "multiple_choice" | "true_false" | "short_answer" | "fill_blank";
   question: string;
   options?: string[];
   correctAnswer: string;
   explanation: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
   topic?: string;
 }
 
@@ -20,8 +20,10 @@ export interface GeneratedFlashcard {
 
 export interface QuestionGenerationOptions {
   count?: number;
-  types?: Array<'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank'>;
-  difficulty?: 'easy' | 'medium' | 'hard' | 'mixed';
+  types?: Array<
+    "multiple_choice" | "true_false" | "short_answer" | "fill_blank"
+  >;
+  difficulty?: "easy" | "medium" | "hard" | "mixed";
   language?: string;
 }
 
@@ -49,9 +51,13 @@ export class QuestionGeneratorService {
     options?: QuestionGenerationOptions,
   ): Promise<GeneratedQuestion[]> {
     const count = options?.count || 5;
-    const types = options?.types || ['multiple_choice', 'true_false', 'short_answer'];
-    const difficulty = options?.difficulty || 'mixed';
-    const language = options?.language || 'es';
+    const types = options?.types || [
+      "multiple_choice",
+      "true_false",
+      "short_answer",
+    ];
+    const difficulty = options?.difficulty || "mixed";
+    const language = options?.language || "es";
 
     const prompt = `
 Eres un experto en educación. Genera ${count} preguntas de estudio basadas en el siguiente contenido académico.
@@ -60,9 +66,9 @@ CONTENIDO:
 ${content}
 
 REQUISITOS:
-- Tipos de preguntas a incluir: ${types.join(', ')}
-- Dificultad: ${difficulty === 'mixed' ? 'mezcla de fácil, media y difícil' : difficulty}
-- Idioma: ${language === 'es' ? 'español' : language}
+- Tipos de preguntas a incluir: ${types.join(", ")}
+- Dificultad: ${difficulty === "mixed" ? "mezcla de fácil, media y difícil" : difficulty}
+- Idioma: ${language === "es" ? "español" : language}
 - Cada pregunta debe tener una explicación de la respuesta correcta
 - Para multiple_choice: incluye 4 opciones (A, B, C, D)
 - Para true_false: la respuesta es "Verdadero" o "Falso"
@@ -92,10 +98,14 @@ Responde SOLO con un JSON válido con esta estructura:
         temperature: 0.7,
       });
 
-      const parsed = this.parseJSONResponse(response.content) as { questions?: GeneratedQuestion[] };
+      const parsed = this.parseJSONResponse(response.content) as {
+        questions?: GeneratedQuestion[];
+      };
       return parsed.questions || [];
     } catch (error) {
-      this.logger.error(`Question generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Question generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       return [];
     }
   }
@@ -108,7 +118,7 @@ Responde SOLO con un JSON válido con esta estructura:
     options?: FlashcardGenerationOptions,
   ): Promise<GeneratedFlashcard[]> {
     const count = options?.count || 10;
-    const language = options?.language || 'es';
+    const language = options?.language || "es";
 
     const prompt = `
 Eres un experto en técnicas de estudio. Genera ${count} flashcards efectivas basadas en el siguiente contenido académico.
@@ -117,7 +127,7 @@ CONTENIDO:
 ${content}
 
 REQUISITOS:
-- Idioma: ${language === 'es' ? 'español' : language}
+- Idioma: ${language === "es" ? "español" : language}
 - Cada flashcard debe tener:
   - front: La pregunta o concepto (breve, claro)
   - back: La respuesta o definición (concisa pero completa)
@@ -144,10 +154,14 @@ Responde SOLO con un JSON válido con esta estructura:
         temperature: 0.6,
       });
 
-      const parsed = this.parseJSONResponse(response.content) as { flashcards?: GeneratedFlashcard[] };
+      const parsed = this.parseJSONResponse(response.content) as {
+        flashcards?: GeneratedFlashcard[];
+      };
       return parsed.flashcards || [];
     } catch (error) {
-      this.logger.error(`Flashcard generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Flashcard generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       return [];
     }
   }
@@ -165,7 +179,7 @@ Responde SOLO con un JSON válido con esta estructura:
     concepts: Array<{ term: string; definition: string }>;
     studyTips: string[];
   }> {
-    const language = options?.language || 'es';
+    const language = options?.language || "es";
 
     const prompt = `
 Eres un tutor académico experto. Genera una guía de estudio completa para el siguiente contenido.
@@ -191,7 +205,7 @@ Responde SOLO con un JSON válido con esta estructura:
   "studyTips": ["Tip 1", "Tip 2", ...]
 }
 
-Idioma: ${language === 'es' ? 'español' : language}
+Idioma: ${language === "es" ? "español" : language}
 `;
 
     try {
@@ -207,17 +221,21 @@ Idioma: ${language === 'es' ? 'español' : language}
         studyTips?: string[];
       }
 
-      const parsed = this.parseJSONResponse(response.content) as StudyGuideResponse;
+      const parsed = this.parseJSONResponse(
+        response.content,
+      ) as StudyGuideResponse;
       return {
-        summary: parsed.summary || '',
+        summary: parsed.summary || "",
         keyPoints: parsed.keyPoints || [],
         concepts: parsed.concepts || [],
         studyTips: parsed.studyTips || [],
       };
     } catch (error) {
-      this.logger.error(`Study guide generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Study guide generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       return {
-        summary: '',
+        summary: "",
         keyPoints: [],
         concepts: [],
         studyTips: [],
@@ -231,15 +249,18 @@ Idioma: ${language === 'es' ? 'español' : language}
   async generatePodcastScript(
     content: string,
     title: string,
-    options?: { style?: 'formal' | 'casual'; duration?: 'short' | 'medium' | 'long' },
+    options?: {
+      style?: "formal" | "casual";
+      duration?: "short" | "medium" | "long";
+    },
   ): Promise<string> {
-    const style = options?.style || 'casual';
-    const duration = options?.duration || 'medium';
+    const style = options?.style || "casual";
+    const duration = options?.duration || "medium";
 
     const durationGuide = {
-      short: '2-3 minutos de lectura',
-      medium: '5-7 minutos de lectura',
-      long: '10-15 minutos de lectura',
+      short: "2-3 minutos de lectura",
+      medium: "5-7 minutos de lectura",
+      long: "10-15 minutos de lectura",
     };
 
     const prompt = `
@@ -251,7 +272,7 @@ CONTENIDO:
 ${content}
 
 REQUISITOS:
-- Estilo: ${style === 'casual' ? 'conversacional y amigable' : 'profesional y académico'}
+- Estilo: ${style === "casual" ? "conversacional y amigable" : "profesional y académico"}
 - Duración: ${durationGuide[duration]}
 - Estructura:
   1. Introducción enganchante
@@ -276,7 +297,9 @@ Responde SOLO con el script, sin formato JSON.
 
       return response.content;
     } catch (error) {
-      this.logger.error(`Podcast script generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Podcast script generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       return `Error al generar el script. Por favor intenta de nuevo.`;
     }
   }
@@ -309,7 +332,7 @@ Responde SOLO con el script, sin formato JSON.
         }
       }
 
-      this.logger.warn('Could not parse JSON from LLM response');
+      this.logger.warn("Could not parse JSON from LLM response");
       return {};
     }
   }

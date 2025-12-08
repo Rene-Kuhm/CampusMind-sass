@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { CreateResourceDto, ResourceType, ResourceLevel } from './dto/create-resource.dto';
-import { UpdateResourceDto } from './dto/update-resource.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
+import {
+  CreateResourceDto,
+  ResourceType,
+  ResourceLevel,
+} from "./dto/create-resource.dto";
+import { UpdateResourceDto } from "./dto/update-resource.dto";
 
 interface ResourceFilters {
   type?: ResourceType;
@@ -41,14 +45,16 @@ export class ResourcesService {
         ...(filters?.isOpenAccess !== undefined && {
           isOpenAccess: filters.isOpenAccess,
         }),
-        ...(filters?.isIndexed !== undefined && { isIndexed: filters.isIndexed }),
+        ...(filters?.isIndexed !== undefined && {
+          isIndexed: filters.isIndexed,
+        }),
       },
       include: {
         _count: {
           select: { chunks: true, notes: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -58,7 +64,7 @@ export class ResourcesService {
       include: {
         subject: true,
         notes: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
         _count: {
           select: { chunks: true },
@@ -67,7 +73,7 @@ export class ResourcesService {
     });
 
     if (!resource) {
-      throw new NotFoundException('Recurso no encontrado');
+      throw new NotFoundException("Recurso no encontrado");
     }
 
     // Verify ownership through subject
@@ -113,12 +119,12 @@ export class ResourcesService {
     });
 
     if (!note) {
-      throw new NotFoundException('Nota no encontrada');
+      throw new NotFoundException("Nota no encontrada");
     }
 
     // Verify ownership
     if (note.resource.subject.userId !== userId) {
-      throw new NotFoundException('Nota no encontrada');
+      throw new NotFoundException("Nota no encontrada");
     }
 
     return this.prisma.resourceNote.delete({
@@ -132,7 +138,7 @@ export class ResourcesService {
     });
 
     if (!subject) {
-      throw new NotFoundException('Materia no encontrada');
+      throw new NotFoundException("Materia no encontrada");
     }
 
     return subject;

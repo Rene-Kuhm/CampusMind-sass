@@ -1,14 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 export type PushNotificationType =
-  | 'study-reminder'
-  | 'streak-warning'
-  | 'achievement'
-  | 'quiz-ready'
-  | 'new-comment'
-  | 'calendar-event'
-  | 'subscription';
+  | "study-reminder"
+  | "streak-warning"
+  | "achievement"
+  | "quiz-ready"
+  | "new-comment"
+  | "calendar-event"
+  | "subscription";
 
 export interface PushSubscription {
   endpoint: string;
@@ -61,14 +61,18 @@ export class PushNotificationService {
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
-      publicKey: configService.get<string>('VAPID_PUBLIC_KEY') || '',
-      privateKey: configService.get<string>('VAPID_PRIVATE_KEY') || '',
-      subject: configService.get<string>('VAPID_SUBJECT') || 'mailto:admin@campusmind.com',
+      publicKey: configService.get<string>("VAPID_PUBLIC_KEY") || "",
+      privateKey: configService.get<string>("VAPID_PRIVATE_KEY") || "",
+      subject:
+        configService.get<string>("VAPID_SUBJECT") ||
+        "mailto:admin@campusmind.com",
     };
     this.enabled = Boolean(this.config.publicKey && this.config.privateKey);
 
     if (!this.enabled) {
-      this.logger.warn('Push notifications disabled - VAPID keys not configured');
+      this.logger.warn(
+        "Push notifications disabled - VAPID keys not configured",
+      );
     }
   }
 
@@ -89,12 +93,17 @@ export class PushNotificationService {
   /**
    * Subscribe a user to push notifications
    */
-  async subscribe(userId: string, subscription: PushSubscription): Promise<boolean> {
+  async subscribe(
+    userId: string,
+    subscription: PushSubscription,
+  ): Promise<boolean> {
     try {
       const userSubscriptions = subscriptions.get(userId) || [];
 
       // Check if already subscribed with same endpoint
-      const exists = userSubscriptions.some((s) => s.endpoint === subscription.endpoint);
+      const exists = userSubscriptions.some(
+        (s) => s.endpoint === subscription.endpoint,
+      );
       if (!exists) {
         userSubscriptions.push(subscription);
         subscriptions.set(userId, userSubscriptions);
@@ -115,7 +124,9 @@ export class PushNotificationService {
     try {
       if (endpoint) {
         const userSubscriptions = subscriptions.get(userId) || [];
-        const filtered = userSubscriptions.filter((s) => s.endpoint !== endpoint);
+        const filtered = userSubscriptions.filter(
+          (s) => s.endpoint !== endpoint,
+        );
         subscriptions.set(userId, filtered);
       } else {
         subscriptions.delete(userId);
@@ -140,9 +151,11 @@ export class PushNotificationService {
   /**
    * Send push notification to user
    */
-  async send(options: SendPushOptions): Promise<{ success: boolean; sent: number; failed: number }> {
+  async send(
+    options: SendPushOptions,
+  ): Promise<{ success: boolean; sent: number; failed: number }> {
     if (!this.enabled) {
-      this.logger.warn('Push notifications disabled');
+      this.logger.warn("Push notifications disabled");
       return { success: false, sent: 0, failed: 0 };
     }
 
@@ -157,10 +170,17 @@ export class PushNotificationService {
 
     for (const subscription of userSubscriptions) {
       try {
-        await this.sendToSubscription(subscription, options.payload, options.ttl);
+        await this.sendToSubscription(
+          subscription,
+          options.payload,
+          options.ttl,
+        );
         sent++;
       } catch (error) {
-        this.logger.error(`Failed to send push to ${subscription.endpoint}:`, error);
+        this.logger.error(
+          `Failed to send push to ${subscription.endpoint}:`,
+          error,
+        );
         failed++;
 
         // Remove invalid subscription
@@ -179,7 +199,7 @@ export class PushNotificationService {
   async sendToMany(
     userIds: string[],
     type: PushNotificationType,
-    payload: PushPayload
+    payload: PushPayload,
   ): Promise<{ total: number; sent: number; failed: number }> {
     let totalSent = 0;
     let totalFailed = 0;
@@ -204,24 +224,24 @@ export class PushNotificationService {
       subjectName: string;
       pendingCards: number;
       studyUrl: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       userId,
-      type: 'study-reminder',
+      type: "study-reminder",
       payload: {
-        title: '¡Hora de estudiar!',
+        title: "¡Hora de estudiar!",
         body: `Tienes ${data.pendingCards} tarjetas pendientes en ${data.subjectName}`,
-        icon: '/icons/study-reminder.png',
-        badge: '/icons/badge.png',
-        tag: 'study-reminder',
+        icon: "/icons/study-reminder.png",
+        badge: "/icons/badge.png",
+        tag: "study-reminder",
         data: {
-          type: 'study-reminder',
+          type: "study-reminder",
           url: data.studyUrl,
         },
         actions: [
-          { action: 'study', title: 'Estudiar ahora' },
-          { action: 'snooze', title: 'Recordar después' },
+          { action: "study", title: "Estudiar ahora" },
+          { action: "snooze", title: "Recordar después" },
         ],
         vibrate: [100, 50, 100],
       },
@@ -238,25 +258,23 @@ export class PushNotificationService {
       currentStreak: number;
       hoursRemaining: number;
       studyUrl: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       userId,
-      type: 'streak-warning',
+      type: "streak-warning",
       payload: {
-        title: '¡Tu racha está en riesgo!',
+        title: "¡Tu racha está en riesgo!",
         body: `Solo te quedan ${data.hoursRemaining}h para mantener tu racha de ${data.currentStreak} días`,
-        icon: '/icons/streak-warning.png',
-        badge: '/icons/badge.png',
-        tag: 'streak-warning',
+        icon: "/icons/streak-warning.png",
+        badge: "/icons/badge.png",
+        tag: "streak-warning",
         requireInteraction: true,
         data: {
-          type: 'streak-warning',
+          type: "streak-warning",
           url: data.studyUrl,
         },
-        actions: [
-          { action: 'study', title: 'Estudiar ahora' },
-        ],
+        actions: [{ action: "study", title: "Estudiar ahora" }],
         vibrate: [200, 100, 200, 100, 200],
       },
     });
@@ -273,19 +291,19 @@ export class PushNotificationService {
       achievementIcon: string;
       xpEarned: number;
       achievementsUrl: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       userId,
-      type: 'achievement',
+      type: "achievement",
       payload: {
-        title: '¡Logro desbloqueado!',
+        title: "¡Logro desbloqueado!",
         body: `${data.achievementName} (+${data.xpEarned} XP)`,
-        icon: data.achievementIcon || '/icons/achievement.png',
-        badge: '/icons/badge.png',
-        tag: 'achievement',
+        icon: data.achievementIcon || "/icons/achievement.png",
+        badge: "/icons/badge.png",
+        tag: "achievement",
         data: {
-          type: 'achievement',
+          type: "achievement",
           url: data.achievementsUrl,
         },
         vibrate: [100, 50, 100, 50, 100],
@@ -304,24 +322,24 @@ export class PushNotificationService {
       resourceName: string;
       commentPreview: string;
       resourceUrl: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       userId,
-      type: 'new-comment',
+      type: "new-comment",
       payload: {
         title: `${data.commenterName} comentó`,
         body: `En "${data.resourceName}": ${data.commentPreview.substring(0, 50)}...`,
-        icon: '/icons/comment.png',
-        badge: '/icons/badge.png',
+        icon: "/icons/comment.png",
+        badge: "/icons/badge.png",
         tag: `comment-${Date.now()}`,
         data: {
-          type: 'new-comment',
+          type: "new-comment",
           url: data.resourceUrl,
         },
         actions: [
-          { action: 'view', title: 'Ver comentario' },
-          { action: 'reply', title: 'Responder' },
+          { action: "view", title: "Ver comentario" },
+          { action: "reply", title: "Responder" },
         ],
       },
     });
@@ -338,25 +356,25 @@ export class PushNotificationService {
       eventTime: string;
       minutesBefore: number;
       calendarUrl: string;
-    }
+    },
   ): Promise<boolean> {
     const result = await this.send({
       userId,
-      type: 'calendar-event',
+      type: "calendar-event",
       payload: {
-        title: 'Recordatorio de evento',
+        title: "Recordatorio de evento",
         body: `${data.eventTitle} - en ${data.minutesBefore} minutos`,
-        icon: '/icons/calendar.png',
-        badge: '/icons/badge.png',
-        tag: 'calendar-event',
+        icon: "/icons/calendar.png",
+        badge: "/icons/badge.png",
+        tag: "calendar-event",
         requireInteraction: true,
         data: {
-          type: 'calendar-event',
+          type: "calendar-event",
           url: data.calendarUrl,
         },
         actions: [
-          { action: 'view', title: 'Ver evento' },
-          { action: 'snooze', title: 'Recordar en 5 min' },
+          { action: "view", title: "Ver evento" },
+          { action: "snooze", title: "Recordar en 5 min" },
         ],
         vibrate: [100, 50, 100],
       },
@@ -372,7 +390,7 @@ export class PushNotificationService {
   private async sendToSubscription(
     subscription: PushSubscription,
     payload: PushPayload,
-    ttl: number = 60 * 60 * 24 // 24 hours default
+    ttl: number = 60 * 60 * 24, // 24 hours default
   ): Promise<void> {
     // In production, use web-push library:
     // await webpush.sendNotification(subscription, JSON.stringify(payload), {
@@ -385,7 +403,9 @@ export class PushNotificationService {
     // });
 
     // Mock implementation for development
-    this.logger.log(`[Push Mock] Sending to ${subscription.endpoint.substring(0, 50)}...`);
+    this.logger.log(
+      `[Push Mock] Sending to ${subscription.endpoint.substring(0, 50)}...`,
+    );
     this.logger.log(`[Push Mock] Payload: ${JSON.stringify(payload)}`);
   }
 
@@ -396,11 +416,11 @@ export class PushNotificationService {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
       return (
-        message.includes('expired') ||
-        message.includes('unsubscribed') ||
-        message.includes('gone') ||
-        message.includes('404') ||
-        message.includes('410')
+        message.includes("expired") ||
+        message.includes("unsubscribed") ||
+        message.includes("gone") ||
+        message.includes("404") ||
+        message.includes("410")
       );
     }
     return false;

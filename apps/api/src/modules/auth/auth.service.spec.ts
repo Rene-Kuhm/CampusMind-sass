@@ -1,38 +1,38 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
-import { UsersService } from './users.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { JwtService } from "@nestjs/jwt";
+import { ConflictException, UnauthorizedException } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { AuthService } from "./auth.service";
+import { UsersService } from "./users.service";
 
 // Mock bcrypt
-jest.mock('bcrypt', () => ({
+jest.mock("bcrypt", () => ({
   hash: jest.fn(),
   compare: jest.fn(),
 }));
 
-describe('AuthService', () => {
+describe("AuthService", () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
 
   const mockUser = {
-    id: 'user-123',
-    email: 'test@example.com',
-    password: 'hashedPassword123',
+    id: "user-123",
+    email: "test@example.com",
+    password: "hashedPassword123",
     createdAt: new Date(),
     updatedAt: new Date(),
     profile: {
-      id: 'profile-123',
-      userId: 'user-123',
-      firstName: 'Juan',
-      lastName: 'Pérez',
-      career: 'Ingeniería',
+      id: "profile-123",
+      userId: "user-123",
+      firstName: "Juan",
+      lastName: "Pérez",
+      career: "Ingeniería",
       year: 2,
-      university: 'UBA',
-      studyStyle: 'BALANCED' as const,
-      contentDepth: 'INTERMEDIATE' as const,
-      preferredLang: 'es',
+      university: "UBA",
+      studyStyle: "BALANCED" as const,
+      contentDepth: "INTERMEDIATE" as const,
+      preferredLang: "es",
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -68,20 +68,20 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  describe('register', () => {
+  describe("register", () => {
     const registerDto = {
-      email: 'nuevo@example.com',
-      password: 'Password123',
-      firstName: 'María',
-      lastName: 'García',
-      career: 'Medicina',
+      email: "nuevo@example.com",
+      password: "Password123",
+      firstName: "María",
+      lastName: "García",
+      career: "Medicina",
       year: 1,
-      university: 'UNC',
+      university: "UNC",
     };
 
-    it('should register a new user successfully', async () => {
+    it("should register a new user successfully", async () => {
       usersService.findByEmail.mockResolvedValue(null);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashedPassword");
       usersService.create.mockResolvedValue({
         ...mockUser,
         email: registerDto.email,
@@ -91,7 +91,7 @@ describe('AuthService', () => {
           lastName: registerDto.lastName,
         },
       });
-      jwtService.sign.mockReturnValue('jwt-token');
+      jwtService.sign.mockReturnValue("jwt-token");
 
       const result = await service.register(registerDto);
 
@@ -99,11 +99,11 @@ describe('AuthService', () => {
       expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 10);
       expect(usersService.create).toHaveBeenCalled();
       expect(jwtService.sign).toHaveBeenCalled();
-      expect(result).toHaveProperty('accessToken', 'jwt-token');
+      expect(result).toHaveProperty("accessToken", "jwt-token");
       expect(result.user.email).toBe(registerDto.email);
     });
 
-    it('should throw ConflictException if email already exists', async () => {
+    it("should throw ConflictException if email already exists", async () => {
       usersService.findByEmail.mockResolvedValue(mockUser);
 
       await expect(service.register(registerDto)).rejects.toThrow(
@@ -113,16 +113,16 @@ describe('AuthService', () => {
     });
   });
 
-  describe('login', () => {
+  describe("login", () => {
     const loginDto = {
-      email: 'test@example.com',
-      password: 'Password123',
+      email: "test@example.com",
+      password: "Password123",
     };
 
-    it('should login successfully with valid credentials', async () => {
+    it("should login successfully with valid credentials", async () => {
       usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      jwtService.sign.mockReturnValue('jwt-token');
+      jwtService.sign.mockReturnValue("jwt-token");
 
       const result = await service.login(loginDto);
 
@@ -131,11 +131,11 @@ describe('AuthService', () => {
         loginDto.password,
         mockUser.password,
       );
-      expect(result).toHaveProperty('accessToken', 'jwt-token');
+      expect(result).toHaveProperty("accessToken", "jwt-token");
       expect(result.user.email).toBe(loginDto.email);
     });
 
-    it('should throw UnauthorizedException if user not found', async () => {
+    it("should throw UnauthorizedException if user not found", async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -143,7 +143,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should throw UnauthorizedException if password is invalid', async () => {
+    it("should throw UnauthorizedException if password is invalid", async () => {
       usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
@@ -153,23 +153,23 @@ describe('AuthService', () => {
     });
   });
 
-  describe('validateUser', () => {
-    it('should return user if found', async () => {
+  describe("validateUser", () => {
+    it("should return user if found", async () => {
       usersService.findById.mockResolvedValue(mockUser);
 
       const result = await service.validateUser({
-        sub: 'user-123',
-        email: 'test@example.com',
+        sub: "user-123",
+        email: "test@example.com",
       });
 
       expect(result).toEqual(mockUser);
     });
 
-    it('should throw UnauthorizedException if user not found', async () => {
+    it("should throw UnauthorizedException if user not found", async () => {
       usersService.findById.mockResolvedValue(null);
 
       await expect(
-        service.validateUser({ sub: 'invalid', email: 'test@example.com' }),
+        service.validateUser({ sub: "invalid", email: "test@example.com" }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

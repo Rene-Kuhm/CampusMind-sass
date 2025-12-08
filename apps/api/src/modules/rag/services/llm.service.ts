@@ -1,15 +1,21 @@
-import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  forwardRef,
+  Optional,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HttpService } from "@nestjs/axios";
 import {
   LlmOptions,
   LlmResponse,
   LlmProviderType,
   ILlmProvider,
   LLM_PROVIDERS,
-} from '../interfaces/rag.interface';
-import { LlmProviderFactory } from '../providers';
-import { ModelDiscoveryService } from './model-discovery.service';
+} from "../interfaces/rag.interface";
+import { LlmProviderFactory } from "../providers";
+import { ModelDiscoveryService } from "./model-discovery.service";
 
 /**
  * Servicio de LLM con soporte multi-proveedor
@@ -26,17 +32,23 @@ export class LlmService {
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
-    @Optional() @Inject(forwardRef(() => ModelDiscoveryService))
+    @Optional()
+    @Inject(forwardRef(() => ModelDiscoveryService))
     private readonly modelDiscovery?: ModelDiscoveryService,
   ) {
-    this.providerType = this.config.get<LlmProviderType>('LLM_PROVIDER', 'openai');
+    this.providerType = this.config.get<LlmProviderType>(
+      "LLM_PROVIDER",
+      "openai",
+    );
     this.defaultProvider = LlmProviderFactory.createProvider(
       this.http,
       this.config,
       this.providerType,
     );
 
-    this.logger.log(`LLM Service initialized with provider: ${this.providerType}`);
+    this.logger.log(
+      `LLM Service initialized with provider: ${this.providerType}`,
+    );
     this.logAvailableProviders();
   }
 
@@ -78,7 +90,9 @@ export class LlmService {
     // Intentar usar modelo descubierto automáticamente
     if (this.modelDiscovery) {
       const bestModel = this.modelDiscovery.getBestFreeModel();
-      this.logger.debug(`Using auto-discovered best free model: ${bestModel.provider}/${bestModel.model}`);
+      this.logger.debug(
+        `Using auto-discovered best free model: ${bestModel.provider}/${bestModel.model}`,
+      );
 
       const provider = LlmProviderFactory.createProvider(
         this.http,
@@ -97,7 +111,7 @@ export class LlmService {
     );
 
     if (!freeProvider) {
-      this.logger.warn('No free provider available, falling back to default');
+      this.logger.warn("No free provider available, falling back to default");
       return this.generateCompletion(prompt, options);
     }
 
@@ -111,8 +125,8 @@ export class LlmService {
     query: string,
     context: string[],
     options?: {
-      style?: 'formal' | 'practical' | 'balanced';
-      depth?: 'basic' | 'intermediate' | 'advanced';
+      style?: "formal" | "practical" | "balanced";
+      depth?: "basic" | "intermediate" | "advanced";
       language?: string;
       provider?: LlmProviderType;
       useFreeProvider?: boolean;
@@ -121,7 +135,7 @@ export class LlmService {
     const systemPrompt = this.buildSystemPrompt(options);
     const contextText = context
       .map((c, i) => `[Fuente ${i + 1}]:\n${c}`)
-      .join('\n\n---\n\n');
+      .join("\n\n---\n\n");
 
     const prompt = `
 Basándote ÚNICAMENTE en el siguiente contexto académico, responde la pregunta del estudiante.
@@ -166,8 +180,8 @@ RESPUESTA:`;
   async generateGeneralAnswer(
     query: string,
     options?: {
-      style?: 'formal' | 'practical' | 'balanced';
-      depth?: 'basic' | 'intermediate' | 'advanced';
+      style?: "formal" | "practical" | "balanced";
+      depth?: "basic" | "intermediate" | "advanced";
       language?: string;
       provider?: LlmProviderType;
       useFreeProvider?: boolean;
@@ -211,14 +225,14 @@ RESPUESTA:`;
   async generateHarvardSummary(
     content: string,
     options?: {
-      depth?: 'basic' | 'intermediate' | 'advanced';
+      depth?: "basic" | "intermediate" | "advanced";
       language?: string;
       provider?: LlmProviderType;
       useFreeProvider?: boolean;
     },
   ): Promise<LlmResponse> {
-    const depth = options?.depth || 'intermediate';
-    const language = options?.language || 'es';
+    const depth = options?.depth || "intermediate";
+    const language = options?.language || "es";
 
     const prompt = `
 Genera un resumen académico estilo Harvard del siguiente contenido.
@@ -288,7 +302,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
 
     // Fallback to static config
     return {
-      provider: 'groq' as LlmProviderType,
+      provider: "groq" as LlmProviderType,
       model: LLM_PROVIDERS.groq.defaultModel,
       providerInfo: LLM_PROVIDERS.groq,
       isAutoDiscovered: false,
@@ -311,7 +325,7 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
   async refreshDiscoveredModels(): Promise<void> {
     if (this.modelDiscovery) {
       await this.modelDiscovery.refreshModels();
-      this.logger.log('Model discovery refreshed');
+      this.logger.log("Model discovery refreshed");
     }
   }
 
@@ -343,48 +357,48 @@ Responde SOLO con el JSON válido, sin texto adicional.`;
     const freeProviders = configured.filter((p) => p.isFree);
 
     this.logger.log(
-      `Available providers: ${configured.map((p) => p.type).join(', ')}`,
+      `Available providers: ${configured.map((p) => p.type).join(", ")}`,
     );
 
     if (freeProviders.length > 0) {
       this.logger.log(
-        `Free providers available: ${freeProviders.map((p) => p.type).join(', ')}`,
+        `Free providers available: ${freeProviders.map((p) => p.type).join(", ")}`,
       );
     }
   }
 
   private buildGeneralSystemPrompt(options?: {
-    style?: 'formal' | 'practical' | 'balanced';
-    depth?: 'basic' | 'intermediate' | 'advanced';
+    style?: "formal" | "practical" | "balanced";
+    depth?: "basic" | "intermediate" | "advanced";
     language?: string;
   }): string {
-    const style = options?.style || 'balanced';
-    const depth = options?.depth || 'intermediate';
-    const language = options?.language || 'es';
+    const style = options?.style || "balanced";
+    const depth = options?.depth || "intermediate";
+    const language = options?.language || "es";
 
     const styleGuide = {
       formal:
-        'Usa un tono académico formal, con terminología técnica precisa y estructura rigurosa.',
+        "Usa un tono académico formal, con terminología técnica precisa y estructura rigurosa.",
       practical:
-        'Enfócate en aplicaciones prácticas, usa ejemplos concretos y lenguaje accesible.',
+        "Enfócate en aplicaciones prácticas, usa ejemplos concretos y lenguaje accesible.",
       balanced:
-        'Combina rigor académico con claridad práctica, equilibrando teoría y aplicación.',
+        "Combina rigor académico con claridad práctica, equilibrando teoría y aplicación.",
     };
 
     const depthGuide = {
       basic:
-        'Explica los conceptos de forma introductoria, asumiendo poco conocimiento previo.',
+        "Explica los conceptos de forma introductoria, asumiendo poco conocimiento previo.",
       intermediate:
-        'Asume conocimientos básicos y profundiza en detalles importantes.',
+        "Asume conocimientos básicos y profundiza en detalles importantes.",
       advanced:
-        'Profundiza en aspectos técnicos avanzados, asumiendo dominio del tema.',
+        "Profundiza en aspectos técnicos avanzados, asumiendo dominio del tema.",
     };
 
     return `Eres CampusMind, un copiloto académico inteligente que ayuda a estudiantes universitarios.
 
 ESTILO: ${styleGuide[style]}
 PROFUNDIDAD: ${depthGuide[depth]}
-IDIOMA: Responde en ${language === 'es' ? 'español' : language}
+IDIOMA: Responde en ${language === "es" ? "español" : language}
 
 CAPACIDADES:
 - Puedes responder preguntas de cualquier área académica
@@ -400,37 +414,37 @@ PRINCIPIOS:
   }
 
   private buildSystemPrompt(options?: {
-    style?: 'formal' | 'practical' | 'balanced';
-    depth?: 'basic' | 'intermediate' | 'advanced';
+    style?: "formal" | "practical" | "balanced";
+    depth?: "basic" | "intermediate" | "advanced";
     language?: string;
   }): string {
-    const style = options?.style || 'balanced';
-    const depth = options?.depth || 'intermediate';
-    const language = options?.language || 'es';
+    const style = options?.style || "balanced";
+    const depth = options?.depth || "intermediate";
+    const language = options?.language || "es";
 
     const styleGuide = {
       formal:
-        'Usa un tono académico formal, con terminología técnica precisa y estructura rigurosa.',
+        "Usa un tono académico formal, con terminología técnica precisa y estructura rigurosa.",
       practical:
-        'Enfócate en aplicaciones prácticas, usa ejemplos concretos y lenguaje accesible.',
+        "Enfócate en aplicaciones prácticas, usa ejemplos concretos y lenguaje accesible.",
       balanced:
-        'Combina rigor académico con claridad práctica, equilibrando teoría y aplicación.',
+        "Combina rigor académico con claridad práctica, equilibrando teoría y aplicación.",
     };
 
     const depthGuide = {
       basic:
-        'Explica los conceptos de forma introductoria, asumiendo poco conocimiento previo.',
+        "Explica los conceptos de forma introductoria, asumiendo poco conocimiento previo.",
       intermediate:
-        'Asume conocimientos básicos y profundiza en detalles importantes.',
+        "Asume conocimientos básicos y profundiza en detalles importantes.",
       advanced:
-        'Profundiza en aspectos técnicos avanzados, asumiendo dominio del tema.',
+        "Profundiza en aspectos técnicos avanzados, asumiendo dominio del tema.",
     };
 
     return `Eres CampusMind, un copiloto académico experto que ayuda a estudiantes universitarios.
 
 ESTILO: ${styleGuide[style]}
 PROFUNDIDAD: ${depthGuide[depth]}
-IDIOMA: Responde en ${language === 'es' ? 'español' : language}
+IDIOMA: Responde en ${language === "es" ? "español" : language}
 
 PRINCIPIOS:
 - Siempre cita tus fuentes cuando uses información del contexto

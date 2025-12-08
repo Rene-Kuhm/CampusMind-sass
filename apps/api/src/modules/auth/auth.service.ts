@@ -3,15 +3,15 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { ConfigService } from '@nestjs/config';
-import { UsersService } from './users.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { ConfigService } from "@nestjs/config";
+import { UsersService } from "./users.service";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { JwtPayload } from "./interfaces/jwt-payload.interface";
 
 @Injectable()
 export class AuthService {
@@ -28,7 +28,7 @@ export class AuthService {
     // Check if user exists
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
-      throw new ConflictException('El email ya está registrado');
+      throw new ConflictException("El email ya está registrado");
     }
 
     // Hash password
@@ -65,12 +65,12 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException("Credenciales inválidas");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException("Credenciales inválidas");
     }
 
     const token = this.generateToken(user.id, user.email);
@@ -88,7 +88,7 @@ export class AuthService {
   async validateUser(payload: JwtPayload) {
     const user = await this.usersService.findById(payload.sub);
     if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
+      throw new UnauthorizedException("Usuario no encontrado");
     }
     return user;
   }
@@ -99,23 +99,25 @@ export class AuthService {
   }
 
   private generateRefreshToken(userId: string): string {
-    const payload = { sub: userId, type: 'refresh' };
+    const payload = { sub: userId, type: "refresh" };
     return this.jwtService.sign(payload, {
-      expiresIn: '7d', // Refresh tokens last longer
+      expiresIn: "7d", // Refresh tokens last longer
     });
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     try {
-      const payload = this.jwtService.verify(refreshTokenDto.refreshToken) as any;
-      
-      if (payload.type !== 'refresh') {
-        throw new UnauthorizedException('Token de refresh inválido');
+      const payload = this.jwtService.verify(
+        refreshTokenDto.refreshToken,
+      ) as any;
+
+      if (payload.type !== "refresh") {
+        throw new UnauthorizedException("Token de refresh inválido");
       }
 
       const user = await this.usersService.findById(payload.sub);
       if (!user) {
-        throw new UnauthorizedException('Usuario no encontrado');
+        throw new UnauthorizedException("Usuario no encontrado");
       }
 
       const accessToken = this.generateToken(user.id, user.email);
@@ -131,7 +133,7 @@ export class AuthService {
         },
       };
     } catch (error) {
-      throw new UnauthorizedException('Token de refresh inválido o expirado');
+      throw new UnauthorizedException("Token de refresh inválido o expirado");
     }
   }
 }

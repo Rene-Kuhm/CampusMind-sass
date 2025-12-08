@@ -4,13 +4,14 @@ import {
   ExecutionContext,
   ForbiddenException,
   SetMetadata,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { UsageType } from '@prisma/client';
-import { SubscriptionService } from '../services/subscription.service';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { UsageType } from "@prisma/client";
+import { SubscriptionService } from "../services/subscription.service";
 
-export const PLAN_LIMIT_KEY = 'planLimit';
-export const PlanLimit = (usageType: UsageType) => SetMetadata(PLAN_LIMIT_KEY, usageType);
+export const PLAN_LIMIT_KEY = "planLimit";
+export const PlanLimit = (usageType: UsageType) =>
+  SetMetadata(PLAN_LIMIT_KEY, usageType);
 
 @Injectable()
 export class PlanLimitGuard implements CanActivate {
@@ -20,10 +21,10 @@ export class PlanLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const usageType = this.reflector.getAllAndOverride<UsageType>(PLAN_LIMIT_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const usageType = this.reflector.getAllAndOverride<UsageType>(
+      PLAN_LIMIT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!usageType) {
       return true;
@@ -36,14 +37,17 @@ export class PlanLimitGuard implements CanActivate {
       return true; // Let auth guard handle this
     }
 
-    const withinLimit = await this.subscriptionService.checkLimit(user.id, usageType);
+    const withinLimit = await this.subscriptionService.checkLimit(
+      user.id,
+      usageType,
+    );
 
     if (!withinLimit) {
       throw new ForbiddenException({
-        message: 'Has alcanzado el límite de tu plan',
-        code: 'PLAN_LIMIT_EXCEEDED',
+        message: "Has alcanzado el límite de tu plan",
+        code: "PLAN_LIMIT_EXCEEDED",
         usageType,
-        upgradeUrl: '/app/settings/billing',
+        upgradeUrl: "/app/settings/billing",
       });
     }
 

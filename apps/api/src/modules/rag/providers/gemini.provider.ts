@@ -1,6 +1,10 @@
-import { HttpService } from '@nestjs/axios';
-import { BaseLlmProvider } from './base.provider';
-import { LlmOptions, LlmResponse, LlmProviderType } from '../interfaces/rag.interface';
+import { HttpService } from "@nestjs/axios";
+import { BaseLlmProvider } from "./base.provider";
+import {
+  LlmOptions,
+  LlmResponse,
+  LlmProviderType,
+} from "../interfaces/rag.interface";
 
 interface GeminiResponse {
   candidates: Array<{
@@ -25,13 +29,21 @@ interface GeminiResponse {
  * Free limits: 15 RPM, 1M tokens/day
  */
 export class GeminiProvider extends BaseLlmProvider {
-  readonly providerType: LlmProviderType = 'gemini';
+  readonly providerType: LlmProviderType = "gemini";
 
   constructor(http: HttpService, apiKey: string, model: string) {
-    super(http, apiKey, model, 'https://generativelanguage.googleapis.com/v1beta');
+    super(
+      http,
+      apiKey,
+      model,
+      "https://generativelanguage.googleapis.com/v1beta",
+    );
   }
 
-  async generateCompletion(prompt: string, options?: LlmOptions): Promise<LlmResponse> {
+  async generateCompletion(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<LlmResponse> {
     const modelToUse = options?.model || this.model;
 
     // Gemini uses a different format - combine system prompt into user prompt
@@ -54,17 +66,17 @@ export class GeminiProvider extends BaseLlmProvider {
         },
       },
       {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     );
 
-    const content = response.candidates[0]?.content?.parts[0]?.text || '';
+    const content = response.candidates[0]?.content?.parts[0]?.text || "";
     const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
     return {
       content,
       tokensUsed,
-      finishReason: response.candidates[0]?.finishReason || 'stop',
+      finishReason: response.candidates[0]?.finishReason || "stop",
       provider: this.providerType,
       model: modelToUse,
     };

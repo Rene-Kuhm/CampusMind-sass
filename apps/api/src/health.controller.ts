@@ -1,15 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 
 interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   uptime: number;
   version: string;
   service: string;
   checks: {
     [key: string]: {
-      status: 'up' | 'down';
+      status: "up" | "down";
       responseTime?: number;
       message?: string;
     };
@@ -24,8 +24,8 @@ interface ReadinessStatus {
   };
 }
 
-@ApiTags('health')
-@Controller('health')
+@ApiTags("health")
+@Controller("health")
 export class HealthController {
   private readonly startTime = Date.now();
 
@@ -33,10 +33,10 @@ export class HealthController {
    * Main health check endpoint
    */
   @Get()
-  @ApiOperation({ summary: 'Comprehensive health check endpoint' })
-  @ApiResponse({ status: 200, description: 'API health status' })
+  @ApiOperation({ summary: "Comprehensive health check endpoint" })
+  @ApiResponse({ status: 200, description: "API health status" })
   check(): HealthStatus {
-    const checks: HealthStatus['checks'] = {};
+    const checks: HealthStatus["checks"] = {};
 
     // Memory check
     const memoryUsage = process.memoryUsage();
@@ -44,36 +44,36 @@ export class HealthController {
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
     const memoryUsagePercent = (heapUsedMB / heapTotalMB) * 100;
 
-    checks['memory'] = {
-      status: memoryUsagePercent < 90 ? 'up' : 'down',
+    checks["memory"] = {
+      status: memoryUsagePercent < 90 ? "up" : "down",
       message: `${heapUsedMB.toFixed(2)}MB / ${heapTotalMB.toFixed(2)}MB (${memoryUsagePercent.toFixed(1)}%)`,
     };
 
     // Event loop check
     const eventLoopLag = this.measureEventLoopLag();
-    checks['eventLoop'] = {
-      status: eventLoopLag < 100 ? 'up' : 'down',
+    checks["eventLoop"] = {
+      status: eventLoopLag < 100 ? "up" : "down",
       responseTime: eventLoopLag,
       message: `${eventLoopLag.toFixed(2)}ms lag`,
     };
 
     // Determine overall status
-    const allChecksUp = Object.values(checks).every(c => c.status === 'up');
-    const someChecksUp = Object.values(checks).some(c => c.status === 'up');
+    const allChecksUp = Object.values(checks).every((c) => c.status === "up");
+    const someChecksUp = Object.values(checks).some((c) => c.status === "up");
 
-    let status: HealthStatus['status'] = 'healthy';
+    let status: HealthStatus["status"] = "healthy";
     if (!allChecksUp && someChecksUp) {
-      status = 'degraded';
+      status = "degraded";
     } else if (!someChecksUp) {
-      status = 'unhealthy';
+      status = "unhealthy";
     }
 
     return {
       status,
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - this.startTime) / 1000),
-      version: process.env.npm_package_version || '0.1.0',
-      service: 'campusmind-api',
+      version: process.env.npm_package_version || "0.1.0",
+      service: "campusmind-api",
       checks,
     };
   }
@@ -81,12 +81,12 @@ export class HealthController {
   /**
    * Liveness probe - Simple alive check
    */
-  @Get('live')
-  @ApiOperation({ summary: 'Liveness probe for Kubernetes' })
-  @ApiResponse({ status: 200, description: 'API is alive' })
+  @Get("live")
+  @ApiOperation({ summary: "Liveness probe for Kubernetes" })
+  @ApiResponse({ status: 200, description: "API is alive" })
   getLiveness(): { status: string; timestamp: string } {
     return {
-      status: 'alive',
+      status: "alive",
       timestamp: new Date().toISOString(),
     };
   }
@@ -94,24 +94,24 @@ export class HealthController {
   /**
    * Readiness probe - Check if app is ready to receive traffic
    */
-  @Get('ready')
-  @ApiOperation({ summary: 'Readiness probe for load balancers' })
-  @ApiResponse({ status: 200, description: 'API readiness status' })
+  @Get("ready")
+  @ApiOperation({ summary: "Readiness probe for load balancers" })
+  @ApiResponse({ status: 200, description: "API readiness status" })
   getReadiness(): ReadinessStatus {
-    const checks: ReadinessStatus['checks'] = {};
+    const checks: ReadinessStatus["checks"] = {};
 
     // API check
-    checks['api'] = true;
+    checks["api"] = true;
 
     // Memory check (must have enough memory)
     const memoryUsage = process.memoryUsage();
     const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
-    checks['memory'] = (heapUsedMB / heapTotalMB) < 0.95;
+    checks["memory"] = heapUsedMB / heapTotalMB < 0.95;
 
     // Event loop check (must be responsive)
     const eventLoopLag = this.measureEventLoopLag();
-    checks['eventLoop'] = eventLoopLag < 200;
+    checks["eventLoop"] = eventLoopLag < 200;
 
     const ready = Object.values(checks).every(Boolean);
 
@@ -125,9 +125,9 @@ export class HealthController {
   /**
    * Detailed metrics endpoint
    */
-  @Get('metrics')
-  @ApiOperation({ summary: 'Detailed system metrics' })
-  @ApiResponse({ status: 200, description: 'System metrics' })
+  @Get("metrics")
+  @ApiOperation({ summary: "Detailed system metrics" })
+  @ApiResponse({ status: 200, description: "System metrics" })
   getMetrics() {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
@@ -161,9 +161,9 @@ export class HealthController {
   /**
    * Startup probe
    */
-  @Get('startup')
-  @ApiOperation({ summary: 'Startup probe' })
-  @ApiResponse({ status: 200, description: 'Startup status' })
+  @Get("startup")
+  @ApiOperation({ summary: "Startup probe" })
+  @ApiResponse({ status: 200, description: "Startup status" })
   getStartup(): { started: boolean; timestamp: string; startupTime: number } {
     return {
       started: true,
@@ -182,7 +182,7 @@ export class HealthController {
     for (let i = 0; i < iterations; i++) {
       sum += i;
     }
-    if (sum < 0) console.log('never'); // Prevent optimization removal
+    if (sum < 0) console.log("never"); // Prevent optimization removal
     const end = process.hrtime.bigint();
     return Number(end - start) / 1_000_000;
   }
