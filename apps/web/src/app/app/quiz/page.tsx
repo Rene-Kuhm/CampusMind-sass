@@ -535,7 +535,7 @@ export default function QuizPage() {
             <div className="flex items-center gap-4">
               {timeRemaining !== undefined && (
                 <Badge
-                  variant={timeRemaining < 60 ? 'error' : timeRemaining < 300 ? 'warning' : 'secondary'}
+                  variant={timeRemaining < 60 ? 'danger' : timeRemaining < 300 ? 'warning' : 'secondary'}
                   className="text-base px-3 py-1"
                 >
                   <Clock className="h-4 w-4 mr-1" />
