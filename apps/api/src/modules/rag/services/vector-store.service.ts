@@ -1,22 +1,85 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/database/prisma.service';
+import { QdrantClient } from '@qdrant/js-client-rest';
 import { SimilarChunk, ChunkMetadata } from '../interfaces/rag.interface';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Servicio de almacenamiento vectorial
- * Soporta pgvector (PostgreSQL) con abstracción para Qdrant
+ * Soporta pgvector (PostgreSQL) y Qdrant
  */
 @Injectable()
-export class VectorStoreService {
+export class VectorStoreService implements OnModuleInit {
   private readonly logger = new Logger(VectorStoreService.name);
   private readonly provider: string;
+  private qdrantClient: QdrantClient | null = null;
+  private readonly qdrantCollectionName = 'campusmind_chunks';
+  private readonly vectorDimension = 1536; // OpenAI embedding dimension
 
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
     this.provider = this.config.get<string>('VECTOR_DB_PROVIDER', 'pgvector');
+  }
+
+  async onModuleInit(): Promise<void> {
+    if (this.provider === 'qdrant') {
+      await this.initializeQdrant();
+    }
+  }
+
+  /**
+   * Inicializa el cliente de Qdrant y crea la colección si no existe
+   */
+  private async initializeQdrant(): Promise<void> {
+    try {
+      const qdrantUrl = this.config.get<string>('QDRANT_URL', 'http://localhost:6333');
+      const qdrantApiKey = this.config.get<string>('QDRANT_API_KEY');
+
+      this.qdrantClient = new QdrantClient({
+        url: qdrantUrl,
+        apiKey: qdrantApiKey,
+      });
+
+      // Verificar si la colección existe
+      const collections = await this.qdrantClient.getCollections();
+      const collectionExists = collections.collections.some(
+        (c) => c.name === this.qdrantCollectionName,
+      );
+
+      if (!collectionExists) {
+        await this.qdrantClient.createCollection(this.qdrantCollectionName, {
+          vectors: {
+            size: this.vectorDimension,
+            distance: 'Cosine',
+          },
+          optimizers_config: {
+            default_segment_number: 2,
+          },
+          replication_factor: 1,
+        });
+
+        // Crear índices para filtrado eficiente
+        await this.qdrantClient.createPayloadIndex(this.qdrantCollectionName, {
+          field_name: 'resourceId',
+          field_schema: 'keyword',
+        });
+
+        await this.qdrantClient.createPayloadIndex(this.qdrantCollectionName, {
+          field_name: 'subjectId',
+          field_schema: 'keyword',
+        });
+
+        this.logger.log(`Created Qdrant collection: ${this.qdrantCollectionName}`);
+      }
+
+      this.logger.log('Qdrant client initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize Qdrant client', error);
+      throw error;
+    }
   }
 
   /**
@@ -49,9 +112,13 @@ export class VectorStoreService {
       metadata: Partial<ChunkMetadata>;
     }>,
   ): Promise<string[]> {
-    const ids: string[] = [];
+    // Usar batch para Qdrant (más eficiente)
+    if (this.provider === 'qdrant') {
+      return this.storeQdrantBatch(chunks);
+    }
 
-    // Por ahora, insertar uno a uno (se puede optimizar con raw SQL)
+    // Para pgvector, insertar uno a uno
+    const ids: string[] = [];
     for (const chunk of chunks) {
       const id = await this.storeChunk(
         chunk.resourceId,
@@ -91,9 +158,13 @@ export class VectorStoreService {
    * Elimina todos los chunks de un recurso
    */
   async deleteByResource(resourceId: string): Promise<void> {
-    await this.prisma.resourceChunk.deleteMany({
-      where: { resourceId },
-    });
+    if (this.provider === 'qdrant') {
+      await this.deleteQdrantByResource(resourceId);
+    } else {
+      await this.prisma.resourceChunk.deleteMany({
+        where: { resourceId },
+      });
+    }
   }
 
   // ============================================
@@ -204,7 +275,7 @@ export class VectorStoreService {
   }
 
   // ============================================
-  // QDRANT IMPLEMENTATION (PLACEHOLDER)
+  // QDRANT IMPLEMENTATION
   // ============================================
 
   private async storeQdrant(
@@ -213,9 +284,71 @@ export class VectorStoreService {
     embedding: number[],
     metadata: Partial<ChunkMetadata>,
   ): Promise<string> {
-    // TODO: Implementar cuando se use Qdrant
-    this.logger.warn('Qdrant storage not implemented yet');
-    throw new Error('Qdrant not implemented');
+    if (!this.qdrantClient) {
+      throw new Error('Qdrant client not initialized');
+    }
+
+    const pointId = uuidv4();
+
+    await this.qdrantClient.upsert(this.qdrantCollectionName, {
+      wait: true,
+      points: [
+        {
+          id: pointId,
+          vector: embedding,
+          payload: {
+            resourceId,
+            content,
+            chunkIndex: metadata.chunkIndex || 0,
+            resourceTitle: metadata.resourceTitle || '',
+            page: metadata.page,
+            section: metadata.section,
+            timestamp: metadata.timestamp,
+            createdAt: new Date().toISOString(),
+          },
+        },
+      ],
+    });
+
+    return pointId;
+  }
+
+  /**
+   * Almacena múltiples chunks en Qdrant en batch (más eficiente)
+   */
+  private async storeQdrantBatch(
+    chunks: Array<{
+      resourceId: string;
+      content: string;
+      embedding: number[];
+      metadata: Partial<ChunkMetadata>;
+    }>,
+  ): Promise<string[]> {
+    if (!this.qdrantClient) {
+      throw new Error('Qdrant client not initialized');
+    }
+
+    const points = chunks.map((chunk) => ({
+      id: uuidv4(),
+      vector: chunk.embedding,
+      payload: {
+        resourceId: chunk.resourceId,
+        content: chunk.content,
+        chunkIndex: chunk.metadata.chunkIndex || 0,
+        resourceTitle: chunk.metadata.resourceTitle || '',
+        page: chunk.metadata.page,
+        section: chunk.metadata.section,
+        timestamp: chunk.metadata.timestamp,
+        createdAt: new Date().toISOString(),
+      },
+    }));
+
+    await this.qdrantClient.upsert(this.qdrantCollectionName, {
+      wait: true,
+      points,
+    });
+
+    return points.map((p) => p.id as string);
   }
 
   private async searchQdrant(
@@ -227,8 +360,100 @@ export class VectorStoreService {
       minScore?: number;
     },
   ): Promise<SimilarChunk[]> {
-    // TODO: Implementar cuando se use Qdrant
-    this.logger.warn('Qdrant search not implemented yet');
-    throw new Error('Qdrant not implemented');
+    if (!this.qdrantClient) {
+      throw new Error('Qdrant client not initialized');
+    }
+
+    const topK = options.topK || 5;
+    const minScore = options.minScore || 0.7;
+
+    // Construir filtros
+    const filter: any = { must: [] };
+
+    if (options.resourceIds && options.resourceIds.length > 0) {
+      filter.must.push({
+        key: 'resourceId',
+        match: { any: options.resourceIds },
+      });
+    }
+
+    if (options.subjectId) {
+      filter.must.push({
+        key: 'subjectId',
+        match: { value: options.subjectId },
+      });
+    }
+
+    const searchResult = await this.qdrantClient.search(this.qdrantCollectionName, {
+      vector: queryEmbedding,
+      limit: topK,
+      score_threshold: minScore,
+      filter: filter.must.length > 0 ? filter : undefined,
+      with_payload: true,
+    });
+
+    return searchResult.map((result) => ({
+      id: result.id as string,
+      content: (result.payload?.content as string) || '',
+      metadata: {
+        resourceId: (result.payload?.resourceId as string) || '',
+        resourceTitle: (result.payload?.resourceTitle as string) || '',
+        chunkIndex: (result.payload?.chunkIndex as number) || 0,
+        page: result.payload?.page as number | undefined,
+        section: result.payload?.section as string | undefined,
+      },
+      score: result.score,
+    }));
+  }
+
+  /**
+   * Elimina todos los chunks de un recurso en Qdrant
+   */
+  private async deleteQdrantByResource(resourceId: string): Promise<void> {
+    if (!this.qdrantClient) {
+      throw new Error('Qdrant client not initialized');
+    }
+
+    await this.qdrantClient.delete(this.qdrantCollectionName, {
+      wait: true,
+      filter: {
+        must: [
+          {
+            key: 'resourceId',
+            match: { value: resourceId },
+          },
+        ],
+      },
+    });
+  }
+
+  /**
+   * Obtiene estadísticas de la colección de Qdrant
+   */
+  async getQdrantStats(): Promise<{
+    vectorsCount: number;
+    pointsCount: number;
+    segmentsCount: number;
+    status: string;
+  } | null> {
+    if (!this.qdrantClient || this.provider !== 'qdrant') {
+      return null;
+    }
+
+    try {
+      const collectionInfo = await this.qdrantClient.getCollection(
+        this.qdrantCollectionName,
+      );
+
+      return {
+        vectorsCount: collectionInfo.vectors_count || 0,
+        pointsCount: collectionInfo.points_count || 0,
+        segmentsCount: collectionInfo.segments_count || 0,
+        status: collectionInfo.status,
+      };
+    } catch (error) {
+      this.logger.error('Error getting Qdrant stats', error);
+      return null;
+    }
   }
 }
