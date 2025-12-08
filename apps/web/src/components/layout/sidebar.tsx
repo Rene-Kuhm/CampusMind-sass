@@ -26,6 +26,7 @@ import {
   StickyNote,
   Users,
   Trophy,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -117,6 +118,13 @@ const navigation = [
     href: '/app/leaderboard',
     icon: Trophy,
     gradient: 'from-amber-500 to-orange-500',
+  },
+  {
+    name: 'Retos Diarios',
+    href: '/app/challenges',
+    icon: Target,
+    gradient: 'from-rose-500 to-pink-500',
+    badge: 'Nuevo',
   },
 ];
 
