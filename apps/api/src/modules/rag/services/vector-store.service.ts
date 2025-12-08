@@ -453,10 +453,24 @@ export class VectorStoreService implements OnModuleInit {
         this.qdrantCollectionName,
       );
 
+      // vectors_count puede ser un número o un objeto (para vectores nombrados)
+      let vectorsCount = 0;
+      if (typeof collectionInfo.vectors_count === "number") {
+        vectorsCount = collectionInfo.vectors_count;
+      } else if (
+        collectionInfo.vectors_count &&
+        typeof collectionInfo.vectors_count === "object"
+      ) {
+        // Sumar todos los vectores de las diferentes colecciones nombradas
+        vectorsCount = Object.values(
+          collectionInfo.vectors_count as Record<string, number>,
+        ).reduce((sum, count) => sum + count, 0);
+      }
+
       return {
-        vectorsCount: collectionInfo.vectors_count || 0,
-        pointsCount: collectionInfo.points_count || 0,
-        segmentsCount: collectionInfo.segments_count || 0,
+        vectorsCount,
+        pointsCount: collectionInfo.points_count ?? 0,
+        segmentsCount: collectionInfo.segments_count ?? 0,
         status: collectionInfo.status,
       };
     } catch (error) {
