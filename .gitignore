@@ -26,6 +26,12 @@ build
 coverage
 .nyc_output
 
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
+e2e/.auth/
+
 # Turbo
 .turbo
 
