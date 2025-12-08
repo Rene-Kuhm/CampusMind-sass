@@ -20,6 +20,7 @@ import {
   Zap,
   Library,
   Timer,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -69,6 +70,12 @@ const navigation = [
     href: '/app/flashcards',
     icon: Brain,
     gradient: 'from-pink-500 to-rose-500',
+  },
+  {
+    name: 'Mapas Mentales',
+    href: '/app/mindmaps',
+    icon: GitBranch,
+    gradient: 'from-cyan-500 to-blue-500',
   },
   {
     name: 'Pomodoro',
