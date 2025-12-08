@@ -174,7 +174,7 @@ export class RagController {
   @Post("generate/summary")
   @ApiOperation({ summary: "Generar resumen automático con IA" })
   @ApiResponse({ status: 200, description: "Resumen generado" })
-  async generateSummary(@Body() dto: GenerateSummaryDto) {
+  async generateAutoSummary(@Body() dto: GenerateSummaryDto) {
     return this.ragService.generateAutoSummary(dto.content, {
       style: dto.style,
       length: dto.length,
