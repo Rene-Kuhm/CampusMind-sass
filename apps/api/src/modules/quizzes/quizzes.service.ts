@@ -13,6 +13,7 @@ import {
   QuestionType,
   DifficultyLevel,
 } from './dto/quiz.dto';
+import { EssayEvaluationService } from './essay-evaluation.service';
 
 // Tipos extendidos para Prisma
 type PrismaWithQuizzes = PrismaService & {
@@ -86,7 +87,10 @@ export class QuizzesService {
   private readonly logger = new Logger(QuizzesService.name);
   private readonly prisma: PrismaWithQuizzes;
 
-  constructor(prisma: PrismaService) {
+  constructor(
+    prisma: PrismaService,
+    private readonly essayEvaluationService: EssayEvaluationService,
+  ) {
     this.prisma = prisma as PrismaWithQuizzes;
   }
 
@@ -405,10 +409,42 @@ export class QuizzesService {
             graded.points = question.points;
           }
         } else if (question.type === QuestionType.ESSAY) {
-          // Essays requieren calificación manual - dar puntos parciales
+          // Evaluación automática de essays con LLM
           graded.userAnswer = userAnswer.textAnswer;
-          graded.isCorrect = null; // Pendiente de revisión
-          // TODO: Integrar con LLM para evaluación automática
+
+          if (userAnswer.textAnswer && userAnswer.textAnswer.trim().length > 0) {
+            try {
+              const evaluation = await this.essayEvaluationService.evaluateEssay({
+                questionText: question.text,
+                expectedCriteria: question.correctAnswer || undefined,
+                studentAnswer: userAnswer.textAnswer,
+                maxPoints: question.points,
+              });
+
+              graded.isCorrect = evaluation.percentage >= 60;
+              graded.points = evaluation.score;
+              score += evaluation.score;
+              graded.essayEvaluation = {
+                feedback: evaluation.feedback,
+                strengths: evaluation.strengths,
+                improvements: evaluation.improvements,
+                relevanceScore: evaluation.relevanceScore,
+                coherenceScore: evaluation.coherenceScore,
+                depthScore: evaluation.depthScore,
+              };
+            } catch (error) {
+              this.logger.error('Error evaluating essay', error);
+              graded.isCorrect = null;
+              graded.essayEvaluation = {
+                feedback: 'Pendiente de revisión manual',
+                strengths: [],
+                improvements: [],
+              };
+            }
+          } else {
+            graded.isCorrect = false;
+            graded.points = 0;
+          }
         }
 
         // Agregar explicación si está disponible
