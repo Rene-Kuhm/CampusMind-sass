@@ -36,6 +36,7 @@ import { QuestionGeneratorService } from './services/question-generator.service'
     ModelDiscoveryService,
     TTSService,
     QuestionGeneratorService,
+    LlmService,
   ],
 })
 export class RagModule {}
