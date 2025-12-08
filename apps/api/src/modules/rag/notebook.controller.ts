@@ -9,21 +9,21 @@ import {
   Logger,
   HttpException,
   HttpStatus,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiProduces,
-} from '@nestjs/swagger';
-import { Response } from 'express';
-import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { User } from '@prisma/client';
-import { TTSService } from './services/tts.service';
-import { QuestionGeneratorService } from './services/question-generator.service';
-import { PrismaService } from '@/database/prisma.service';
+} from "@nestjs/swagger";
+import { Response } from "express";
+import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import { CurrentUser } from "@/common/decorators/current-user.decorator";
+import { User } from "@prisma/client";
+import { TTSService } from "./services/tts.service";
+import { QuestionGeneratorService } from "./services/question-generator.service";
+import { PrismaService } from "@/database/prisma.service";
 import {
   GenerateAudioDto,
   GeneratePodcastDto,
@@ -33,12 +33,12 @@ import {
   GenerateQuestionsFromContentDto,
   GenerateFlashcardsFromContentDto,
   GenerateFromContentDto,
-} from './dto/notebook.dto';
+} from "./dto/notebook.dto";
 
-@ApiTags('notebook')
+@ApiTags("notebook")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('notebook')
+@Controller("notebook")
 export class NotebookController {
   private readonly logger = new Logger(NotebookController.name);
 
@@ -50,14 +50,11 @@ export class NotebookController {
 
   // ==================== TTS ENDPOINTS ====================
 
-  @Post('audio/generate')
-  @ApiOperation({ summary: 'Generar audio desde texto' })
-  @ApiProduces('audio/mp3')
-  @ApiResponse({ status: 200, description: 'Audio generado exitosamente' })
-  async generateAudio(
-    @Body() dto: GenerateAudioDto,
-    @Res() res: Response,
-  ) {
+  @Post("audio/generate")
+  @ApiOperation({ summary: "Generar audio desde texto" })
+  @ApiProduces("audio/mp3")
+  @ApiResponse({ status: 200, description: "Audio generado exitosamente" })
+  async generateAudio(@Body() dto: GenerateAudioDto, @Res() res: Response) {
     try {
       const result = await this.tts.generateAudio(dto.text, {
         voice: dto.voice,
@@ -65,25 +62,27 @@ export class NotebookController {
       });
 
       res.set({
-        'Content-Type': result.mimeType,
-        'Content-Disposition': 'attachment; filename="audio.mp3"',
-        'Content-Length': result.audioData.length,
+        "Content-Type": result.mimeType,
+        "Content-Disposition": 'attachment; filename="audio.mp3"',
+        "Content-Length": result.audioData.length,
       });
 
       res.send(result.audioData);
     } catch (error) {
-      this.logger.error(`Audio generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Audio generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       throw new HttpException(
-        'Error al generar el audio. Verifica que GEMINI_API_KEY esté configurada.',
+        "Error al generar el audio. Verifica que GEMINI_API_KEY esté configurada.",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Post('podcast/generate')
-  @ApiOperation({ summary: 'Generar podcast de estudio desde un recurso' })
-  @ApiProduces('audio/mp3')
-  @ApiResponse({ status: 200, description: 'Podcast generado exitosamente' })
+  @Post("podcast/generate")
+  @ApiOperation({ summary: "Generar podcast de estudio desde un recurso" })
+  @ApiProduces("audio/mp3")
+  @ApiResponse({ status: 200, description: "Podcast generado exitosamente" })
   async generatePodcast(
     @CurrentUser() user: User,
     @Body() dto: GeneratePodcastDto,
@@ -97,20 +96,20 @@ export class NotebookController {
       },
       include: {
         chunks: {
-          orderBy: { chunkIndex: 'asc' },
+          orderBy: { chunkIndex: "asc" },
           take: 20, // Limit chunks for TTS
         },
       },
     });
 
     if (!resource) {
-      throw new HttpException('Recurso no encontrado', HttpStatus.NOT_FOUND);
+      throw new HttpException("Recurso no encontrado", HttpStatus.NOT_FOUND);
     }
 
-    const textContent = resource.chunks.map(c => c.content).join('\n\n');
+    const textContent = resource.chunks.map((c) => c.content).join("\n\n");
     if (!textContent) {
       throw new HttpException(
-        'El recurso no tiene contenido de texto. Por favor, indexa el recurso primero.',
+        "El recurso no tiene contenido de texto. Por favor, indexa el recurso primero.",
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -129,33 +128,35 @@ export class NotebookController {
       });
 
       res.set({
-        'Content-Type': result.mimeType,
-        'Content-Disposition': `attachment; filename="podcast-${resource.title.replace(/[^a-zA-Z0-9]/g, '-')}.mp3"`,
-        'Content-Length': result.audioData.length,
+        "Content-Type": result.mimeType,
+        "Content-Disposition": `attachment; filename="podcast-${resource.title.replace(/[^a-zA-Z0-9]/g, "-")}.mp3"`,
+        "Content-Length": result.audioData.length,
       });
 
       res.send(result.audioData);
     } catch (error) {
-      this.logger.error(`Podcast generation failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Podcast generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
       throw new HttpException(
-        'Error al generar el podcast',
+        "Error al generar el podcast",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('voices')
-  @ApiOperation({ summary: 'Obtener voces disponibles para TTS' })
-  @ApiResponse({ status: 200, description: 'Lista de voces disponibles' })
+  @Get("voices")
+  @ApiOperation({ summary: "Obtener voces disponibles para TTS" })
+  @ApiResponse({ status: 200, description: "Lista de voces disponibles" })
   getAvailableVoices() {
     return this.tts.getAvailableVoices();
   }
 
   // ==================== QUESTION GENERATION ENDPOINTS ====================
 
-  @Post('questions/generate')
-  @ApiOperation({ summary: 'Generar preguntas de estudio desde un recurso' })
-  @ApiResponse({ status: 200, description: 'Preguntas generadas exitosamente' })
+  @Post("questions/generate")
+  @ApiOperation({ summary: "Generar preguntas de estudio desde un recurso" })
+  @ApiResponse({ status: 200, description: "Preguntas generadas exitosamente" })
   async generateQuestions(
     @CurrentUser() user: User,
     @Body() dto: GenerateQuestionsDto,
@@ -179,9 +180,9 @@ export class NotebookController {
     };
   }
 
-  @Post('questions/from-content')
-  @ApiOperation({ summary: 'Generar preguntas desde contenido de texto' })
-  @ApiResponse({ status: 200, description: 'Preguntas generadas exitosamente' })
+  @Post("questions/from-content")
+  @ApiOperation({ summary: "Generar preguntas desde contenido de texto" })
+  @ApiResponse({ status: 200, description: "Preguntas generadas exitosamente" })
   async generateQuestionsFromContent(
     @Body() dto: GenerateQuestionsFromContentDto,
   ) {
@@ -195,7 +196,7 @@ export class NotebookController {
     );
 
     return {
-      title: dto.title || 'Contenido sin título',
+      title: dto.title || "Contenido sin título",
       questions,
       generatedAt: new Date().toISOString(),
     };
@@ -203,9 +204,12 @@ export class NotebookController {
 
   // ==================== FLASHCARD GENERATION ENDPOINTS ====================
 
-  @Post('flashcards/generate')
-  @ApiOperation({ summary: 'Generar flashcards desde un recurso' })
-  @ApiResponse({ status: 200, description: 'Flashcards generadas exitosamente' })
+  @Post("flashcards/generate")
+  @ApiOperation({ summary: "Generar flashcards desde un recurso" })
+  @ApiResponse({
+    status: 200,
+    description: "Flashcards generadas exitosamente",
+  })
   async generateFlashcards(
     @CurrentUser() user: User,
     @Body() dto: GenerateFlashcardsDto,
@@ -228,9 +232,12 @@ export class NotebookController {
     };
   }
 
-  @Post('flashcards/from-content')
-  @ApiOperation({ summary: 'Generar flashcards desde contenido de texto' })
-  @ApiResponse({ status: 200, description: 'Flashcards generadas exitosamente' })
+  @Post("flashcards/from-content")
+  @ApiOperation({ summary: "Generar flashcards desde contenido de texto" })
+  @ApiResponse({
+    status: 200,
+    description: "Flashcards generadas exitosamente",
+  })
   async generateFlashcardsFromContent(
     @Body() dto: GenerateFlashcardsFromContentDto,
   ) {
@@ -240,7 +247,7 @@ export class NotebookController {
     );
 
     return {
-      title: dto.title || 'Contenido sin título',
+      title: dto.title || "Contenido sin título",
       flashcards,
       generatedAt: new Date().toISOString(),
     };
@@ -248,9 +255,9 @@ export class NotebookController {
 
   // ==================== STUDY GUIDE ENDPOINTS ====================
 
-  @Post('study-guide/generate')
-  @ApiOperation({ summary: 'Generar guía de estudio desde un recurso' })
-  @ApiResponse({ status: 200, description: 'Guía de estudio generada' })
+  @Post("study-guide/generate")
+  @ApiOperation({ summary: "Generar guía de estudio desde un recurso" })
+  @ApiResponse({ status: 200, description: "Guía de estudio generada" })
   async generateStudyGuide(
     @CurrentUser() user: User,
     @Body() dto: GenerateStudyGuideDto,
@@ -270,19 +277,17 @@ export class NotebookController {
     };
   }
 
-  @Post('study-guide/from-content')
-  @ApiOperation({ summary: 'Generar guía de estudio desde contenido de texto' })
-  @ApiResponse({ status: 200, description: 'Guía de estudio generada' })
-  async generateStudyGuideFromContent(
-    @Body() dto: GenerateFromContentDto,
-  ) {
+  @Post("study-guide/from-content")
+  @ApiOperation({ summary: "Generar guía de estudio desde contenido de texto" })
+  @ApiResponse({ status: 200, description: "Guía de estudio generada" })
+  async generateStudyGuideFromContent(@Body() dto: GenerateFromContentDto) {
     const guide = await this.questionGenerator.generateStudyGuide(
       dto.content,
-      dto.title || 'Contenido sin título',
+      dto.title || "Contenido sin título",
     );
 
     return {
-      title: dto.title || 'Contenido sin título',
+      title: dto.title || "Contenido sin título",
       ...guide,
       generatedAt: new Date().toISOString(),
     };
@@ -290,9 +295,11 @@ export class NotebookController {
 
   // ==================== PODCAST SCRIPT ENDPOINTS ====================
 
-  @Post('podcast-script/generate')
-  @ApiOperation({ summary: 'Generar script de podcast (texto) desde un recurso' })
-  @ApiResponse({ status: 200, description: 'Script generado exitosamente' })
+  @Post("podcast-script/generate")
+  @ApiOperation({
+    summary: "Generar script de podcast (texto) desde un recurso",
+  })
+  @ApiResponse({ status: 200, description: "Script generado exitosamente" })
   async generatePodcastScript(
     @CurrentUser() user: User,
     @Body() dto: GeneratePodcastDto,
@@ -313,20 +320,26 @@ export class NotebookController {
     };
   }
 
-  @Post('podcast-script/from-content')
-  @ApiOperation({ summary: 'Generar script de podcast desde contenido de texto' })
-  @ApiResponse({ status: 200, description: 'Script generado exitosamente' })
+  @Post("podcast-script/from-content")
+  @ApiOperation({
+    summary: "Generar script de podcast desde contenido de texto",
+  })
+  @ApiResponse({ status: 200, description: "Script generado exitosamente" })
   async generatePodcastScriptFromContent(
-    @Body() dto: GenerateFromContentDto & { style?: 'formal' | 'casual'; duration?: 'short' | 'medium' | 'long' },
+    @Body()
+    dto: GenerateFromContentDto & {
+      style?: "formal" | "casual";
+      duration?: "short" | "medium" | "long";
+    },
   ) {
     const script = await this.questionGenerator.generatePodcastScript(
       dto.content,
-      dto.title || 'Contenido sin título',
+      dto.title || "Contenido sin título",
       { style: dto.style, duration: dto.duration },
     );
 
     return {
-      title: dto.title || 'Contenido sin título',
+      title: dto.title || "Contenido sin título",
       script,
       generatedAt: new Date().toISOString(),
     };
@@ -334,24 +347,32 @@ export class NotebookController {
 
   // ==================== FULL NOTEBOOK GENERATION ====================
 
-  @Post('full/:resourceId')
-  @ApiOperation({ summary: 'Generar notebook completo (guía + preguntas + flashcards)' })
-  @ApiResponse({ status: 200, description: 'Notebook completo generado' })
+  @Post("full/:resourceId")
+  @ApiOperation({
+    summary: "Generar notebook completo (guía + preguntas + flashcards)",
+  })
+  @ApiResponse({ status: 200, description: "Notebook completo generado" })
   async generateFullNotebook(
     @CurrentUser() user: User,
-    @Param('resourceId') resourceId: string,
+    @Param("resourceId") resourceId: string,
   ) {
     const resource = await this.getResourceContent(resourceId, user.id);
     const content = resource.textContent;
     const title = resource.title;
 
     // Generate all content in parallel
-    const [studyGuide, questions, flashcards, podcastScript] = await Promise.all([
-      this.questionGenerator.generateStudyGuide(content, title),
-      this.questionGenerator.generateQuestions(content, { count: 10, difficulty: 'mixed' }),
-      this.questionGenerator.generateFlashcards(content, { count: 15 }),
-      this.questionGenerator.generatePodcastScript(content, title, { duration: 'medium' }),
-    ]);
+    const [studyGuide, questions, flashcards, podcastScript] =
+      await Promise.all([
+        this.questionGenerator.generateStudyGuide(content, title),
+        this.questionGenerator.generateQuestions(content, {
+          count: 10,
+          difficulty: "mixed",
+        }),
+        this.questionGenerator.generateFlashcards(content, { count: 15 }),
+        this.questionGenerator.generatePodcastScript(content, title, {
+          duration: "medium",
+        }),
+      ]);
 
     return {
       resourceId,
@@ -374,20 +395,20 @@ export class NotebookController {
       },
       include: {
         chunks: {
-          orderBy: { chunkIndex: 'asc' },
+          orderBy: { chunkIndex: "asc" },
           take: 50, // Limit chunks for processing
         },
       },
     });
 
     if (!resource) {
-      throw new HttpException('Recurso no encontrado', HttpStatus.NOT_FOUND);
+      throw new HttpException("Recurso no encontrado", HttpStatus.NOT_FOUND);
     }
 
-    const textContent = resource.chunks.map(c => c.content).join('\n\n');
+    const textContent = resource.chunks.map((c) => c.content).join("\n\n");
     if (!textContent) {
       throw new HttpException(
-        'El recurso no tiene contenido de texto. Por favor, indexa el recurso primero.',
+        "El recurso no tiene contenido de texto. Por favor, indexa el recurso primero.",
         HttpStatus.BAD_REQUEST,
       );
     }

@@ -46,35 +46,35 @@ export interface AcademicResource {
 }
 
 export type AcademicSource =
-  | 'openalex'
-  | 'semantic_scholar'
-  | 'crossref'
-  | 'youtube'
-  | 'google_books'
-  | 'archive_org'
-  | 'libgen'
-  | 'web'
-  | 'oer_commons'
-  | 'medical_books'
-  | 'manual';
+  | "openalex"
+  | "semantic_scholar"
+  | "crossref"
+  | "youtube"
+  | "google_books"
+  | "archive_org"
+  | "libgen"
+  | "web"
+  | "oer_commons"
+  | "medical_books"
+  | "manual";
 
 export type AcademicResourceType =
-  | 'paper'
-  | 'book'
-  | 'book_chapter'
-  | 'article'
-  | 'thesis'
-  | 'conference'
-  | 'preprint'
-  | 'dataset'
-  | 'course'
-  | 'video'
-  | 'manual'
-  | 'notes'
-  | 'report'
-  | 'standard'
-  | 'reference'
-  | 'other';
+  | "paper"
+  | "book"
+  | "book_chapter"
+  | "article"
+  | "thesis"
+  | "conference"
+  | "preprint"
+  | "dataset"
+  | "course"
+  | "video"
+  | "manual"
+  | "notes"
+  | "report"
+  | "standard"
+  | "reference"
+  | "other";
 
 // Interfaz para proveedores de APIs académicas
 export interface AcademicProvider {
@@ -99,7 +99,7 @@ export interface SearchQuery {
     page: number;
     perPage: number;
   };
-  sort?: 'relevance' | 'date' | 'citations';
+  sort?: "relevance" | "date" | "citations";
 }
 
 export interface SearchResult {

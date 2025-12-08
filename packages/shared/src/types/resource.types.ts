@@ -35,20 +35,7 @@ export interface Resource {
   updatedAt: Date;
 }
 
-export interface CreateResourceInput {
-  subjectId: string;
-  title: string;
-  authors?: string[];
-  description?: string;
-  url?: string;
-  type: ResourceType;
-  level?: ResourceLevel;
-  language?: string;
-  isOpenAccess?: boolean;
-  license?: string;
-}
-
-export interface UpdateResourceInput extends Partial<Omit<CreateResourceInput, 'subjectId'>> {}
+// CreateResourceInput and UpdateResourceInput are exported from schemas/resource.schemas.ts
 
 export interface ResourceNote {
   id: string;
@@ -58,7 +45,4 @@ export interface ResourceNote {
   updatedAt: Date;
 }
 
-export interface CreateNoteInput {
-  resourceId: string;
-  content: string;
-}
+// CreateNoteInput is exported from schemas/resource.schemas.ts

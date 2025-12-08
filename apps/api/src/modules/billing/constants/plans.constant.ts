@@ -1,4 +1,4 @@
-import { PlanType } from '@prisma/client';
+import { PlanType } from "@prisma/client";
 
 export interface PlanLimits {
   ragQueriesPerMonth: number;
@@ -35,8 +35,8 @@ export interface PlanConfig {
 export const PLANS: Record<PlanType, PlanConfig> = {
   [PlanType.FREE]: {
     id: PlanType.FREE,
-    name: 'Gratis',
-    description: 'Perfecto para empezar',
+    name: "Gratis",
+    description: "Perfecto para empezar",
     limits: {
       ragQueriesPerMonth: 20,
       flashcardsTotal: 100,
@@ -52,17 +52,17 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       yearly: { ars: 0, usd: 0 },
     },
     features: [
-      '20 consultas al copiloto/mes',
-      '100 flashcards',
-      '2 materias activas',
-      '5 quizzes/mes',
-      '50 MB almacenamiento',
+      "20 consultas al copiloto/mes",
+      "100 flashcards",
+      "2 materias activas",
+      "5 quizzes/mes",
+      "50 MB almacenamiento",
     ],
   },
   [PlanType.PRO]: {
     id: PlanType.PRO,
-    name: 'Pro',
-    description: 'Para estudiantes serios',
+    name: "Pro",
+    description: "Para estudiantes serios",
     popular: true,
     limits: {
       ragQueriesPerMonth: 200,
@@ -79,19 +79,19 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       yearly: { ars: 49990, usd: 90 }, // ~2 meses gratis
     },
     features: [
-      '200 consultas al copiloto/mes',
-      '1,000 flashcards',
-      '10 materias activas',
-      '50 quizzes/mes',
-      '500 MB almacenamiento',
-      'Resúmenes con IA',
-      'Exportar datos',
+      "200 consultas al copiloto/mes",
+      "1,000 flashcards",
+      "10 materias activas",
+      "50 quizzes/mes",
+      "500 MB almacenamiento",
+      "Resúmenes con IA",
+      "Exportar datos",
     ],
   },
   [PlanType.PREMIUM]: {
     id: PlanType.PREMIUM,
-    name: 'Premium',
-    description: 'Sin límites para los mejores',
+    name: "Premium",
+    description: "Sin límites para los mejores",
     limits: {
       ragQueriesPerMonth: -1, // Unlimited
       flashcardsTotal: -1,
@@ -107,14 +107,14 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       yearly: { ars: 99990, usd: 190 },
     },
     features: [
-      'Consultas ilimitadas al copiloto',
-      'Flashcards ilimitadas',
-      'Materias ilimitadas',
-      'Quizzes ilimitados',
-      '5 GB almacenamiento',
-      'Resúmenes con IA',
-      'Soporte prioritario',
-      'Exportar datos',
+      "Consultas ilimitadas al copiloto",
+      "Flashcards ilimitadas",
+      "Materias ilimitadas",
+      "Quizzes ilimitados",
+      "5 GB almacenamiento",
+      "Resúmenes con IA",
+      "Soporte prioritario",
+      "Exportar datos",
     ],
   },
 };
@@ -129,7 +129,7 @@ export const isWithinLimit = (
   currentUsage: number,
 ): boolean => {
   const limit = PLANS[plan].limits[usageType];
-  if (typeof limit === 'boolean') return limit;
+  if (typeof limit === "boolean") return limit;
   if (limit === -1) return true; // Unlimited
   return currentUsage < limit;
 };

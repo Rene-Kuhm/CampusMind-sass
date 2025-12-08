@@ -1,15 +1,20 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma.service';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../database/prisma.service";
 import {
   PlanType,
   PaymentProvider,
   SubscriptionStatus,
   UsageType,
   PaymentStatus,
-} from '@prisma/client';
-import { PLANS, TRIAL_DAYS, getPlanLimits } from '../constants/plans.constant';
-import { MercadoPagoProvider } from '../providers/mercadopago.provider';
-import { LemonSqueezyProvider } from '../providers/lemonsqueezy.provider';
+} from "@prisma/client";
+import { PLANS, TRIAL_DAYS, getPlanLimits } from "../constants/plans.constant";
+import { MercadoPagoProvider } from "../providers/mercadopago.provider";
+import { LemonSqueezyProvider } from "../providers/lemonsqueezy.provider";
 import {
   CreateCheckoutDto,
   CancelSubscriptionDto,
@@ -17,7 +22,7 @@ import {
   SubscriptionResponseDto,
   CheckoutResponseDto,
   UsageResponseDto,
-} from '../dto/billing.dto';
+} from "../dto/billing.dto";
 
 @Injectable()
 export class SubscriptionService {
@@ -73,23 +78,25 @@ export class SubscriptionService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException("User not found");
     }
 
     if (dto.plan === PlanType.FREE) {
-      throw new BadRequestException('Cannot checkout for free plan');
+      throw new BadRequestException("Cannot checkout for free plan");
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const successUrl = dto.successUrl || `${baseUrl}/app/settings/billing?success=true`;
-    const cancelUrl = dto.cancelUrl || `${baseUrl}/app/settings/billing?cancelled=true`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const successUrl =
+      dto.successUrl || `${baseUrl}/app/settings/billing?success=true`;
+    const cancelUrl =
+      dto.cancelUrl || `${baseUrl}/app/settings/billing?cancelled=true`;
 
     if (dto.provider === PaymentProvider.MERCADOPAGO) {
       const result = await this.mercadoPago.createSubscription({
         userId,
         email: user.email,
         plan: dto.plan,
-        billingPeriod: dto.billingPeriod || 'monthly',
+        billingPeriod: dto.billingPeriod || "monthly",
         successUrl,
         failureUrl: cancelUrl,
         pendingUrl: `${baseUrl}/app/settings/billing?pending=true`,
@@ -108,7 +115,7 @@ export class SubscriptionService {
           ? `${user.profile.firstName} ${user.profile.lastName}`
           : undefined,
         plan: dto.plan,
-        billingPeriod: dto.billingPeriod || 'monthly',
+        billingPeriod: dto.billingPeriod || "monthly",
         successUrl,
         cancelUrl,
       });
@@ -120,7 +127,7 @@ export class SubscriptionService {
       };
     }
 
-    throw new BadRequestException('Invalid payment provider');
+    throw new BadRequestException("Invalid payment provider");
   }
 
   async cancelSubscription(
@@ -132,18 +139,28 @@ export class SubscriptionService {
     });
 
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException("Subscription not found");
     }
 
     if (subscription.plan === PlanType.FREE) {
-      throw new BadRequestException('Cannot cancel free plan');
+      throw new BadRequestException("Cannot cancel free plan");
     }
 
     // Cancel with the payment provider
-    if (subscription.provider === PaymentProvider.MERCADOPAGO && subscription.providerSubscriptionId) {
-      await this.mercadoPago.cancelSubscription(subscription.providerSubscriptionId);
-    } else if (subscription.provider === PaymentProvider.LEMONSQUEEZY && subscription.providerSubscriptionId) {
-      await this.lemonSqueezy.cancelSubscription(subscription.providerSubscriptionId);
+    if (
+      subscription.provider === PaymentProvider.MERCADOPAGO &&
+      subscription.providerSubscriptionId
+    ) {
+      await this.mercadoPago.cancelSubscription(
+        subscription.providerSubscriptionId,
+      );
+    } else if (
+      subscription.provider === PaymentProvider.LEMONSQUEEZY &&
+      subscription.providerSubscriptionId
+    ) {
+      await this.lemonSqueezy.cancelSubscription(
+        subscription.providerSubscriptionId,
+      );
     }
 
     // Update local subscription
@@ -177,7 +194,7 @@ export class SubscriptionService {
     });
 
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException("Subscription not found");
     }
 
     // If downgrading to free
@@ -190,13 +207,13 @@ export class SubscriptionService {
       return this.createCheckout(userId, {
         plan: dto.newPlan,
         provider: PaymentProvider.MERCADOPAGO, // Default to MP for Argentina
-        billingPeriod: 'monthly',
+        billingPeriod: "monthly",
       });
     }
 
     // For plan changes with existing subscription, redirect to provider portal
     throw new BadRequestException(
-      'Para cambiar de plan, por favor usa el portal de pagos',
+      "Para cambiar de plan, por favor usa el portal de pagos",
     );
   }
 
@@ -246,8 +263,12 @@ export class SubscriptionService {
     const limits = getPlanLimits(subscription.plan);
 
     const now = new Date();
-    const periodStart = subscription.currentPeriodStart || new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const periodStart =
+      subscription.currentPeriodStart ||
+      new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd =
+      subscription.currentPeriodEnd ||
+      new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Get usage records
     const usageRecords = await this.prisma.usageRecord.findMany({
@@ -299,12 +320,20 @@ export class SubscriptionService {
     };
   }
 
-  async incrementUsage(userId: string, type: UsageType, amount: number = 1): Promise<void> {
+  async incrementUsage(
+    userId: string,
+    type: UsageType,
+    amount: number = 1,
+  ): Promise<void> {
     const subscription = await this.getOrCreateSubscription(userId);
 
     const now = new Date();
-    const periodStart = subscription.currentPeriodStart || new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const periodStart =
+      subscription.currentPeriodStart ||
+      new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd =
+      subscription.currentPeriodEnd ||
+      new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     await this.prisma.usageRecord.upsert({
       where: {
@@ -379,7 +408,11 @@ export class SubscriptionService {
     if (!subscription) return;
 
     // Create new usage records for the period
-    const usageTypes = [UsageType.RAG_QUERIES, UsageType.STORAGE_MB, UsageType.SUBJECTS];
+    const usageTypes = [
+      UsageType.RAG_QUERIES,
+      UsageType.STORAGE_MB,
+      UsageType.SUBJECTS,
+    ];
 
     for (const type of usageTypes) {
       await this.prisma.usageRecord.upsert({
@@ -434,7 +467,7 @@ export class SubscriptionService {
 
     return this.prisma.payment.findMany({
       where: { subscriptionId: subscription.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 20,
     });
   }
@@ -445,16 +478,18 @@ export class SubscriptionService {
     });
 
     if (!subscription || !subscription.providerCustomerId) {
-      throw new NotFoundException('No active subscription found');
+      throw new NotFoundException("No active subscription found");
     }
 
     if (subscription.provider === PaymentProvider.LEMONSQUEEZY) {
-      return this.lemonSqueezy.getCustomerPortalUrl(subscription.providerCustomerId);
+      return this.lemonSqueezy.getCustomerPortalUrl(
+        subscription.providerCustomerId,
+      );
     }
 
     // Mercado Pago doesn't have a customer portal, return settings page
     throw new BadRequestException(
-      'Mercado Pago no tiene portal de cliente. Gestiona tu suscripción desde la configuración.',
+      "Mercado Pago no tiene portal de cliente. Gestiona tu suscripción desde la configuración.",
     );
   }
 

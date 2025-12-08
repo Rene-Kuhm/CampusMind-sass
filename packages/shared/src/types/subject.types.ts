@@ -23,15 +23,4 @@ export interface SubjectWithCounts extends Subject {
   };
 }
 
-export interface CreateSubjectInput {
-  name: string;
-  description?: string;
-  career?: string;
-  year?: number;
-  semester?: string;
-  color?: string;
-}
-
-export interface UpdateSubjectInput extends Partial<CreateSubjectInput> {
-  isArchived?: boolean;
-}
+// CreateSubjectInput and UpdateSubjectInput are exported from schemas/subject.schemas.ts

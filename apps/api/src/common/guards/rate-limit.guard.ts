@@ -4,9 +4,9 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Request } from "express";
 
 // In-memory store for rate limiting (use Redis in production)
 interface RateLimitEntry {
@@ -17,7 +17,7 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Decorator to set rate limit
-export const RATE_LIMIT_KEY = 'rateLimit';
+export const RATE_LIMIT_KEY = "rateLimit";
 
 export interface RateLimitOptions {
   windowMs?: number; // Time window in milliseconds
@@ -27,7 +27,11 @@ export interface RateLimitOptions {
 
 export function RateLimit(options: RateLimitOptions = {}) {
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
-    Reflect.defineMetadata(RATE_LIMIT_KEY, options, descriptor?.value || target);
+    Reflect.defineMetadata(
+      RATE_LIMIT_KEY,
+      options,
+      descriptor?.value || target,
+    );
   };
 }
 
@@ -44,14 +48,12 @@ export class RateLimitGuard implements CanActivate {
     const handler = context.getHandler();
 
     // Get rate limit options from decorator or use defaults
-    const options = this.reflector.get<RateLimitOptions>(
-      RATE_LIMIT_KEY,
-      handler,
-    ) || {};
+    const options =
+      this.reflector.get<RateLimitOptions>(RATE_LIMIT_KEY, handler) || {};
 
     const windowMs = options.windowMs || this.defaultWindowMs;
     const max = options.max || this.defaultMax;
-    const keyPrefix = options.keyPrefix || 'global';
+    const keyPrefix = options.keyPrefix || "global";
 
     // Generate key based on IP and endpoint
     const ip = this.getClientIp(request);
@@ -83,8 +85,8 @@ export class RateLimitGuard implements CanActivate {
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: 'Rate limit exceeded. Please try again later.',
-          error: 'Too Many Requests',
+          message: "Rate limit exceeded. Please try again later.",
+          error: "Too Many Requests",
           retryAfter,
         },
         HttpStatus.TOO_MANY_REQUESTS,
@@ -100,12 +102,12 @@ export class RateLimitGuard implements CanActivate {
   }
 
   private getClientIp(request: Request): string {
-    const forwarded = request.headers['x-forwarded-for'];
+    const forwarded = request.headers["x-forwarded-for"];
     if (forwarded) {
       const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      return ips.split(',')[0].trim();
+      return ips.split(",")[0].trim();
     }
-    return request.ip || request.connection.remoteAddress || 'unknown';
+    return request.ip || request.connection.remoteAddress || "unknown";
   }
 
   private setRateLimitHeaders(
@@ -115,9 +117,9 @@ export class RateLimitGuard implements CanActivate {
     resetTime: number,
   ): void {
     const response = context.switchToHttp().getResponse();
-    response.setHeader('X-RateLimit-Limit', limit);
-    response.setHeader('X-RateLimit-Remaining', Math.max(0, remaining));
-    response.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000));
+    response.setHeader("X-RateLimit-Limit", limit);
+    response.setHeader("X-RateLimit-Remaining", Math.max(0, remaining));
+    response.setHeader("X-RateLimit-Reset", Math.ceil(resetTime / 1000));
   }
 
   private cleanup(): void {
@@ -134,7 +136,7 @@ export class RateLimitGuard implements CanActivate {
 export function createRateLimitMiddleware(options: RateLimitOptions = {}) {
   const windowMs = options.windowMs || 60 * 1000;
   const max = options.max || 100;
-  const keyPrefix = options.keyPrefix || 'middleware';
+  const keyPrefix = options.keyPrefix || "middleware";
 
   return (req: Request, res: any, next: () => void) => {
     const ip = getIp(req);
@@ -154,8 +156,8 @@ export function createRateLimitMiddleware(options: RateLimitOptions = {}) {
       setHeaders(res, max, 0, entry.resetTime);
       res.status(429).json({
         statusCode: 429,
-        message: 'Rate limit exceeded. Please try again later.',
-        error: 'Too Many Requests',
+        message: "Rate limit exceeded. Please try again later.",
+        error: "Too Many Requests",
         retryAfter,
       });
       return;
@@ -169,16 +171,21 @@ export function createRateLimitMiddleware(options: RateLimitOptions = {}) {
 }
 
 function getIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
+  const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) {
     const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    return ips.split(',')[0].trim();
+    return ips.split(",")[0].trim();
   }
-  return req.ip || req.connection.remoteAddress || 'unknown';
+  return req.ip || req.connection.remoteAddress || "unknown";
 }
 
-function setHeaders(res: any, limit: number, remaining: number, resetTime: number): void {
-  res.setHeader('X-RateLimit-Limit', limit);
-  res.setHeader('X-RateLimit-Remaining', Math.max(0, remaining));
-  res.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000));
+function setHeaders(
+  res: any,
+  limit: number,
+  remaining: number,
+  resetTime: number,
+): void {
+  res.setHeader("X-RateLimit-Limit", limit);
+  res.setHeader("X-RateLimit-Remaining", Math.max(0, remaining));
+  res.setHeader("X-RateLimit-Reset", Math.ceil(resetTime / 1000));
 }

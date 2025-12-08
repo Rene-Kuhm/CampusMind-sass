@@ -3,14 +3,14 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
+} from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
 import {
   CreateStudyEventDto,
   UpdateStudyEventDto,
   StudyEventType,
   RecurrenceType,
-} from './dto/create-study-event.dto';
+} from "./dto/create-study-event.dto";
 
 // Extender PrismaService para incluir el modelo studyEvent
 // Esto será generado automáticamente cuando se corra prisma generate
@@ -61,7 +61,9 @@ export class CalendarService {
     const endTime = new Date(dto.endTime);
 
     if (endTime <= startTime) {
-      throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
+      throw new BadRequestException(
+        "La fecha de fin debe ser posterior a la de inicio",
+      );
     }
 
     // Validar materia si se proporciona
@@ -70,7 +72,7 @@ export class CalendarService {
         where: { id: dto.subjectId, userId },
       });
       if (!subject) {
-        throw new NotFoundException('Materia no encontrada');
+        throw new NotFoundException("Materia no encontrada");
       }
     }
 
@@ -81,7 +83,7 @@ export class CalendarService {
         include: { subject: true },
       });
       if (!resource || resource.subject.userId !== userId) {
-        throw new NotFoundException('Recurso no encontrado');
+        throw new NotFoundException("Recurso no encontrado");
       }
     }
 
@@ -139,7 +141,7 @@ export class CalendarService {
 
     const events = await this.prisma.studyEvent.findMany({
       where,
-      orderBy: { startTime: 'asc' },
+      orderBy: { startTime: "asc" },
       include: {
         subject: {
           select: { id: true, name: true, color: true },
@@ -201,7 +203,7 @@ export class CalendarService {
     });
 
     if (!event) {
-      throw new NotFoundException('Evento no encontrado');
+      throw new NotFoundException("Evento no encontrado");
     }
 
     return event as StudyEvent;
@@ -223,7 +225,9 @@ export class CalendarService {
       const startTime = new Date(dto.startTime);
       const endTime = new Date(dto.endTime);
       if (endTime <= startTime) {
-        throw new BadRequestException('La fecha de fin debe ser posterior a la de inicio');
+        throw new BadRequestException(
+          "La fecha de fin debe ser posterior a la de inicio",
+        );
       }
     }
 
@@ -239,7 +243,9 @@ export class CalendarService {
         ...(dto.resourceId !== undefined && { resourceId: dto.resourceId }),
         ...(dto.color !== undefined && { color: dto.color }),
         ...(dto.recurrence && { recurrence: dto.recurrence }),
-        ...(dto.reminderMinutes !== undefined && { reminderMinutes: dto.reminderMinutes }),
+        ...(dto.reminderMinutes !== undefined && {
+          reminderMinutes: dto.reminderMinutes,
+        }),
         ...(dto.isAllDay !== undefined && { isAllDay: dto.isAllDay }),
         ...(dto.isCompleted !== undefined && { isCompleted: dto.isCompleted }),
       },
@@ -283,7 +289,7 @@ export class CalendarService {
           lte: futureTime,
         },
       },
-      orderBy: { startTime: 'asc' },
+      orderBy: { startTime: "asc" },
     });
 
     return events as StudyEvent[];
@@ -325,7 +331,8 @@ export class CalendarService {
 
     for (const event of events) {
       const hours =
-        (event.endTime.getTime() - event.startTime.getTime()) / (1000 * 60 * 60);
+        (event.endTime.getTime() - event.startTime.getTime()) /
+        (1000 * 60 * 60);
       totalHours += hours;
 
       // Por tipo
@@ -365,7 +372,7 @@ export class CalendarService {
     const examEvent = await this.getById(examEventId, userId);
 
     if (examEvent.type !== StudyEventType.EXAM) {
-      throw new BadRequestException('El evento debe ser un examen');
+      throw new BadRequestException("El evento debe ser un examen");
     }
 
     const suggestions: CreateStudyEventDto[] = [];
@@ -395,7 +402,7 @@ export class CalendarService {
 
         suggestions.push({
           title: `Preparación: ${examEvent.title}`,
-          description: `Sesión de estudio ${day <= 3 ? 'intensiva' : 'regular'} para ${examEvent.title}`,
+          description: `Sesión de estudio ${day <= 3 ? "intensiva" : "regular"} para ${examEvent.title}`,
           startTime: sessionDate.toISOString(),
           endTime: endDate.toISOString(),
           type: day <= 3 ? StudyEventType.REVIEW : StudyEventType.STUDY_SESSION,

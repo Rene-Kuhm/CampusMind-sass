@@ -1,8 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { MercadoPagoConfig, Preference, PreApproval, Payment } from 'mercadopago';
-import { PlanType } from '@prisma/client';
-import { PLANS } from '../constants/plans.constant';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  MercadoPagoConfig,
+  Preference,
+  PreApproval,
+  Payment,
+} from "mercadopago";
+import { PlanType } from "@prisma/client";
+import { PLANS } from "../constants/plans.constant";
 
 export interface MercadoPagoCheckoutResult {
   preferenceId: string;
@@ -25,7 +30,9 @@ export class MercadoPagoProvider {
   private payment!: Payment;
 
   constructor(private configService: ConfigService) {
-    const accessToken = this.configService.get<string>('MERCADOPAGO_ACCESS_TOKEN');
+    const accessToken = this.configService.get<string>(
+      "MERCADOPAGO_ACCESS_TOKEN",
+    );
 
     if (accessToken) {
       this.client = new MercadoPagoConfig({
@@ -46,22 +53,23 @@ export class MercadoPagoProvider {
     userId: string;
     email: string;
     plan: PlanType;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: "monthly" | "yearly";
     successUrl: string;
     failureUrl: string;
     pendingUrl: string;
   }): Promise<MercadoPagoSubscriptionResult> {
     if (!this.isConfigured()) {
-      throw new Error('MercadoPago is not configured');
+      throw new Error("MercadoPago is not configured");
     }
 
     const planConfig = PLANS[params.plan];
-    const price = params.billingPeriod === 'monthly'
-      ? planConfig.pricing.monthly.ars
-      : planConfig.pricing.yearly.ars;
+    const price =
+      params.billingPeriod === "monthly"
+        ? planConfig.pricing.monthly.ars
+        : planConfig.pricing.yearly.ars;
 
-    const frequency = params.billingPeriod === 'monthly' ? 1 : 12;
-    const frequencyType = 'months';
+    const frequency = params.billingPeriod === "monthly" ? 1 : 12;
+    const frequencyType = "months";
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 1);
@@ -72,31 +80,31 @@ export class MercadoPagoProvider {
     try {
       const response = await this.preApproval.create({
         body: {
-          reason: `CampusMind ${planConfig.name} - ${params.billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}`,
+          reason: `CampusMind ${planConfig.name} - ${params.billingPeriod === "monthly" ? "Mensual" : "Anual"}`,
           payer_email: params.email,
           auto_recurring: {
             frequency,
             frequency_type: frequencyType,
             transaction_amount: price,
-            currency_id: 'ARS',
+            currency_id: "ARS",
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
           },
           back_url: params.successUrl,
           external_reference: `${params.userId}|${params.plan}|${params.billingPeriod}`,
-          status: 'pending',
+          status: "pending",
         },
       });
 
       this.logger.log(`Created MP subscription: ${response.id}`);
 
       return {
-        subscriptionId: response.id || '',
-        initPoint: response.init_point || '',
-        status: response.status || '',
+        subscriptionId: response.id || "",
+        initPoint: response.init_point || "",
+        status: response.status || "",
       };
     } catch (error) {
-      this.logger.error('Failed to create MP subscription', error);
+      this.logger.error("Failed to create MP subscription", error);
       throw error;
     }
   }
@@ -105,21 +113,24 @@ export class MercadoPagoProvider {
     userId: string;
     email: string;
     plan: PlanType;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: "monthly" | "yearly";
     successUrl: string;
     failureUrl: string;
     pendingUrl: string;
   }): Promise<MercadoPagoCheckoutResult> {
     if (!this.isConfigured()) {
-      throw new Error('MercadoPago is not configured');
+      throw new Error("MercadoPago is not configured");
     }
 
     const planConfig = PLANS[params.plan];
-    const price = params.billingPeriod === 'monthly'
-      ? planConfig.pricing.monthly.ars
-      : planConfig.pricing.yearly.ars;
+    const price =
+      params.billingPeriod === "monthly"
+        ? planConfig.pricing.monthly.ars
+        : planConfig.pricing.yearly.ars;
 
-    const notificationUrl = this.configService.get<string>('API_URL') + '/api/v1/billing/webhooks/mercadopago';
+    const notificationUrl =
+      this.configService.get<string>("API_URL") +
+      "/api/v1/billing/webhooks/mercadopago";
 
     try {
       const response = await this.preference.create({
@@ -127,10 +138,10 @@ export class MercadoPagoProvider {
           items: [
             {
               id: `plan-${params.plan}-${params.billingPeriod}`,
-              title: `CampusMind ${planConfig.name} - ${params.billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}`,
+              title: `CampusMind ${planConfig.name} - ${params.billingPeriod === "monthly" ? "Mensual" : "Anual"}`,
               quantity: 1,
               unit_price: price,
-              currency_id: 'ARS',
+              currency_id: "ARS",
             },
           ],
           payer: {
@@ -141,29 +152,29 @@ export class MercadoPagoProvider {
             failure: params.failureUrl,
             pending: params.pendingUrl,
           },
-          auto_return: 'approved',
+          auto_return: "approved",
           notification_url: notificationUrl,
           external_reference: `${params.userId}|${params.plan}|${params.billingPeriod}`,
-          statement_descriptor: 'CAMPUSMIND',
+          statement_descriptor: "CAMPUSMIND",
         },
       });
 
       this.logger.log(`Created MP preference: ${response.id}`);
 
       return {
-        preferenceId: response.id || '',
-        initPoint: response.init_point || '',
-        sandboxInitPoint: response.sandbox_init_point || '',
+        preferenceId: response.id || "",
+        initPoint: response.init_point || "",
+        sandboxInitPoint: response.sandbox_init_point || "",
       };
     } catch (error) {
-      this.logger.error('Failed to create MP preference', error);
+      this.logger.error("Failed to create MP preference", error);
       throw error;
     }
   }
 
   async getPayment(paymentId: string) {
     if (!this.isConfigured()) {
-      throw new Error('MercadoPago is not configured');
+      throw new Error("MercadoPago is not configured");
     }
 
     try {
@@ -177,7 +188,7 @@ export class MercadoPagoProvider {
 
   async getSubscription(subscriptionId: string) {
     if (!this.isConfigured()) {
-      throw new Error('MercadoPago is not configured');
+      throw new Error("MercadoPago is not configured");
     }
 
     try {
@@ -191,20 +202,23 @@ export class MercadoPagoProvider {
 
   async cancelSubscription(subscriptionId: string) {
     if (!this.isConfigured()) {
-      throw new Error('MercadoPago is not configured');
+      throw new Error("MercadoPago is not configured");
     }
 
     try {
       const response = await this.preApproval.update({
         id: subscriptionId,
         body: {
-          status: 'cancelled',
+          status: "cancelled",
         },
       });
       this.logger.log(`Cancelled MP subscription: ${subscriptionId}`);
       return response;
     } catch (error) {
-      this.logger.error(`Failed to cancel subscription ${subscriptionId}`, error);
+      this.logger.error(
+        `Failed to cancel subscription ${subscriptionId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -212,13 +226,13 @@ export class MercadoPagoProvider {
   parseExternalReference(externalReference: string): {
     userId: string;
     plan: PlanType;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: "monthly" | "yearly";
   } {
-    const [userId, plan, billingPeriod] = externalReference.split('|');
+    const [userId, plan, billingPeriod] = externalReference.split("|");
     return {
       userId,
       plan: plan as PlanType,
-      billingPeriod: billingPeriod as 'monthly' | 'yearly',
+      billingPeriod: billingPeriod as "monthly" | "yearly",
     };
   }
 }

@@ -1,6 +1,10 @@
-import { HttpService } from '@nestjs/axios';
-import { BaseLlmProvider } from './base.provider';
-import { LlmOptions, LlmResponse, LlmProviderType } from '../interfaces/rag.interface';
+import { HttpService } from "@nestjs/axios";
+import { BaseLlmProvider } from "./base.provider";
+import {
+  LlmOptions,
+  LlmResponse,
+  LlmProviderType,
+} from "../interfaces/rag.interface";
 
 interface OpenAIChatResponse {
   choices: Array<{
@@ -14,13 +18,16 @@ interface OpenAIChatResponse {
  * OpenAI Provider (GPT-4, GPT-3.5)
  */
 export class OpenAIProvider extends BaseLlmProvider {
-  readonly providerType: LlmProviderType = 'openai';
+  readonly providerType: LlmProviderType = "openai";
 
   constructor(http: HttpService, apiKey: string, model: string) {
-    super(http, apiKey, model, 'https://api.openai.com/v1');
+    super(http, apiKey, model, "https://api.openai.com/v1");
   }
 
-  async generateCompletion(prompt: string, options?: LlmOptions): Promise<LlmResponse> {
+  async generateCompletion(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<LlmResponse> {
     const messages = this.buildMessages(prompt, options?.systemPrompt);
     const modelToUse = options?.model || this.model;
 
@@ -34,7 +41,7 @@ export class OpenAIProvider extends BaseLlmProvider {
       },
       {
         Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     );
 

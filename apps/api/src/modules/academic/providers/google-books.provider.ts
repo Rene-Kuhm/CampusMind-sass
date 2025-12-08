@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
 import {
   AcademicResource,
   SearchQuery,
   SearchResult,
-} from '../interfaces/academic-resource.interface';
+} from "../interfaces/academic-resource.interface";
 
 /**
  * Google Books API provider for books and manuals
@@ -15,13 +15,13 @@ import {
 export class GoogleBooksProvider {
   private readonly logger = new Logger(GoogleBooksProvider.name);
   private readonly apiKey: string | undefined;
-  private readonly baseUrl = 'https://www.googleapis.com/books/v1';
+  private readonly baseUrl = "https://www.googleapis.com/books/v1";
 
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
   ) {
-    this.apiKey = this.config.get<string>('GOOGLE_BOOKS_API_KEY');
+    this.apiKey = this.config.get<string>("GOOGLE_BOOKS_API_KEY");
   }
 
   async search(query: SearchQuery): Promise<SearchResult> {
@@ -35,19 +35,19 @@ export class GoogleBooksProvider {
         q: searchTerm,
         startIndex: String(startIndex),
         maxResults: String(Math.min(perPage, 40)), // Google Books max is 40
-        printType: 'books',
-        langRestrict: 'es', // Spanish language preference
-        orderBy: 'relevance',
+        printType: "books",
+        langRestrict: "es", // Spanish language preference
+        orderBy: "relevance",
       });
 
       // Add API key if available (increases quota)
       if (this.apiKey) {
-        params.append('key', this.apiKey);
+        params.append("key", this.apiKey);
       }
 
       // Filter for free books if openAccessOnly
       if (filters?.isOpenAccess) {
-        params.append('filter', 'free-ebooks');
+        params.append("filter", "free-ebooks");
       }
 
       const response = await firstValueFrom(
@@ -63,7 +63,7 @@ export class GoogleBooksProvider {
         total: response.data.totalItems || 0,
         page,
         perPage,
-        source: 'google_books',
+        source: "google_books",
       };
     } catch (error) {
       this.logger.error(`Google Books search error: ${error}`);
@@ -72,7 +72,7 @@ export class GoogleBooksProvider {
         total: 0,
         page,
         perPage,
-        source: 'google_books',
+        source: "google_books",
       };
     }
   }
@@ -82,7 +82,7 @@ export class GoogleBooksProvider {
     const accessInfo = item.accessInfo || {};
 
     // Get the best available link
-    let url = volumeInfo.infoLink || volumeInfo.previewLink;
+    const url = volumeInfo.infoLink || volumeInfo.previewLink;
     let pdfUrl = null;
 
     if (accessInfo.pdf?.isAvailable && accessInfo.pdf?.acsTokenLink) {
@@ -92,24 +92,29 @@ export class GoogleBooksProvider {
     }
 
     // Check if it's free/open access
-    const isOpenAccess = accessInfo.accessViewStatus === 'FULL_PUBLIC_DOMAIN' ||
-      accessInfo.viewability === 'ALL_PAGES' ||
-      item.saleInfo?.saleability === 'FREE';
+    const isOpenAccess =
+      accessInfo.accessViewStatus === "FULL_PUBLIC_DOMAIN" ||
+      accessInfo.viewability === "ALL_PAGES" ||
+      item.saleInfo?.saleability === "FREE";
 
     return {
       externalId: item.id,
-      source: 'google_books' as const,
-      title: volumeInfo.title || 'Sin título',
-      authors: volumeInfo.authors || ['Autor desconocido'],
+      source: "google_books" as const,
+      title: volumeInfo.title || "Sin título",
+      authors: volumeInfo.authors || ["Autor desconocido"],
       abstract: volumeInfo.description || null,
       publicationDate: volumeInfo.publishedDate || null,
       citationCount: null,
       url,
       pdfUrl,
-      doi: volumeInfo.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier || null,
-      type: 'book',
+      doi:
+        volumeInfo.industryIdentifiers?.find((id: any) => id.type === "ISBN_13")
+          ?.identifier || null,
+      type: "book",
       isOpenAccess,
-      thumbnailUrl: volumeInfo.imageLinks?.thumbnail || volumeInfo.imageLinks?.smallThumbnail,
+      thumbnailUrl:
+        volumeInfo.imageLinks?.thumbnail ||
+        volumeInfo.imageLinks?.smallThumbnail,
       publisher: volumeInfo.publisher,
       pageCount: volumeInfo.pageCount,
       categories: volumeInfo.categories,
@@ -121,7 +126,7 @@ export class GoogleBooksProvider {
    */
   async getById(bookId: string): Promise<AcademicResource | null> {
     try {
-      const params = this.apiKey ? `?key=${this.apiKey}` : '';
+      const params = this.apiKey ? `?key=${this.apiKey}` : "";
       const response = await firstValueFrom(
         this.http.get(`${this.baseUrl}/volumes/${bookId}${params}`),
       );

@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
 import {
   AcademicResource,
   SearchQuery,
   SearchResult,
-} from '../interfaces/academic-resource.interface';
+} from "../interfaces/academic-resource.interface";
 
 /**
  * YouTube Data API provider for educational videos
@@ -16,13 +16,13 @@ import {
 export class YouTubeProvider {
   private readonly logger = new Logger(YouTubeProvider.name);
   private readonly apiKey: string | undefined;
-  private readonly baseUrl = 'https://www.googleapis.com/youtube/v3';
+  private readonly baseUrl = "https://www.googleapis.com/youtube/v3";
 
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
   ) {
-    this.apiKey = this.config.get<string>('YOUTUBE_API_KEY');
+    this.apiKey = this.config.get<string>("YOUTUBE_API_KEY");
   }
 
   async search(query: SearchQuery): Promise<SearchResult> {
@@ -46,7 +46,7 @@ export class YouTubeProvider {
         total: 0,
         page,
         perPage,
-        source: 'youtube',
+        source: "youtube",
       };
     }
   }
@@ -57,16 +57,16 @@ export class YouTubeProvider {
     perPage: number,
   ): Promise<SearchResult> {
     const params = new URLSearchParams({
-      part: 'snippet',
+      part: "snippet",
       q: query,
-      type: 'video',
-      videoDuration: 'medium', // Filter for medium-length videos (4-20 min)
-      videoDefinition: 'high',
-      relevanceLanguage: 'es',
+      type: "video",
+      videoDuration: "medium", // Filter for medium-length videos (4-20 min)
+      videoDefinition: "high",
+      relevanceLanguage: "es",
       maxResults: String(perPage),
       key: this.apiKey!,
       // Educational categories
-      videoCategoryId: '27', // Education category
+      videoCategoryId: "27", // Education category
     });
 
     const response = await firstValueFrom(
@@ -75,18 +75,20 @@ export class YouTubeProvider {
 
     const items: AcademicResource[] = response.data.items.map((item: any) => ({
       externalId: item.id.videoId,
-      source: 'youtube' as const,
+      source: "youtube" as const,
       title: item.snippet.title,
       authors: [item.snippet.channelTitle],
       abstract: item.snippet.description,
-      publicationDate: item.snippet.publishedAt?.split('T')[0] || null,
+      publicationDate: item.snippet.publishedAt?.split("T")[0] || null,
       citationCount: null,
       url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
       pdfUrl: null,
       doi: null,
-      type: 'video',
+      type: "video",
       isOpenAccess: true,
-      thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+      thumbnailUrl:
+        item.snippet.thumbnails?.high?.url ||
+        item.snippet.thumbnails?.default?.url,
     }));
 
     return {
@@ -94,7 +96,7 @@ export class YouTubeProvider {
       total: response.data.pageInfo?.totalResults || items.length,
       page,
       perPage,
-      source: 'youtube',
+      source: "youtube",
     };
   }
 
@@ -110,8 +112,9 @@ export class YouTubeProvider {
       const response = await firstValueFrom(
         this.http.get(searchUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
           },
         }),
       );
@@ -124,7 +127,7 @@ export class YouTubeProvider {
         total: items.length,
         page,
         perPage,
-        source: 'youtube',
+        source: "youtube",
       };
     } catch (error) {
       this.logger.error(`YouTube scraping error: ${error}`);
@@ -133,7 +136,7 @@ export class YouTubeProvider {
         total: 0,
         page,
         perPage,
-        source: 'youtube',
+        source: "youtube",
       };
     }
   }
@@ -147,8 +150,10 @@ export class YouTubeProvider {
 
     try {
       const data = JSON.parse(dataMatch[1]);
-      const contents = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents
-        ?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
+      const contents =
+        data?.contents?.twoColumnSearchResultsRenderer?.primaryContents
+          ?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents ||
+        [];
 
       for (const content of contents.slice(0, limit)) {
         const video = content.videoRenderer;
@@ -156,16 +161,18 @@ export class YouTubeProvider {
 
         items.push({
           externalId: video.videoId,
-          source: 'youtube' as const,
-          title: video.title?.runs?.[0]?.text || 'Sin título',
-          authors: [video.ownerText?.runs?.[0]?.text || 'Desconocido'],
-          abstract: video.descriptionSnippet?.runs?.map((r: any) => r.text).join('') || null,
+          source: "youtube" as const,
+          title: video.title?.runs?.[0]?.text || "Sin título",
+          authors: [video.ownerText?.runs?.[0]?.text || "Desconocido"],
+          abstract:
+            video.descriptionSnippet?.runs?.map((r: any) => r.text).join("") ||
+            null,
           publicationDate: video.publishedTimeText?.simpleText || null,
           citationCount: null,
           url: `https://www.youtube.com/watch?v=${video.videoId}`,
           pdfUrl: null,
           doi: null,
-          type: 'video',
+          type: "video",
           isOpenAccess: true,
           thumbnailUrl: video.thumbnail?.thumbnails?.[0]?.url,
         });

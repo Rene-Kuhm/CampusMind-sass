@@ -3,12 +3,12 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { PrismaService } from '@/database/prisma.service';
-import { EmailService } from '../notifications/email.service';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import * as bcrypt from "bcrypt";
+import * as crypto from "crypto";
+import { PrismaService } from "@/database/prisma.service";
+import { EmailService } from "../notifications/email.service";
 
 @Injectable()
 export class PasswordResetService {
@@ -21,8 +21,14 @@ export class PasswordResetService {
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
   ) {
-    this.resetTokenExpiryHours = this.config.get<number>('PASSWORD_RESET_EXPIRY_HOURS', 1);
-    this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    this.resetTokenExpiryHours = this.config.get<number>(
+      "PASSWORD_RESET_EXPIRY_HOURS",
+      1,
+    );
+    this.frontendUrl = this.config.get<string>(
+      "FRONTEND_URL",
+      "http://localhost:3000",
+    );
   }
 
   /**
@@ -38,19 +44,27 @@ export class PasswordResetService {
     // Por seguridad, siempre retornamos el mismo mensaje
     // aunque el usuario no exista
     if (!user) {
-      this.logger.log(`Password reset requested for non-existent email: ${email}`);
+      this.logger.log(
+        `Password reset requested for non-existent email: ${email}`,
+      );
       return {
-        message: 'Si el email existe, recibirás un enlace para restablecer tu contraseña.',
+        message:
+          "Si el email existe, recibirás un enlace para restablecer tu contraseña.",
       };
     }
 
     // Generar token seguro
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
 
     // Calcular fecha de expiración
     const resetTokenExpiry = new Date();
-    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + this.resetTokenExpiryHours);
+    resetTokenExpiry.setHours(
+      resetTokenExpiry.getHours() + this.resetTokenExpiryHours,
+    );
 
     // Guardar token hasheado en la base de datos
     await this.prisma.user.update({
@@ -63,12 +77,12 @@ export class PasswordResetService {
 
     // Enviar email con el token sin hashear
     const resetLink = `${this.frontendUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
-    const userName = user.profile?.firstName || 'Usuario';
+    const userName = user.profile?.firstName || "Usuario";
 
     const emailSent = await this.emailService.sendPasswordReset(email, {
       name: userName,
       resetLink,
-      expiresIn: `${this.resetTokenExpiryHours} hora${this.resetTokenExpiryHours > 1 ? 's' : ''}`,
+      expiresIn: `${this.resetTokenExpiryHours} hora${this.resetTokenExpiryHours > 1 ? "s" : ""}`,
     });
 
     if (!emailSent) {
@@ -78,15 +92,19 @@ export class PasswordResetService {
     }
 
     return {
-      message: 'Si el email existe, recibirás un enlace para restablecer tu contraseña.',
+      message:
+        "Si el email existe, recibirás un enlace para restablecer tu contraseña.",
     };
   }
 
   /**
    * Validar token de restablecimiento
    */
-  async validateResetToken(email: string, token: string): Promise<{ valid: boolean }> {
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  async validateResetToken(
+    email: string,
+    token: string,
+  ): Promise<{ valid: boolean }> {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -109,7 +127,7 @@ export class PasswordResetService {
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -123,14 +141,14 @@ export class PasswordResetService {
 
     if (!user) {
       throw new BadRequestException(
-        'El enlace de restablecimiento es inválido o ha expirado.',
+        "El enlace de restablecimiento es inválido o ha expirado.",
       );
     }
 
     // Validar nueva contraseña
     if (newPassword.length < 8) {
       throw new BadRequestException(
-        'La contraseña debe tener al menos 8 caracteres.',
+        "La contraseña debe tener al menos 8 caracteres.",
       );
     }
 
@@ -150,7 +168,7 @@ export class PasswordResetService {
     this.logger.log(`Password reset successfully for user: ${user.id}`);
 
     return {
-      message: 'Tu contraseña ha sido restablecida exitosamente.',
+      message: "Tu contraseña ha sido restablecida exitosamente.",
     };
   }
 
@@ -167,7 +185,7 @@ export class PasswordResetService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException("Usuario no encontrado");
     }
 
     // Verificar contraseña actual
@@ -177,19 +195,19 @@ export class PasswordResetService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new BadRequestException('La contraseña actual es incorrecta');
+      throw new BadRequestException("La contraseña actual es incorrecta");
     }
 
     // Validar nueva contraseña
     if (newPassword.length < 8) {
       throw new BadRequestException(
-        'La nueva contraseña debe tener al menos 8 caracteres',
+        "La nueva contraseña debe tener al menos 8 caracteres",
       );
     }
 
     if (currentPassword === newPassword) {
       throw new BadRequestException(
-        'La nueva contraseña debe ser diferente a la actual',
+        "La nueva contraseña debe ser diferente a la actual",
       );
     }
 
@@ -204,7 +222,7 @@ export class PasswordResetService {
     this.logger.log(`Password changed successfully for user: ${userId}`);
 
     return {
-      message: 'Tu contraseña ha sido actualizada exitosamente.',
+      message: "Tu contraseña ha sido actualizada exitosamente.",
     };
   }
 }

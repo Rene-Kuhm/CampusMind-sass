@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsString,
   IsOptional,
@@ -11,24 +11,24 @@ import {
   Min,
   Max,
   ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export enum QuestionType {
-  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
-  TRUE_FALSE = 'TRUE_FALSE',
-  SHORT_ANSWER = 'SHORT_ANSWER',
-  ESSAY = 'ESSAY',
+  MULTIPLE_CHOICE = "MULTIPLE_CHOICE",
+  TRUE_FALSE = "TRUE_FALSE",
+  SHORT_ANSWER = "SHORT_ANSWER",
+  ESSAY = "ESSAY",
 }
 
 export enum DifficultyLevel {
-  EASY = 'EASY',
-  MEDIUM = 'MEDIUM',
-  HARD = 'HARD',
+  EASY = "EASY",
+  MEDIUM = "MEDIUM",
+  HARD = "HARD",
 }
 
 export class QuestionOptionDto {
-  @ApiProperty({ example: 'La derivada es la tasa de cambio instantánea' })
+  @ApiProperty({ example: "La derivada es la tasa de cambio instantánea" })
   @IsString()
   @MinLength(1)
   @MaxLength(500)
@@ -41,8 +41,8 @@ export class QuestionOptionDto {
 
 export class CreateQuestionDto {
   @ApiProperty({
-    example: '¿Cuál es la definición de derivada?',
-    description: 'Texto de la pregunta',
+    example: "¿Cuál es la definición de derivada?",
+    description: "Texto de la pregunta",
   })
   @IsString()
   @MinLength(5)
@@ -58,7 +58,7 @@ export class CreateQuestionDto {
 
   @ApiPropertyOptional({
     type: [QuestionOptionDto],
-    description: 'Opciones para multiple choice o true/false',
+    description: "Opciones para multiple choice o true/false",
   })
   @IsOptional()
   @IsArray()
@@ -67,8 +67,8 @@ export class CreateQuestionDto {
   options?: QuestionOptionDto[];
 
   @ApiPropertyOptional({
-    example: 'La derivada mide la tasa de cambio instantánea de una función.',
-    description: 'Respuesta correcta para short answer/essay',
+    example: "La derivada mide la tasa de cambio instantánea de una función.",
+    description: "Respuesta correcta para short answer/essay",
   })
   @IsOptional()
   @IsString()
@@ -76,8 +76,9 @@ export class CreateQuestionDto {
   correctAnswer?: string;
 
   @ApiPropertyOptional({
-    example: 'Recuerda que la derivada representa la pendiente de la recta tangente.',
-    description: 'Explicación de la respuesta',
+    example:
+      "Recuerda que la derivada representa la pendiente de la recta tangente.",
+    description: "Explicación de la respuesta",
   })
   @IsOptional()
   @IsString()
@@ -94,7 +95,7 @@ export class CreateQuestionDto {
 
   @ApiPropertyOptional({
     example: 2,
-    description: 'Puntos que vale la pregunta',
+    description: "Puntos que vale la pregunta",
     default: 1,
   })
   @IsOptional()
@@ -106,8 +107,8 @@ export class CreateQuestionDto {
 
 export class CreateQuizDto {
   @ApiProperty({
-    example: 'Parcial 1 - Derivadas',
-    description: 'Título del simulacro',
+    example: "Parcial 1 - Derivadas",
+    description: "Título del simulacro",
   })
   @IsString()
   @MinLength(1)
@@ -115,7 +116,7 @@ export class CreateQuizDto {
   title!: string;
 
   @ApiPropertyOptional({
-    example: 'Simulacro de examen parcial sobre derivadas y sus aplicaciones',
+    example: "Simulacro de examen parcial sobre derivadas y sus aplicaciones",
   })
   @IsOptional()
   @IsString()
@@ -123,7 +124,7 @@ export class CreateQuizDto {
   description?: string;
 
   @ApiPropertyOptional({
-    description: 'ID de la materia asociada',
+    description: "ID de la materia asociada",
   })
   @IsOptional()
   @IsString()
@@ -131,7 +132,7 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: 60,
-    description: 'Tiempo límite en minutos (null = sin límite)',
+    description: "Tiempo límite en minutos (null = sin límite)",
   })
   @IsOptional()
   @IsInt()
@@ -141,7 +142,7 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: 70,
-    description: 'Porcentaje mínimo para aprobar',
+    description: "Porcentaje mínimo para aprobar",
     default: 60,
   })
   @IsOptional()
@@ -152,7 +153,7 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: true,
-    description: 'Mostrar respuestas correctas al finalizar',
+    description: "Mostrar respuestas correctas al finalizar",
     default: true,
   })
   @IsOptional()
@@ -161,7 +162,7 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: true,
-    description: 'Mezclar orden de las preguntas',
+    description: "Mezclar orden de las preguntas",
     default: false,
   })
   @IsOptional()
@@ -170,7 +171,7 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     type: [CreateQuestionDto],
-    description: 'Preguntas del quiz',
+    description: "Preguntas del quiz",
   })
   @IsOptional()
   @IsArray()
@@ -224,21 +225,21 @@ export class UpdateQuizDto {
 }
 
 export class AnswerDto {
-  @ApiProperty({ description: 'ID de la pregunta' })
+  @ApiProperty({ description: "ID de la pregunta" })
   @IsString()
   questionId!: string;
 
   @ApiPropertyOptional({
-    example: 'opt_123',
-    description: 'ID de la opción seleccionada (para multiple choice)',
+    example: "opt_123",
+    description: "ID de la opción seleccionada (para multiple choice)",
   })
   @IsOptional()
   @IsString()
   selectedOptionId?: string;
 
   @ApiPropertyOptional({
-    example: 'La derivada es la tasa de cambio...',
-    description: 'Respuesta de texto (para short answer/essay)',
+    example: "La derivada es la tasa de cambio...",
+    description: "Respuesta de texto (para short answer/essay)",
   })
   @IsOptional()
   @IsString()
@@ -249,7 +250,7 @@ export class AnswerDto {
 export class SubmitQuizDto {
   @ApiProperty({
     type: [AnswerDto],
-    description: 'Respuestas del usuario',
+    description: "Respuestas del usuario",
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -258,7 +259,7 @@ export class SubmitQuizDto {
 
   @ApiPropertyOptional({
     example: 45,
-    description: 'Tiempo empleado en minutos',
+    description: "Tiempo empleado en minutos",
   })
   @IsOptional()
   @IsInt()
@@ -268,14 +269,14 @@ export class SubmitQuizDto {
 
 export class GenerateQuizDto {
   @ApiProperty({
-    description: 'ID del recurso del cual generar el quiz',
+    description: "ID del recurso del cual generar el quiz",
   })
   @IsString()
   resourceId!: string;
 
   @ApiPropertyOptional({
     example: 10,
-    description: 'Número de preguntas a generar',
+    description: "Número de preguntas a generar",
     default: 10,
   })
   @IsOptional()
@@ -286,7 +287,7 @@ export class GenerateQuizDto {
 
   @ApiPropertyOptional({
     enum: DifficultyLevel,
-    description: 'Dificultad del quiz',
+    description: "Dificultad del quiz",
     default: DifficultyLevel.MEDIUM,
   })
   @IsOptional()
@@ -296,7 +297,7 @@ export class GenerateQuizDto {
   @ApiPropertyOptional({
     type: [String],
     enum: QuestionType,
-    description: 'Tipos de preguntas a incluir',
+    description: "Tipos de preguntas a incluir",
     default: [QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE],
   })
   @IsOptional()

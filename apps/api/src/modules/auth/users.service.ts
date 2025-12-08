@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { StudyStyle, ContentDepth } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
+import { StudyStyle, ContentDepth } from "@prisma/client";
 
 interface CreateUserInput {
   email: string;

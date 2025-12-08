@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { Injectable, Logger } from "@nestjs/common";
+import { createHash } from "crypto";
 
 interface CacheEntry<T> {
   value: T;
@@ -69,8 +69,8 @@ export class CacheService {
    * Genera una clave de cache normalizada para un texto
    */
   private hashText(text: string): string {
-    const normalized = text.toLowerCase().trim().replace(/\s+/g, ' ');
-    return createHash('md5').update(normalized).digest('hex');
+    const normalized = text.toLowerCase().trim().replace(/\s+/g, " ");
+    return createHash("md5").update(normalized).digest("hex");
   }
 
   /**
@@ -80,12 +80,14 @@ export class CacheService {
     query: string,
     options?: { subjectId?: string; resourceIds?: string[] },
   ): string {
-    const normalized = query.toLowerCase().trim().replace(/\s+/g, ' ');
+    const normalized = query.toLowerCase().trim().replace(/\s+/g, " ");
     const optionsStr = JSON.stringify({
-      s: options?.subjectId || '',
-      r: (options?.resourceIds || []).sort().join(','),
+      s: options?.subjectId || "",
+      r: (options?.resourceIds || []).sort().join(","),
     });
-    return createHash('md5').update(normalized + optionsStr).digest('hex');
+    return createHash("md5")
+      .update(normalized + optionsStr)
+      .digest("hex");
   }
 
   // ==================== Embedding Cache ====================
@@ -149,7 +151,9 @@ export class CacheService {
 
     entry.hits++;
     this.stats.ragHits++;
-    this.logger.debug(`RAG cache hit for query: "${query.substring(0, 50)}..."`);
+    this.logger.debug(
+      `RAG cache hit for query: "${query.substring(0, 50)}..."`,
+    );
     return entry.value;
   }
 
@@ -250,11 +254,13 @@ export class CacheService {
   }
 
   getCacheHitRate(): { embedding: number; rag: number } {
-    const embeddingTotal = this.stats.embeddingHits + this.stats.embeddingMisses;
+    const embeddingTotal =
+      this.stats.embeddingHits + this.stats.embeddingMisses;
     const ragTotal = this.stats.ragHits + this.stats.ragMisses;
 
     return {
-      embedding: embeddingTotal > 0 ? this.stats.embeddingHits / embeddingTotal : 0,
+      embedding:
+        embeddingTotal > 0 ? this.stats.embeddingHits / embeddingTotal : 0,
       rag: ragTotal > 0 ? this.stats.ragHits / ragTotal : 0,
     };
   }
@@ -270,6 +276,6 @@ export class CacheService {
       embeddingCacheSize: 0,
       ragCacheSize: 0,
     };
-    this.logger.log('All caches cleared');
+    this.logger.log("All caches cleared");
   }
 }

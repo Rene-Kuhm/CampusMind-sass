@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
 import {
   AcademicResource,
   SearchQuery,
   SearchResult,
-} from '../interfaces/academic-resource.interface';
+} from "../interfaces/academic-resource.interface";
 
 /**
  * Medical Books Provider
@@ -27,15 +27,21 @@ export class MedicalBooksProvider {
     const perPage = pagination?.perPage || 25;
 
     // Search multiple sources in parallel
-    const [pubmedResults, ncbiBooks, openStaxResults, booksMedicosResults] = await Promise.all([
-      this.searchPubMedCentral(searchTerm, page, perPage),
-      this.searchNCBIBookshelf(searchTerm, page, perPage),
-      this.searchOpenStax(searchTerm),
-      this.searchBooksMedicos(searchTerm, perPage),
-    ]);
+    const [pubmedResults, ncbiBooks, openStaxResults, booksMedicosResults] =
+      await Promise.all([
+        this.searchPubMedCentral(searchTerm, page, perPage),
+        this.searchNCBIBookshelf(searchTerm, page, perPage),
+        this.searchOpenStax(searchTerm),
+        this.searchBooksMedicos(searchTerm, perPage),
+      ]);
 
     // Combine and deduplicate results
-    const allItems = [...booksMedicosResults, ...pubmedResults, ...ncbiBooks, ...openStaxResults];
+    const allItems = [
+      ...booksMedicosResults,
+      ...pubmedResults,
+      ...ncbiBooks,
+      ...openStaxResults,
+    ];
     const seen = new Set<string>();
     const uniqueItems: AcademicResource[] = [];
 
@@ -52,7 +58,7 @@ export class MedicalBooksProvider {
       total: uniqueItems.length,
       page,
       perPage,
-      source: 'medical_books',
+      source: "medical_books",
     };
   }
 
@@ -66,14 +72,15 @@ export class MedicalBooksProvider {
   ): Promise<AcademicResource[]> {
     try {
       // First, search for IDs
-      const searchUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi';
+      const searchUrl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
       const searchParams = new URLSearchParams({
-        db: 'pmc',
+        db: "pmc",
         term: `${searchTerm} AND free fulltext[filter]`,
         retmax: String(perPage),
         retstart: String((page - 1) * perPage),
-        retmode: 'json',
-        sort: 'relevance',
+        retmode: "json",
+        sort: "relevance",
       });
 
       const searchResponse = await firstValueFrom(
@@ -84,11 +91,12 @@ export class MedicalBooksProvider {
       if (ids.length === 0) return [];
 
       // Fetch details for each ID
-      const summaryUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
+      const summaryUrl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
       const summaryParams = new URLSearchParams({
-        db: 'pmc',
-        id: ids.join(','),
-        retmode: 'json',
+        db: "pmc",
+        id: ids.join(","),
+        retmode: "json",
       });
 
       const summaryResponse = await firstValueFrom(
@@ -104,19 +112,21 @@ export class MedicalBooksProvider {
 
         items.push({
           externalId: `pmc-${id}`,
-          source: 'medical_books',
-          title: article.title || 'Sin título',
+          source: "medical_books",
+          title: article.title || "Sin título",
           authors: this.parseAuthors(article.authors || []),
           abstract: article.source || null,
           publicationDate: article.pubdate || null,
-          publicationYear: article.pubdate ? parseInt(article.pubdate.substring(0, 4)) : undefined,
+          publicationYear: article.pubdate
+            ? parseInt(article.pubdate.substring(0, 4))
+            : undefined,
           citationCount: null,
           url: `https://www.ncbi.nlm.nih.gov/pmc/articles/PMC${id}/`,
           pdfUrl: `https://www.ncbi.nlm.nih.gov/pmc/articles/PMC${id}/pdf/`,
           doi: article.doi || null,
           isOpenAccess: true,
-          type: 'article',
-          language: 'en',
+          type: "article",
+          language: "en",
           journal: article.fulljournalname || article.source || null,
         });
       }
@@ -137,13 +147,14 @@ export class MedicalBooksProvider {
     perPage: number,
   ): Promise<AcademicResource[]> {
     try {
-      const searchUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi';
+      const searchUrl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
       const searchParams = new URLSearchParams({
-        db: 'books',
+        db: "books",
         term: searchTerm,
         retmax: String(Math.min(perPage, 10)), // Limit books to 10
         retstart: String((page - 1) * perPage),
-        retmode: 'json',
+        retmode: "json",
       });
 
       const searchResponse = await firstValueFrom(
@@ -153,11 +164,12 @@ export class MedicalBooksProvider {
       const ids = searchResponse.data?.esearchresult?.idlist || [];
       if (ids.length === 0) return [];
 
-      const summaryUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
+      const summaryUrl =
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
       const summaryParams = new URLSearchParams({
-        db: 'books',
-        id: ids.join(','),
-        retmode: 'json',
+        db: "books",
+        id: ids.join(","),
+        retmode: "json",
       });
 
       const summaryResponse = await firstValueFrom(
@@ -173,20 +185,22 @@ export class MedicalBooksProvider {
 
         items.push({
           externalId: `ncbi-book-${id}`,
-          source: 'medical_books',
-          title: book.title || 'Sin título',
+          source: "medical_books",
+          title: book.title || "Sin título",
           authors: this.parseAuthors(book.authors || []),
           abstract: book.description || book.subtitle || null,
           publicationDate: book.pubdate || null,
-          publicationYear: book.pubdate ? parseInt(book.pubdate.substring(0, 4)) : undefined,
+          publicationYear: book.pubdate
+            ? parseInt(book.pubdate.substring(0, 4))
+            : undefined,
           citationCount: null,
           url: `https://www.ncbi.nlm.nih.gov/books/${book.bookaccession || id}/`,
           pdfUrl: null,
           doi: null,
           isOpenAccess: true,
-          type: 'book',
-          language: 'en',
-          publisher: book.publisher || 'NCBI Bookshelf',
+          type: "book",
+          language: "en",
+          publisher: book.publisher || "NCBI Bookshelf",
         });
       }
 
@@ -201,57 +215,100 @@ export class MedicalBooksProvider {
    * Search OpenStax for free textbooks (anatomy, biology, chemistry, physics)
    * Great for pre-med students
    */
-  private async searchOpenStax(searchTerm: string): Promise<AcademicResource[]> {
+  private async searchOpenStax(
+    searchTerm: string,
+  ): Promise<AcademicResource[]> {
     try {
       // OpenStax has a limited set of books, we'll match against medical-related ones
       const medicalBooks = [
         {
-          id: 'anatomy-and-physiology',
-          title: 'Anatomy and Physiology',
-          authors: ['OpenStax'],
-          subjects: ['anatomy', 'physiology', 'body', 'human', 'organ', 'tissue', 'cell'],
-          url: 'https://openstax.org/details/books/anatomy-and-physiology-2e',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology2e-WEB.pdf',
+          id: "anatomy-and-physiology",
+          title: "Anatomy and Physiology",
+          authors: ["OpenStax"],
+          subjects: [
+            "anatomy",
+            "physiology",
+            "body",
+            "human",
+            "organ",
+            "tissue",
+            "cell",
+          ],
+          url: "https://openstax.org/details/books/anatomy-and-physiology-2e",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology2e-WEB.pdf",
         },
         {
-          id: 'biology',
-          title: 'Biology 2e',
-          authors: ['OpenStax'],
-          subjects: ['biology', 'cell', 'genetics', 'evolution', 'organism', 'life'],
-          url: 'https://openstax.org/details/books/biology-2e',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/Biology2e-WEB.pdf',
+          id: "biology",
+          title: "Biology 2e",
+          authors: ["OpenStax"],
+          subjects: [
+            "biology",
+            "cell",
+            "genetics",
+            "evolution",
+            "organism",
+            "life",
+          ],
+          url: "https://openstax.org/details/books/biology-2e",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/Biology2e-WEB.pdf",
         },
         {
-          id: 'microbiology',
-          title: 'Microbiology',
-          authors: ['OpenStax'],
-          subjects: ['microbiology', 'bacteria', 'virus', 'pathogen', 'infection', 'immune'],
-          url: 'https://openstax.org/details/books/microbiology',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/Microbiology-WEB.pdf',
+          id: "microbiology",
+          title: "Microbiology",
+          authors: ["OpenStax"],
+          subjects: [
+            "microbiology",
+            "bacteria",
+            "virus",
+            "pathogen",
+            "infection",
+            "immune",
+          ],
+          url: "https://openstax.org/details/books/microbiology",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/Microbiology-WEB.pdf",
         },
         {
-          id: 'chemistry',
-          title: 'Chemistry 2e',
-          authors: ['OpenStax'],
-          subjects: ['chemistry', 'organic', 'biochemistry', 'molecular', 'compound'],
-          url: 'https://openstax.org/details/books/chemistry-2e',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/Chemistry2e-WEB.pdf',
+          id: "chemistry",
+          title: "Chemistry 2e",
+          authors: ["OpenStax"],
+          subjects: [
+            "chemistry",
+            "organic",
+            "biochemistry",
+            "molecular",
+            "compound",
+          ],
+          url: "https://openstax.org/details/books/chemistry-2e",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/Chemistry2e-WEB.pdf",
         },
         {
-          id: 'psychology',
-          title: 'Psychology 2e',
-          authors: ['OpenStax'],
-          subjects: ['psychology', 'mental', 'brain', 'behavior', 'cognitive', 'psychiatric'],
-          url: 'https://openstax.org/details/books/psychology-2e',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/Psychology2e-WEB.pdf',
+          id: "psychology",
+          title: "Psychology 2e",
+          authors: ["OpenStax"],
+          subjects: [
+            "psychology",
+            "mental",
+            "brain",
+            "behavior",
+            "cognitive",
+            "psychiatric",
+          ],
+          url: "https://openstax.org/details/books/psychology-2e",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/Psychology2e-WEB.pdf",
         },
         {
-          id: 'concepts-biology',
-          title: 'Concepts of Biology',
-          authors: ['OpenStax'],
-          subjects: ['biology', 'cell', 'genetics', 'ecosystem', 'organism'],
-          url: 'https://openstax.org/details/books/concepts-biology',
-          pdfUrl: 'https://assets.openstax.org/oscms-prodcms/media/documents/ConceptsofBiology-WEB.pdf',
+          id: "concepts-biology",
+          title: "Concepts of Biology",
+          authors: ["OpenStax"],
+          subjects: ["biology", "cell", "genetics", "ecosystem", "organism"],
+          url: "https://openstax.org/details/books/concepts-biology",
+          pdfUrl:
+            "https://assets.openstax.org/oscms-prodcms/media/documents/ConceptsofBiology-WEB.pdf",
         },
       ];
 
@@ -259,12 +316,14 @@ export class MedicalBooksProvider {
       const matchedBooks = medicalBooks.filter(
         (book) =>
           book.title.toLowerCase().includes(searchLower) ||
-          book.subjects.some((s) => searchLower.includes(s) || s.includes(searchLower)),
+          book.subjects.some(
+            (s) => searchLower.includes(s) || s.includes(searchLower),
+          ),
       );
 
       return matchedBooks.map((book) => ({
         externalId: `openstax-${book.id}`,
-        source: 'medical_books',
+        source: "medical_books",
         title: book.title,
         authors: book.authors,
         abstract: `Libro de texto gratuito de OpenStax. Ideal para estudiantes de ciencias de la salud y medicina.`,
@@ -274,10 +333,10 @@ export class MedicalBooksProvider {
         pdfUrl: book.pdfUrl,
         doi: null,
         isOpenAccess: true,
-        type: 'book',
-        language: 'en',
-        publisher: 'OpenStax',
-        license: 'CC BY 4.0',
+        type: "book",
+        language: "en",
+        publisher: "OpenStax",
+        license: "CC BY 4.0",
       }));
     } catch (error) {
       this.logger.error(`OpenStax search error: ${error}`);
@@ -299,9 +358,10 @@ export class MedicalBooksProvider {
       const response = await firstValueFrom(
         this.http.get(searchUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml',
-            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            Accept: "text/html,application/xhtml+xml",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
           },
           timeout: 15000,
         }),
@@ -312,13 +372,16 @@ export class MedicalBooksProvider {
 
       // Parse search results from HTML
       // Pattern: <h2 class="entry-title"><a href="URL">TITLE</a></h2>
-      const articlePattern = /<article[^>]*class="[^"]*post[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+      const articlePattern =
+        /<article[^>]*class="[^"]*post[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
       const articles = html.match(articlePattern) || [];
 
       for (const article of articles.slice(0, Math.min(limit, 15))) {
         try {
           // Extract title and URL
-          const titleMatch = article.match(/<h2[^>]*class="[^"]*entry-title[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i);
+          const titleMatch = article.match(
+            /<h2[^>]*class="[^"]*entry-title[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i,
+          );
           if (!titleMatch) continue;
 
           const url = titleMatch[1];
@@ -329,40 +392,47 @@ export class MedicalBooksProvider {
           const thumbnailUrl = imgMatch ? imgMatch[1] : null;
 
           // Extract categories (e.g., "Diccionarios", "Atlas", "Anatomía")
-          const categoryMatches = article.match(/<a[^>]*rel="category[^"]*"[^>]*>([^<]+)<\/a>/gi) || [];
+          const categoryMatches =
+            article.match(/<a[^>]*rel="category[^"]*"[^>]*>([^<]+)<\/a>/gi) ||
+            [];
           const categories = categoryMatches
-            .map(cat => {
+            .map((cat) => {
               const match = cat.match(/>([^<]+)</);
-              return match ? match[1].trim() : '';
+              return match ? match[1].trim() : "";
             })
-            .filter(c => c.length > 0);
+            .filter((c) => c.length > 0);
 
           // Extract date
-          const dateMatch = article.match(/<time[^>]*datetime="([^"]+)"[^>]*>/i);
-          const publicationDate = dateMatch ? dateMatch[1].split('T')[0] : null;
+          const dateMatch = article.match(
+            /<time[^>]*datetime="([^"]+)"[^>]*>/i,
+          );
+          const publicationDate = dateMatch ? dateMatch[1].split("T")[0] : null;
 
           // Generate unique ID from URL
-          const urlParts = url.split('/').filter(p => p.length > 0);
+          const urlParts = url.split("/").filter((p) => p.length > 0);
           const externalId = `booksmedicos-${urlParts[urlParts.length - 1] || Date.now()}`;
 
           items.push({
             externalId,
-            source: 'medical_books',
+            source: "medical_books",
             title,
-            authors: ['BooksMediacos.org'],
-            abstract: categories.length > 0
-              ? `Categorías: ${categories.join(', ')}. Libro médico en español disponible en BooksMediacos.org.`
-              : 'Libro médico en español disponible en BooksMediacos.org.',
+            authors: ["BooksMediacos.org"],
+            abstract:
+              categories.length > 0
+                ? `Categorías: ${categories.join(", ")}. Libro médico en español disponible en BooksMediacos.org.`
+                : "Libro médico en español disponible en BooksMediacos.org.",
             publicationDate,
-            publicationYear: publicationDate ? parseInt(publicationDate.substring(0, 4)) : undefined,
+            publicationYear: publicationDate
+              ? parseInt(publicationDate.substring(0, 4))
+              : undefined,
             citationCount: undefined,
             url,
             pdfUrl: undefined,
             doi: undefined,
             isOpenAccess: true,
-            type: 'book',
-            language: 'es',
-            publisher: 'BooksMediacos.org',
+            type: "book",
+            language: "es",
+            publisher: "BooksMediacos.org",
             thumbnailUrl,
             categories,
           });
@@ -372,7 +442,9 @@ export class MedicalBooksProvider {
         }
       }
 
-      this.logger.log(`BooksMediacos found ${items.length} results for: ${searchTerm}`);
+      this.logger.log(
+        `BooksMediacos found ${items.length} results for: ${searchTerm}`,
+      );
       return items;
     } catch (error) {
       this.logger.error(`BooksMediacos search error: ${error}`);
@@ -385,24 +457,24 @@ export class MedicalBooksProvider {
    */
   private decodeHtmlEntities(text: string): string {
     return text
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#039;/g, "'")
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&#8211;/g, '–')
-      .replace(/&#8212;/g, '—')
+      .replace(/&nbsp;/g, " ")
+      .replace(/&#8211;/g, "–")
+      .replace(/&#8212;/g, "—")
       .replace(/&#8217;/g, "'")
       .replace(/&#8220;/g, '"')
       .replace(/&#8221;/g, '"')
-      .replace(/&aacute;/gi, 'á')
-      .replace(/&eacute;/gi, 'é')
-      .replace(/&iacute;/gi, 'í')
-      .replace(/&oacute;/gi, 'ó')
-      .replace(/&uacute;/gi, 'ú')
-      .replace(/&ntilde;/gi, 'ñ')
-      .replace(/&Ntilde;/gi, 'Ñ');
+      .replace(/&aacute;/gi, "á")
+      .replace(/&eacute;/gi, "é")
+      .replace(/&iacute;/gi, "í")
+      .replace(/&oacute;/gi, "ó")
+      .replace(/&uacute;/gi, "ú")
+      .replace(/&ntilde;/gi, "ñ")
+      .replace(/&Ntilde;/gi, "Ñ");
   }
 
   /**
@@ -410,13 +482,14 @@ export class MedicalBooksProvider {
    */
   async getById(externalId: string): Promise<AcademicResource | null> {
     try {
-      if (externalId.startsWith('pmc-')) {
-        const pmcId = externalId.replace('pmc-', '');
-        const summaryUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
+      if (externalId.startsWith("pmc-")) {
+        const pmcId = externalId.replace("pmc-", "");
+        const summaryUrl =
+          "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
         const params = new URLSearchParams({
-          db: 'pmc',
+          db: "pmc",
           id: pmcId,
-          retmode: 'json',
+          retmode: "json",
         });
 
         const response = await firstValueFrom(
@@ -428,8 +501,8 @@ export class MedicalBooksProvider {
 
         return {
           externalId,
-          source: 'medical_books',
-          title: article.title || 'Sin título',
+          source: "medical_books",
+          title: article.title || "Sin título",
           authors: this.parseAuthors(article.authors || []),
           abstract: article.source || null,
           publicationDate: article.pubdate || null,
@@ -438,8 +511,8 @@ export class MedicalBooksProvider {
           pdfUrl: `https://www.ncbi.nlm.nih.gov/pmc/articles/PMC${pmcId}/pdf/`,
           doi: article.doi || null,
           isOpenAccess: true,
-          type: 'article',
-          language: 'en',
+          type: "article",
+          language: "en",
         };
       }
 
@@ -451,10 +524,10 @@ export class MedicalBooksProvider {
   }
 
   private parseAuthors(authors: Array<{ name?: string } | string>): string[] {
-    if (!Array.isArray(authors)) return ['Desconocido'];
+    if (!Array.isArray(authors)) return ["Desconocido"];
 
     return authors
-      .map((a) => (typeof a === 'string' ? a : a?.name || ''))
+      .map((a) => (typeof a === "string" ? a : a?.name || ""))
       .filter((name) => name.length > 0)
       .slice(0, 5);
   }

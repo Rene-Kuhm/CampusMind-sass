@@ -1,6 +1,6 @@
-import { Module, Global, DynamicModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { RateLimitGuard } from './rate-limit.guard';
+import { Module, Global, DynamicModule } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { RateLimitGuard } from "./rate-limit.guard";
 
 export interface ThrottleModuleOptions {
   /**
@@ -77,7 +77,7 @@ export const TIER_MULTIPLIERS = {
  */
 export function getRateLimitForTier(
   baseLimit: { windowMs: number; max: number },
-  tier: keyof typeof TIER_MULTIPLIERS = 'FREE',
+  tier: keyof typeof TIER_MULTIPLIERS = "FREE",
 ): { windowMs: number; max: number } {
   const multiplier = TIER_MULTIPLIERS[tier];
   return {
@@ -98,11 +98,11 @@ export class ThrottleModule {
           useClass: RateLimitGuard,
         },
         {
-          provide: 'THROTTLE_OPTIONS',
+          provide: "THROTTLE_OPTIONS",
           useValue: options,
         },
       ],
-      exports: ['THROTTLE_OPTIONS'],
+      exports: ["THROTTLE_OPTIONS"],
     };
   }
 }
@@ -115,7 +115,7 @@ export function Throttle(
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
     const limits = (RATE_LIMITS as any)[category]?.[operation];
     if (limits) {
-      Reflect.defineMetadata('rateLimit', limits, descriptor?.value || target);
+      Reflect.defineMetadata("rateLimit", limits, descriptor?.value || target);
     }
   };
 }
@@ -123,6 +123,6 @@ export function Throttle(
 // Skip rate limiting for internal/admin routes
 export function SkipThrottle() {
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
-    Reflect.defineMetadata('skipThrottle', true, descriptor?.value || target);
+    Reflect.defineMetadata("skipThrottle", true, descriptor?.value || target);
   };
 }

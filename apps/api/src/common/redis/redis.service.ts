@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import type { Redis } from 'ioredis';
+import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
+import type { Redis } from "ioredis";
 
 interface CacheEntry<T> {
   value: T;
@@ -20,7 +20,7 @@ export class RedisService implements OnModuleDestroy {
     this.isRedisEnabled = redis !== null;
 
     if (!this.isRedisEnabled) {
-      this.logger.log('Running with in-memory cache fallback');
+      this.logger.log("Running with in-memory cache fallback");
       // Limpieza periódica del cache en memoria
       setInterval(() => this.cleanExpiredMemoryEntries(), 60000);
     }
@@ -29,7 +29,7 @@ export class RedisService implements OnModuleDestroy {
   async onModuleDestroy() {
     if (this.redis) {
       await this.redis.quit();
-      this.logger.log('Redis connection closed');
+      this.logger.log("Redis connection closed");
     }
   }
 
@@ -115,7 +115,7 @@ export class RedisService implements OnModuleDestroy {
 
       // Fallback a memoria - convertir patrón glob a regex
       const regex = new RegExp(
-        pattern.replace(/\*/g, '.*').replace(/\?/g, '.'),
+        pattern.replace(/\*/g, ".*").replace(/\?/g, "."),
       );
       let count = 0;
 
@@ -294,18 +294,18 @@ export class RedisService implements OnModuleDestroy {
 
     if (this.isRedisEnabled && this.redis) {
       try {
-        const info = await this.redis.info('memory');
-        const lines = info.split('\r\n');
+        const info = await this.redis.info("memory");
+        const lines = info.split("\r\n");
         stats.redisInfo = {};
 
         for (const line of lines) {
-          const [key, value] = line.split(':');
+          const [key, value] = line.split(":");
           if (key && value) {
             stats.redisInfo[key] = value;
           }
         }
       } catch (error) {
-        this.logger.error('Error getting Redis info:', error);
+        this.logger.error("Error getting Redis info:", error);
       }
     }
 
@@ -319,14 +319,14 @@ export class RedisService implements OnModuleDestroy {
     try {
       if (this.isRedisEnabled && this.redis) {
         await this.redis.flushdb();
-        this.logger.log('Redis database flushed');
+        this.logger.log("Redis database flushed");
         return;
       }
 
       this.memoryCache.clear();
-      this.logger.log('Memory cache cleared');
+      this.logger.log("Memory cache cleared");
     } catch (error) {
-      this.logger.error('Error flushing cache:', error);
+      this.logger.error("Error flushing cache:", error);
     }
   }
 

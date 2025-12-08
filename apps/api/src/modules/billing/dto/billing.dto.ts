@@ -1,50 +1,57 @@
-import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PlanType, PaymentProvider, SubscriptionStatus, UsageType } from '@prisma/client';
+import { IsEnum, IsOptional, IsString, IsBoolean } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  PlanType,
+  PaymentProvider,
+  SubscriptionStatus,
+  UsageType,
+} from "@prisma/client";
 
 export class CreateCheckoutDto {
-  @ApiProperty({ enum: PlanType, description: 'Plan to subscribe to' })
+  @ApiProperty({ enum: PlanType, description: "Plan to subscribe to" })
   @IsEnum(PlanType)
   plan!: PlanType;
 
-  @ApiProperty({ enum: PaymentProvider, description: 'Payment provider' })
+  @ApiProperty({ enum: PaymentProvider, description: "Payment provider" })
   @IsEnum(PaymentProvider)
   provider!: PaymentProvider;
 
-  @ApiPropertyOptional({ description: 'Billing period: monthly or yearly' })
+  @ApiPropertyOptional({ description: "Billing period: monthly or yearly" })
   @IsOptional()
   @IsString()
-  billingPeriod?: 'monthly' | 'yearly' = 'monthly';
+  billingPeriod?: "monthly" | "yearly" = "monthly";
 
-  @ApiPropertyOptional({ description: 'Success redirect URL' })
+  @ApiPropertyOptional({ description: "Success redirect URL" })
   @IsOptional()
   @IsString()
   successUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Cancel redirect URL' })
+  @ApiPropertyOptional({ description: "Cancel redirect URL" })
   @IsOptional()
   @IsString()
   cancelUrl?: string;
 }
 
 export class CancelSubscriptionDto {
-  @ApiPropertyOptional({ description: 'Cancel at end of billing period' })
+  @ApiPropertyOptional({ description: "Cancel at end of billing period" })
   @IsOptional()
   @IsBoolean()
   cancelAtPeriodEnd?: boolean = true;
 
-  @ApiPropertyOptional({ description: 'Reason for cancellation' })
+  @ApiPropertyOptional({ description: "Reason for cancellation" })
   @IsOptional()
   @IsString()
   reason?: string;
 }
 
 export class ChangePlanDto {
-  @ApiProperty({ enum: PlanType, description: 'New plan to switch to' })
+  @ApiProperty({ enum: PlanType, description: "New plan to switch to" })
   @IsEnum(PlanType)
   newPlan!: PlanType;
 
-  @ApiPropertyOptional({ description: 'Apply change immediately or at period end' })
+  @ApiPropertyOptional({
+    description: "Apply change immediately or at period end",
+  })
   @IsOptional()
   @IsBoolean()
   immediate?: boolean = true;

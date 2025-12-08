@@ -3,8 +3,8 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
+} from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
 import {
   CreateQuizDto,
   UpdateQuizDto,
@@ -12,8 +12,8 @@ import {
   SubmitQuizDto,
   QuestionType,
   DifficultyLevel,
-} from './dto/quiz.dto';
-import { EssayEvaluationService } from './essay-evaluation.service';
+} from "./dto/quiz.dto";
+import { EssayEvaluationService } from "./essay-evaluation.service";
 
 // Tipos extendidos para Prisma
 type PrismaWithQuizzes = PrismaService & {
@@ -106,7 +106,7 @@ export class QuizzesService {
         where: { id: dto.subjectId, userId },
       });
       if (!subject) {
-        throw new NotFoundException('Materia no encontrada');
+        throw new NotFoundException("Materia no encontrada");
       }
     }
 
@@ -152,7 +152,7 @@ export class QuizzesService {
           select: { id: true, name: true },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     });
 
     return quizzes.map((q: any) => ({
@@ -178,7 +178,7 @@ export class QuizzesService {
     });
 
     if (!quiz) {
-      throw new NotFoundException('Quiz no encontrado');
+      throw new NotFoundException("Quiz no encontrado");
     }
 
     return { ...quiz, questionCount: quiz._count.questions } as Quiz;
@@ -195,7 +195,7 @@ export class QuizzesService {
 
     let questions = await this.prisma.quizQuestion.findMany({
       where: { quizId },
-      orderBy: { order: 'asc' },
+      orderBy: { order: "asc" },
     });
 
     // Mezclar preguntas si está habilitado
@@ -238,10 +238,16 @@ export class QuizzesService {
         ...(dto.title && { title: dto.title }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.subjectId !== undefined && { subjectId: dto.subjectId }),
-        ...(dto.timeLimitMinutes !== undefined && { timeLimitMinutes: dto.timeLimitMinutes }),
-        ...(dto.passingScore !== undefined && { passingScore: dto.passingScore }),
+        ...(dto.timeLimitMinutes !== undefined && {
+          timeLimitMinutes: dto.timeLimitMinutes,
+        }),
+        ...(dto.passingScore !== undefined && {
+          passingScore: dto.passingScore,
+        }),
         ...(dto.showAnswers !== undefined && { showAnswers: dto.showAnswers }),
-        ...(dto.shuffleQuestions !== undefined && { shuffleQuestions: dto.shuffleQuestions }),
+        ...(dto.shuffleQuestions !== undefined && {
+          shuffleQuestions: dto.shuffleQuestions,
+        }),
       },
       include: {
         _count: {
@@ -278,7 +284,7 @@ export class QuizzesService {
     if (order === undefined) {
       const lastQuestion = await this.prisma.quizQuestion.findFirst({
         where: { quizId },
-        orderBy: { order: 'desc' },
+        orderBy: { order: "desc" },
       });
       order = (lastQuestion?.order ?? -1) + 1;
     }
@@ -318,7 +324,7 @@ export class QuizzesService {
 
     const questions = await this.prisma.quizQuestion.findMany({
       where: { quizId },
-      orderBy: { order: 'asc' },
+      orderBy: { order: "asc" },
     });
 
     return questions as QuizQuestion[];
@@ -327,17 +333,14 @@ export class QuizzesService {
   /**
    * Eliminar pregunta
    */
-  async deleteQuestion(
-    questionId: string,
-    userId: string,
-  ): Promise<void> {
+  async deleteQuestion(questionId: string, userId: string): Promise<void> {
     const question = await this.prisma.quizQuestion.findFirst({
       where: { id: questionId },
       include: { quiz: { select: { userId: true } } },
     });
 
     if (!question || question.quiz.userId !== userId) {
-      throw new NotFoundException('Pregunta no encontrada');
+      throw new NotFoundException("Pregunta no encontrada");
     }
 
     await this.prisma.quizQuestion.delete({ where: { id: questionId } });
@@ -368,9 +371,7 @@ export class QuizzesService {
     for (const question of questions) {
       totalPoints += question.points;
 
-      const userAnswer = dto.answers.find(
-        (a) => a.questionId === question.id,
-      );
+      const userAnswer = dto.answers.find((a) => a.questionId === question.id);
 
       const graded: any = {
         questionId: question.id,
@@ -382,10 +383,16 @@ export class QuizzesService {
       };
 
       if (userAnswer) {
-        const options = question.options as Array<{ id: string; text: string; isCorrect: boolean }> | null;
+        const options = question.options as Array<{
+          id: string;
+          text: string;
+          isCorrect: boolean;
+        }> | null;
 
-        if (question.type === QuestionType.MULTIPLE_CHOICE ||
-            question.type === QuestionType.TRUE_FALSE) {
+        if (
+          question.type === QuestionType.MULTIPLE_CHOICE ||
+          question.type === QuestionType.TRUE_FALSE
+        ) {
           // Verificar opción seleccionada
           const selectedOption = options?.find(
             (opt) => opt.id === userAnswer.selectedOptionId,
@@ -400,7 +407,9 @@ export class QuizzesService {
         } else if (question.type === QuestionType.SHORT_ANSWER) {
           // Comparación simple para short answer
           const normalizedUser = userAnswer.textAnswer?.toLowerCase().trim();
-          const normalizedCorrect = question.correctAnswer?.toLowerCase().trim();
+          const normalizedCorrect = question.correctAnswer
+            ?.toLowerCase()
+            .trim();
           graded.userAnswer = userAnswer.textAnswer;
           graded.isCorrect = normalizedUser === normalizedCorrect;
 
@@ -412,14 +421,18 @@ export class QuizzesService {
           // Evaluación automática de essays con LLM
           graded.userAnswer = userAnswer.textAnswer;
 
-          if (userAnswer.textAnswer && userAnswer.textAnswer.trim().length > 0) {
+          if (
+            userAnswer.textAnswer &&
+            userAnswer.textAnswer.trim().length > 0
+          ) {
             try {
-              const evaluation = await this.essayEvaluationService.evaluateEssay({
-                questionText: question.text,
-                expectedCriteria: question.correctAnswer || undefined,
-                studentAnswer: userAnswer.textAnswer,
-                maxPoints: question.points,
-              });
+              const evaluation =
+                await this.essayEvaluationService.evaluateEssay({
+                  questionText: question.text,
+                  expectedCriteria: question.correctAnswer || undefined,
+                  studentAnswer: userAnswer.textAnswer,
+                  maxPoints: question.points,
+                });
 
               graded.isCorrect = evaluation.percentage >= 60;
               graded.points = evaluation.score;
@@ -433,10 +446,10 @@ export class QuizzesService {
                 depthScore: evaluation.depthScore,
               };
             } catch (error) {
-              this.logger.error('Error evaluating essay', error);
+              this.logger.error("Error evaluating essay", error);
               graded.isCorrect = null;
               graded.essayEvaluation = {
-                feedback: 'Pendiente de revisión manual',
+                feedback: "Pendiente de revisión manual",
                 strengths: [],
                 improvements: [],
               };
@@ -455,9 +468,7 @@ export class QuizzesService {
         // Agregar respuesta correcta si está habilitado
         if (quiz.showAnswers) {
           if (options) {
-            graded.correctAnswer = options.find(
-              (opt) => opt.isCorrect,
-            )?.text;
+            graded.correctAnswer = options.find((opt) => opt.isCorrect)?.text;
           } else {
             graded.correctAnswer = question.correctAnswer;
           }
@@ -495,7 +506,7 @@ export class QuizzesService {
 
     const attempts = await this.prisma.quizAttempt.findMany({
       where: { quizId, userId },
-      orderBy: { completedAt: 'desc' },
+      orderBy: { completedAt: "desc" },
     });
 
     return attempts as QuizAttempt[];
@@ -515,7 +526,7 @@ export class QuizzesService {
     });
 
     if (!attempt) {
-      throw new NotFoundException('Intento no encontrado');
+      throw new NotFoundException("Intento no encontrado");
     }
 
     return attempt as QuizAttempt;
@@ -550,7 +561,9 @@ export class QuizzesService {
           score: true,
         },
       }),
-      this.prisma.quizAttempt.count({ where: { quizId, userId, passed: true } }),
+      this.prisma.quizAttempt.count({
+        where: { quizId, userId, passed: true },
+      }),
     ]);
 
     return {
@@ -572,18 +585,19 @@ export class QuizzesService {
     averagePercentage: number;
     passRate: number;
   }> {
-    const [quizzes, attempts, passedAttempts, avgPercentage] = await Promise.all([
-      this.prisma.quiz.findMany({
-        where: { userId },
-        select: { id: true },
-      }),
-      this.prisma.quizAttempt.count({ where: { userId } }),
-      this.prisma.quizAttempt.count({ where: { userId, passed: true } }),
-      this.prisma.quizAttempt.aggregate({
-        where: { userId },
-        _avg: { percentage: true },
-      }),
-    ]);
+    const [quizzes, attempts, passedAttempts, avgPercentage] =
+      await Promise.all([
+        this.prisma.quiz.findMany({
+          where: { userId },
+          select: { id: true },
+        }),
+        this.prisma.quizAttempt.count({ where: { userId } }),
+        this.prisma.quizAttempt.count({ where: { userId, passed: true } }),
+        this.prisma.quizAttempt.aggregate({
+          where: { userId },
+          _avg: { percentage: true },
+        }),
+      ]);
 
     return {
       totalQuizzes: quizzes.length,

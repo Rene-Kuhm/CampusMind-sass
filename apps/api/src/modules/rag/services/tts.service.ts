@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
 
 export interface TTSOptions {
-  voice?: 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Aoede'; // Gemini voices
+  voice?: "Puck" | "Charon" | "Kore" | "Fenrir" | "Aoede"; // Gemini voices
   speed?: number; // 0.5 - 2.0
   language?: string;
 }
@@ -23,30 +23,27 @@ export interface TTSResult {
 export class TTSService {
   private readonly logger = new Logger(TTSService.name);
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  private readonly baseUrl = "https://generativelanguage.googleapis.com/v1beta";
 
   constructor(
     private readonly config: ConfigService,
     private readonly http: HttpService,
   ) {
-    this.apiKey = this.config.get<string>('GEMINI_API_KEY', '');
+    this.apiKey = this.config.get<string>("GEMINI_API_KEY", "");
     if (!this.apiKey) {
-      this.logger.warn('GEMINI_API_KEY not configured - TTS will not work');
+      this.logger.warn("GEMINI_API_KEY not configured - TTS will not work");
     }
   }
 
   /**
    * Generate audio from text using Gemini TTS
    */
-  async generateAudio(
-    text: string,
-    options?: TTSOptions,
-  ): Promise<TTSResult> {
+  async generateAudio(text: string, options?: TTSOptions): Promise<TTSResult> {
     if (!this.apiKey) {
-      throw new Error('GEMINI_API_KEY not configured');
+      throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const voice = options?.voice || 'Kore';
+    const voice = options?.voice || "Kore";
     const speed = options?.speed || 1.0;
 
     // Prepare text for TTS (clean up markdown, etc.)
@@ -68,7 +65,7 @@ export class TTSService {
               },
             ],
             generationConfig: {
-              responseModalities: ['AUDIO'],
+              responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
@@ -80,7 +77,7 @@ export class TTSService {
           },
           {
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             timeout: 120000, // 2 minutes for long texts
           },
@@ -88,18 +85,21 @@ export class TTSService {
       );
 
       // Extract audio data from response
-      const audioData = response.data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+      const audioData =
+        response.data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
 
       if (!audioData) {
-        throw new Error('No audio data in response');
+        throw new Error("No audio data in response");
       }
 
       return {
-        audioData: Buffer.from(audioData.data, 'base64'),
-        mimeType: audioData.mimeType || 'audio/mp3',
+        audioData: Buffer.from(audioData.data, "base64"),
+        mimeType: audioData.mimeType || "audio/mp3",
       };
     } catch (error) {
-      this.logger.error(`TTS generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `TTS generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
 
       // Fallback to alternative TTS method if primary fails
       return this.generateAudioFallback(cleanText, options);
@@ -159,20 +159,22 @@ Eso es todo por hoy. Recuerda revisar este material regularmente para mejor rete
    * Clean and prepare text for TTS
    */
   private prepareTextForTTS(text: string): string {
-    return text
-      // Remove markdown formatting
-      .replace(/#{1,6}\s/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/`(.*?)`/g, '$1')
-      .replace(/```[\s\S]*?```/g, '')
-      // Remove URLs
-      .replace(/https?:\/\/[^\s]+/g, '')
-      // Convert bullet points to speech-friendly format
-      .replace(/^[-*]\s/gm, '• ')
-      // Remove excessive whitespace
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+    return (
+      text
+        // Remove markdown formatting
+        .replace(/#{1,6}\s/g, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/`(.*?)`/g, "$1")
+        .replace(/```[\s\S]*?```/g, "")
+        // Remove URLs
+        .replace(/https?:\/\/[^\s]+/g, "")
+        // Convert bullet points to speech-friendly format
+        .replace(/^[-*]\s/gm, "• ")
+        // Remove excessive whitespace
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+    );
   }
 
   /**
@@ -184,11 +186,11 @@ Eso es todo por hoy. Recuerda revisar este material regularmente para mejor rete
   ): Promise<TTSResult> {
     // Try using the standard Gemini model to generate SSML and then convert
     // This is a backup method
-    this.logger.warn('Using fallback TTS method');
+    this.logger.warn("Using fallback TTS method");
 
     try {
       // Use Google Cloud TTS API as fallback (if configured)
-      const googleTTSKey = this.config.get<string>('GOOGLE_TTS_API_KEY');
+      const googleTTSKey = this.config.get<string>("GOOGLE_TTS_API_KEY");
 
       if (googleTTSKey) {
         const response = await firstValueFrom(
@@ -197,11 +199,11 @@ Eso es todo por hoy. Recuerda revisar este material regularmente para mejor rete
             {
               input: { text },
               voice: {
-                languageCode: options?.language || 'es-ES',
-                name: 'es-ES-Standard-A',
+                languageCode: options?.language || "es-ES",
+                name: "es-ES-Standard-A",
               },
               audioConfig: {
-                audioEncoding: 'MP3',
+                audioEncoding: "MP3",
                 speakingRate: options?.speed || 1.0,
               },
             },
@@ -210,28 +212,44 @@ Eso es todo por hoy. Recuerda revisar este material regularmente para mejor rete
         );
 
         return {
-          audioData: Buffer.from(response.data.audioContent, 'base64'),
-          mimeType: 'audio/mp3',
+          audioData: Buffer.from(response.data.audioContent, "base64"),
+          mimeType: "audio/mp3",
         };
       }
 
-      throw new Error('No fallback TTS available');
+      throw new Error("No fallback TTS available");
     } catch (error) {
-      this.logger.error('Fallback TTS also failed');
-      throw new Error('TTS generation failed - no available providers');
+      this.logger.error("Fallback TTS also failed");
+      throw new Error("TTS generation failed - no available providers");
     }
   }
 
   /**
    * Get available voices
    */
-  getAvailableVoices(): Array<{ id: string; name: string; description: string }> {
+  getAvailableVoices(): Array<{
+    id: string;
+    name: string;
+    description: string;
+  }> {
     return [
-      { id: 'Puck', name: 'Puck', description: 'Voz masculina, tono amigable' },
-      { id: 'Charon', name: 'Charon', description: 'Voz masculina, tono serio' },
-      { id: 'Kore', name: 'Kore', description: 'Voz femenina, tono cálido' },
-      { id: 'Fenrir', name: 'Fenrir', description: 'Voz masculina, tono profundo' },
-      { id: 'Aoede', name: 'Aoede', description: 'Voz femenina, tono expresivo' },
+      { id: "Puck", name: "Puck", description: "Voz masculina, tono amigable" },
+      {
+        id: "Charon",
+        name: "Charon",
+        description: "Voz masculina, tono serio",
+      },
+      { id: "Kore", name: "Kore", description: "Voz femenina, tono cálido" },
+      {
+        id: "Fenrir",
+        name: "Fenrir",
+        description: "Voz masculina, tono profundo",
+      },
+      {
+        id: "Aoede",
+        name: "Aoede",
+        description: "Voz femenina, tono expresivo",
+      },
     ];
   }
 }

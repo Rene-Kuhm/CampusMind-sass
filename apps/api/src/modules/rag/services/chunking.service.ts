@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { TextChunk, ChunkMetadata } from '../interfaces/rag.interface';
+import { Injectable } from "@nestjs/common";
+import { TextChunk, ChunkMetadata } from "../interfaces/rag.interface";
 
 interface ChunkingOptions {
   chunkSize?: number; // Target size in characters
@@ -12,7 +12,7 @@ export class ChunkingService {
   private readonly defaultOptions: ChunkingOptions = {
     chunkSize: 1000,
     chunkOverlap: 200,
-    separator: '\n\n',
+    separator: "\n\n",
   };
 
   /**
@@ -20,7 +20,7 @@ export class ChunkingService {
    */
   chunkText(
     text: string,
-    metadata: Omit<ChunkMetadata, 'chunkIndex'>,
+    metadata: Omit<ChunkMetadata, "chunkIndex">,
     options?: ChunkingOptions,
   ): TextChunk[] {
     const opts = { ...this.defaultOptions, ...options };
@@ -47,7 +47,7 @@ export class ChunkingService {
     // Dividir por separador principal (párrafos)
     const paragraphs = cleanedText.split(opts.separator!);
 
-    let currentChunk = '';
+    let currentChunk = "";
     let chunkIndex = 0;
 
     for (const paragraph of paragraphs) {
@@ -55,8 +55,11 @@ export class ChunkingService {
       if (!trimmedParagraph) continue;
 
       // Si el párrafo solo cabe en el chunk actual
-      if (currentChunk.length + trimmedParagraph.length + 1 <= opts.chunkSize!) {
-        currentChunk += (currentChunk ? '\n\n' : '') + trimmedParagraph;
+      if (
+        currentChunk.length + trimmedParagraph.length + 1 <=
+        opts.chunkSize!
+      ) {
+        currentChunk += (currentChunk ? "\n\n" : "") + trimmedParagraph;
       } else {
         // Guardar chunk actual si tiene contenido
         if (currentChunk) {
@@ -66,11 +69,11 @@ export class ChunkingService {
           });
 
           // Mantener overlap del final del chunk anterior
-          const words = currentChunk.split(' ');
+          const words = currentChunk.split(" ");
           const overlapWords = Math.ceil(
             (opts.chunkOverlap! / opts.chunkSize!) * words.length,
           );
-          currentChunk = words.slice(-overlapWords).join(' ');
+          currentChunk = words.slice(-overlapWords).join(" ");
         }
 
         // Si el párrafo es muy largo, dividirlo por oraciones
@@ -87,9 +90,9 @@ export class ChunkingService {
               metadata: { ...metadata, chunkIndex: chunkIndex++ },
             });
           }
-          currentChunk = '';
+          currentChunk = "";
         } else {
-          currentChunk += (currentChunk ? '\n\n' : '') + trimmedParagraph;
+          currentChunk += (currentChunk ? "\n\n" : "") + trimmedParagraph;
         }
       }
     }
@@ -118,13 +121,13 @@ export class ChunkingService {
     // Intentar dividir por oraciones
     const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
 
-    let currentChunk = '';
+    let currentChunk = "";
 
     for (const sentence of sentences) {
       const trimmedSentence = sentence.trim();
 
       if (currentChunk.length + trimmedSentence.length <= chunkSize) {
-        currentChunk += (currentChunk ? ' ' : '') + trimmedSentence;
+        currentChunk += (currentChunk ? " " : "") + trimmedSentence;
       } else {
         if (currentChunk) {
           chunks.push(currentChunk);
@@ -132,9 +135,13 @@ export class ChunkingService {
 
         // Si la oración sola es muy larga, dividir por palabras
         if (trimmedSentence.length > chunkSize) {
-          const wordChunks = this.chunkByWords(trimmedSentence, chunkSize, overlap);
+          const wordChunks = this.chunkByWords(
+            trimmedSentence,
+            chunkSize,
+            overlap,
+          );
           chunks.push(...wordChunks);
-          currentChunk = '';
+          currentChunk = "";
         } else {
           currentChunk = trimmedSentence;
         }
@@ -156,16 +163,19 @@ export class ChunkingService {
     chunkSize: number,
     overlap: number,
   ): string[] {
-    const words = text.split(' ');
+    const words = text.split(" ");
     const chunks: string[] = [];
     let i = 0;
 
     while (i < words.length) {
-      let chunk = '';
+      let chunk = "";
       const startIndex = i;
 
-      while (i < words.length && chunk.length + words[i].length + 1 <= chunkSize) {
-        chunk += (chunk ? ' ' : '') + words[i];
+      while (
+        i < words.length &&
+        chunk.length + words[i].length + 1 <= chunkSize
+      ) {
+        chunk += (chunk ? " " : "") + words[i];
         i++;
       }
 
@@ -175,7 +185,9 @@ export class ChunkingService {
 
       // Retroceder para overlap (solo si no es el último chunk)
       if (i < words.length) {
-        const overlapWords = Math.floor((overlap / chunkSize) * (i - startIndex));
+        const overlapWords = Math.floor(
+          (overlap / chunkSize) * (i - startIndex),
+        );
         i = Math.max(startIndex + 1, i - overlapWords);
       }
     }
@@ -188,10 +200,10 @@ export class ChunkingService {
    */
   private cleanText(text: string): string {
     return text
-      .replace(/\r\n/g, '\n') // Normalizar saltos de línea
-      .replace(/\n{3,}/g, '\n\n') // Máximo 2 saltos seguidos
-      .replace(/[ \t]+/g, ' ') // Múltiples espacios a uno
-      .replace(/^\s+|\s+$/gm, '') // Trim cada línea
+      .replace(/\r\n/g, "\n") // Normalizar saltos de línea
+      .replace(/\n{3,}/g, "\n\n") // Máximo 2 saltos seguidos
+      .replace(/[ \t]+/g, " ") // Múltiples espacios a uno
+      .replace(/^\s+|\s+$/gm, "") // Trim cada línea
       .trim();
   }
 

@@ -1,24 +1,30 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/database/prisma.service';
-import { OpenAlexProvider } from './providers/openalex.provider';
-import { SemanticScholarProvider } from './providers/semantic-scholar.provider';
-import { CrossrefProvider } from './providers/crossref.provider';
-import { YouTubeProvider } from './providers/youtube.provider';
-import { GoogleBooksProvider } from './providers/google-books.provider';
-import { ArchiveOrgProvider } from './providers/archive-org.provider';
-import { LibGenProvider } from './providers/libgen.provider';
-import { WebSearchProvider } from './providers/web-search.provider';
-import { MedicalBooksProvider } from './providers/medical-books.provider';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "@/database/prisma.service";
+import { OpenAlexProvider } from "./providers/openalex.provider";
+import { SemanticScholarProvider } from "./providers/semantic-scholar.provider";
+import { CrossrefProvider } from "./providers/crossref.provider";
+import { YouTubeProvider } from "./providers/youtube.provider";
+import { GoogleBooksProvider } from "./providers/google-books.provider";
+import { ArchiveOrgProvider } from "./providers/archive-org.provider";
+import { LibGenProvider } from "./providers/libgen.provider";
+import { WebSearchProvider } from "./providers/web-search.provider";
+import { MedicalBooksProvider } from "./providers/medical-books.provider";
 import {
   AcademicResource,
   AcademicResourceType,
   SearchQuery,
   SearchResult,
   AcademicSource,
-} from './interfaces/academic-resource.interface';
+} from "./interfaces/academic-resource.interface";
 
 // Categorías de búsqueda
-export type SearchCategory = 'all' | 'papers' | 'books' | 'videos' | 'courses' | 'medical';
+export type SearchCategory =
+  | "all"
+  | "papers"
+  | "books"
+  | "videos"
+  | "courses"
+  | "medical";
 
 @Injectable()
 export class AcademicService {
@@ -42,29 +48,29 @@ export class AcademicService {
    */
   async search(
     query: SearchQuery,
-    source: AcademicSource = 'openalex',
+    source: AcademicSource = "openalex",
   ): Promise<SearchResult> {
     this.logger.log(`Searching ${source} for: ${query.query}`);
 
     try {
       switch (source) {
-        case 'semantic_scholar':
+        case "semantic_scholar":
           return await this.semanticScholar.search(query);
-        case 'crossref':
+        case "crossref":
           return await this.crossref.search(query);
-        case 'youtube':
+        case "youtube":
           return await this.youtube.search(query);
-        case 'google_books':
+        case "google_books":
           return await this.googleBooks.search(query);
-        case 'archive_org':
+        case "archive_org":
           return await this.archiveOrg.search(query);
-        case 'libgen':
+        case "libgen":
           return await this.libgen.search(query);
-        case 'web':
+        case "web":
           return await this.webSearch.search(query);
-        case 'medical_books':
+        case "medical_books":
           return await this.medicalBooks.search(query);
-        case 'openalex':
+        case "openalex":
         default:
           return await this.openAlex.search(query);
       }
@@ -86,7 +92,7 @@ export class AcademicService {
    */
   async searchAll(
     query: SearchQuery,
-    category: SearchCategory = 'all',
+    category: SearchCategory = "all",
   ): Promise<{
     results: AcademicResource[];
     totalBySource: Record<string, number>;
@@ -100,25 +106,25 @@ export class AcademicService {
    */
   private getSourcesByCategory(category: SearchCategory): AcademicSource[] {
     switch (category) {
-      case 'papers':
-        return ['openalex', 'semantic_scholar', 'crossref'];
-      case 'books':
-        return ['google_books', 'archive_org', 'libgen', 'medical_books'];
-      case 'videos':
-        return ['youtube'];
-      case 'courses':
-        return ['archive_org', 'web'];
-      case 'medical':
-        return ['medical_books', 'openalex', 'semantic_scholar'];
-      case 'all':
+      case "papers":
+        return ["openalex", "semantic_scholar", "crossref"];
+      case "books":
+        return ["google_books", "archive_org", "libgen", "medical_books"];
+      case "videos":
+        return ["youtube"];
+      case "courses":
+        return ["archive_org", "web"];
+      case "medical":
+        return ["medical_books", "openalex", "semantic_scholar"];
+      case "all":
       default:
         return [
-          'openalex',
-          'google_books',
-          'youtube',
-          'archive_org',
-          'crossref',
-          'medical_books',
+          "openalex",
+          "google_books",
+          "youtube",
+          "archive_org",
+          "crossref",
+          "medical_books",
         ];
     }
   }
@@ -128,12 +134,12 @@ export class AcademicService {
    */
   async searchMultiple(
     query: SearchQuery,
-    sources: AcademicSource[] = ['openalex', 'semantic_scholar', 'crossref'],
+    sources: AcademicSource[] = ["openalex", "semantic_scholar", "crossref"],
   ): Promise<{
     results: AcademicResource[];
     totalBySource: Record<AcademicSource, number>;
   }> {
-    this.logger.log(`Searching multiple sources: ${sources.join(', ')}`);
+    this.logger.log(`Searching multiple sources: ${sources.join(", ")}`);
 
     const searchPromises = sources.map((source) =>
       this.search(query, source).catch((error) => {
@@ -175,7 +181,9 @@ export class AcademicService {
       return scoreB - scoreA;
     });
 
-    this.logger.log(`Found ${combined.length} unique results from ${sources.length} sources`);
+    this.logger.log(
+      `Found ${combined.length} unique results from ${sources.length} sources`,
+    );
 
     return {
       results: combined,
@@ -192,15 +200,15 @@ export class AcademicService {
   ): Promise<AcademicResource | null> {
     try {
       switch (source) {
-        case 'semantic_scholar':
+        case "semantic_scholar":
           return await this.semanticScholar.getById(externalId);
-        case 'crossref':
+        case "crossref":
           return await this.crossref.getById(externalId);
-        case 'openalex':
+        case "openalex":
           return await this.openAlex.getById(externalId);
-        case 'google_books':
+        case "google_books":
           return await this.googleBooks.getById(externalId);
-        case 'archive_org':
+        case "archive_org":
           return await this.archiveOrg.getById(externalId);
         default:
           return null;
@@ -225,7 +233,7 @@ export class AcademicService {
     if (topics.length === 0) return [];
 
     const query: SearchQuery = {
-      query: topics.join(' OR '),
+      query: topics.join(" OR "),
       filters: {
         isOpenAccess: options?.isOpenAccess ?? true,
       },
@@ -233,10 +241,10 @@ export class AcademicService {
         page: 1,
         perPage: options?.limit || 10,
       },
-      sort: 'relevance',
+      sort: "relevance",
     };
 
-    const { results } = await this.searchAll(query, options?.category || 'all');
+    const { results } = await this.searchAll(query, options?.category || "all");
     return results.slice(0, options?.limit || 10);
   }
 
@@ -248,7 +256,9 @@ export class AcademicService {
     userId: string,
     resource: AcademicResource,
   ) {
-    this.logger.log(`Importing resource "${resource.title}" to subject ${subjectId} for user ${userId}`);
+    this.logger.log(
+      `Importing resource "${resource.title}" to subject ${subjectId} for user ${userId}`,
+    );
 
     // Verify subject ownership
     const subject = await this.prisma.subject.findFirst({
@@ -257,30 +267,30 @@ export class AcademicService {
 
     if (!subject) {
       this.logger.warn(`Subject ${subjectId} not found for user ${userId}`);
-      throw new NotFoundException('Materia no encontrada');
+      throw new NotFoundException("Materia no encontrada");
     }
 
     // Map AcademicResourceType to internal ResourceType
     const typeMap: Record<AcademicResourceType | string, string> = {
-      paper: 'PAPER',
-      book: 'BOOK',
-      book_chapter: 'BOOK',
-      article: 'ARTICLE',
-      thesis: 'PAPER',
-      conference: 'PAPER',
-      preprint: 'PAPER',
-      dataset: 'OTHER',
-      course: 'COURSE',
-      video: 'VIDEO',
-      manual: 'MANUAL',
-      notes: 'NOTES',
-      report: 'PAPER',
-      standard: 'OTHER',
-      reference: 'OTHER',
-      other: 'OTHER',
+      paper: "PAPER",
+      book: "BOOK",
+      book_chapter: "BOOK",
+      article: "ARTICLE",
+      thesis: "PAPER",
+      conference: "PAPER",
+      preprint: "PAPER",
+      dataset: "OTHER",
+      course: "COURSE",
+      video: "VIDEO",
+      manual: "MANUAL",
+      notes: "NOTES",
+      report: "PAPER",
+      standard: "OTHER",
+      reference: "OTHER",
+      other: "OTHER",
     };
 
-    const resourceType = typeMap[resource.type] || 'OTHER';
+    const resourceType = typeMap[resource.type] || "OTHER";
 
     try {
       // Create the resource
@@ -292,8 +302,8 @@ export class AcademicService {
           description: resource.abstract || null,
           url: resource.url || resource.pdfUrl || null,
           type: resourceType as any,
-          level: 'INTERMEDIATE',
-          language: resource.language || 'en',
+          level: "INTERMEDIATE",
+          language: resource.language || "en",
           isOpenAccess: resource.isOpenAccess,
           license: resource.license || null,
           externalId: resource.externalId,

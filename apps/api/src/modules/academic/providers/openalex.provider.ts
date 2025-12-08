@@ -1,14 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
+import { firstValueFrom } from "rxjs";
 import {
   AcademicProvider,
   AcademicResource,
   SearchQuery,
   SearchResult,
   AcademicResourceType,
-} from '../interfaces/academic-resource.interface';
+} from "../interfaces/academic-resource.interface";
 
 /**
  * OpenAlex Provider
@@ -17,8 +17,8 @@ import {
  */
 @Injectable()
 export class OpenAlexProvider implements AcademicProvider {
-  readonly name = 'openalex' as const;
-  private readonly baseUrl = 'https://api.openalex.org';
+  readonly name = "openalex" as const;
+  private readonly baseUrl = "https://api.openalex.org";
   private readonly logger = new Logger(OpenAlexProvider.name);
   private readonly email?: string;
 
@@ -27,7 +27,7 @@ export class OpenAlexProvider implements AcademicProvider {
     private readonly config: ConfigService,
   ) {
     // OpenAlex recomienda pasar email para mejor rate limiting
-    this.email = this.config.get<string>('OPENALEX_EMAIL');
+    this.email = this.config.get<string>("OPENALEX_EMAIL");
   }
 
   async search(query: SearchQuery): Promise<SearchResult> {
@@ -37,7 +37,9 @@ export class OpenAlexProvider implements AcademicProvider {
 
       const response = await firstValueFrom(
         this.http.get(url, {
-          headers: this.email ? { 'User-Agent': `CampusMind (${this.email})` } : {},
+          headers: this.email
+            ? { "User-Agent": `CampusMind (${this.email})` }
+            : {},
         }),
       );
 
@@ -69,7 +71,9 @@ export class OpenAlexProvider implements AcademicProvider {
 
       const response = await firstValueFrom(
         this.http.get(url, {
-          headers: this.email ? { 'User-Agent': `CampusMind (${this.email})` } : {},
+          headers: this.email
+            ? { "User-Agent": `CampusMind (${this.email})` }
+            : {},
         }),
       );
 
@@ -84,13 +88,13 @@ export class OpenAlexProvider implements AcademicProvider {
     const params = new URLSearchParams();
 
     // Búsqueda principal
-    params.set('search', query.query);
+    params.set("search", query.query);
 
     // Filtros
     const filters: string[] = [];
 
     if (query.filters?.isOpenAccess) {
-      filters.push('is_oa:true');
+      filters.push("is_oa:true");
     }
 
     if (query.filters?.yearFrom) {
@@ -106,20 +110,20 @@ export class OpenAlexProvider implements AcademicProvider {
     }
 
     if (filters.length > 0) {
-      params.set('filter', filters.join(','));
+      params.set("filter", filters.join(","));
     }
 
     // Paginación
     const page = query.pagination?.page || 1;
     const perPage = query.pagination?.perPage || 25;
-    params.set('page', page.toString());
-    params.set('per_page', Math.min(perPage, 200).toString());
+    params.set("page", page.toString());
+    params.set("per_page", Math.min(perPage, 200).toString());
 
     // Ordenamiento
-    if (query.sort === 'date') {
-      params.set('sort', 'publication_date:desc');
-    } else if (query.sort === 'citations') {
-      params.set('sort', 'cited_by_count:desc');
+    if (query.sort === "date") {
+      params.set("sort", "publication_date:desc");
+    } else if (query.sort === "citations") {
+      params.set("sort", "cited_by_count:desc");
     }
     // relevance es el default
 
@@ -128,9 +132,9 @@ export class OpenAlexProvider implements AcademicProvider {
 
   private normalizeWork(work: any): AcademicResource {
     return {
-      externalId: work.id?.replace('https://openalex.org/', '') || '',
+      externalId: work.id?.replace("https://openalex.org/", "") || "",
       source: this.name,
-      title: work.title || 'Sin título',
+      title: work.title || "Sin título",
       authors: (work.authorships || [])
         .map((a: any) => a.author?.display_name)
         .filter(Boolean)
@@ -139,9 +143,7 @@ export class OpenAlexProvider implements AcademicProvider {
       publicationDate: work.publication_date,
       publicationYear: work.publication_year,
       type: this.mapWorkType(work.type),
-      topics: (work.topics || [])
-        .map((t: any) => t.display_name)
-        .slice(0, 5),
+      topics: (work.topics || []).map((t: any) => t.display_name).slice(0, 5),
       keywords: (work.keywords || [])
         .map((k: any) => k.display_name)
         .slice(0, 10),
@@ -157,7 +159,9 @@ export class OpenAlexProvider implements AcademicProvider {
     };
   }
 
-  private reconstructAbstract(invertedIndex: Record<string, number[]> | null): string | undefined {
+  private reconstructAbstract(
+    invertedIndex: Record<string, number[]> | null,
+  ): string | undefined {
     if (!invertedIndex) return undefined;
 
     const words: [string, number][] = [];
@@ -168,19 +172,19 @@ export class OpenAlexProvider implements AcademicProvider {
     }
 
     words.sort((a, b) => a[1] - b[1]);
-    return words.map((w) => w[0]).join(' ');
+    return words.map((w) => w[0]).join(" ");
   }
 
   private mapWorkType(type: string): AcademicResourceType {
     const typeMap: Record<string, AcademicResourceType> = {
-      'journal-article': 'article',
-      'book-chapter': 'book_chapter',
-      book: 'book',
-      'proceedings-article': 'conference',
-      dissertation: 'thesis',
-      preprint: 'preprint',
-      dataset: 'dataset',
+      "journal-article": "article",
+      "book-chapter": "book_chapter",
+      book: "book",
+      "proceedings-article": "conference",
+      dissertation: "thesis",
+      preprint: "preprint",
+      dataset: "dataset",
     };
-    return typeMap[type] || 'paper';
+    return typeMap[type] || "paper";
   }
 }
