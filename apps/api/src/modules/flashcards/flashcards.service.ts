@@ -419,6 +419,68 @@ export class FlashcardsService {
   }
 
   /**
+   * Calcular racha de días consecutivos de estudio
+   */
+  private async calculateStreakDays(userId: string): Promise<number> {
+    // Obtener todas las fechas únicas de reviews del usuario
+    const reviews = await this.prisma.flashcardReview.findMany({
+      where: {
+        flashcard: {
+          deck: { userId },
+        },
+      },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (reviews.length === 0) return 0;
+
+    // Extraer fechas únicas (solo día, sin hora)
+    const uniqueDates = new Set<string>();
+    reviews.forEach((review: { createdAt: Date }) => {
+      const dateStr = review.createdAt.toISOString().split('T')[0];
+      uniqueDates.add(dateStr);
+    });
+
+    // Convertir a array y ordenar de más reciente a más antiguo
+    const sortedDates = Array.from(uniqueDates).sort((a, b) =>
+      new Date(b).getTime() - new Date(a).getTime()
+    );
+
+    // Verificar si estudió hoy o ayer (para mantener el streak)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Si no estudió ni hoy ni ayer, el streak es 0
+    if (sortedDates[0] !== todayStr && sortedDates[0] !== yesterdayStr) {
+      return 0;
+    }
+
+    // Contar días consecutivos
+    let streak = 0;
+    let currentDate = sortedDates[0] === todayStr ? today : yesterday;
+
+    for (const dateStr of sortedDates) {
+      const expectedDateStr = currentDate.toISOString().split('T')[0];
+
+      if (dateStr === expectedDateStr) {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else if (dateStr < expectedDateStr) {
+        // Hay un hueco, terminar el conteo
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  /**
    * Obtener estadísticas de estudio
    */
   async getStudyStats(
@@ -441,7 +503,7 @@ export class FlashcardsService {
       where.deckId = deckId;
     }
 
-    const [totalCards, dueCards, todayReviews, avgEase, mastered] =
+    const [totalCards, dueCards, todayReviews, avgEase, mastered, streakDays] =
       await Promise.all([
         // Total cards
         this.prisma.flashcard.count({ where }),
@@ -465,6 +527,8 @@ export class FlashcardsService {
         this.prisma.flashcard.count({
           where: { ...where, interval: { gte: 21 } },
         }),
+        // Calculate streak
+        this.calculateStreakDays(userId),
       ]);
 
     return {
@@ -473,7 +537,7 @@ export class FlashcardsService {
       reviewedToday: todayReviews.length,
       averageEaseFactor: avgEase._avg?.easeFactor || DEFAULT_EASE_FACTOR,
       masteredCards: mastered,
-      streakDays: 0, // TODO: Calculate actual streak
+      streakDays,
     };
   }
 
