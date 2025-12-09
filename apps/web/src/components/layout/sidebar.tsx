@@ -118,7 +118,7 @@ const navigation = [
   },
   {
     name: 'Temporizador',
-    href: '/app/pomodoro',
+    href: '/app/timer',
     icon: Timer,
     gradient: 'from-rose-500 to-orange-500',
   },
