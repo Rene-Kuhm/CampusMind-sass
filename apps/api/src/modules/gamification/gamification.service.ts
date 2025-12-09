@@ -14,6 +14,7 @@ const XP_REWARDS = {
   STREAK_BONUS_7: 50,
   STREAK_BONUS_30: 200,
   HELP_OTHERS: 10, // Forum answers
+  ACHIEVEMENT: 25, // Default XP for achievements (actual may vary by achievement)
 };
 
 // Level thresholds
@@ -172,17 +173,12 @@ export class GamificationService {
   }
 
   async getOrCreateUserXP(userId: string) {
-    let userXP = await this.prisma.userXP.findUnique({
+    // Use upsert to avoid race conditions when multiple requests try to create
+    return this.prisma.userXP.upsert({
       where: { userId },
+      update: {}, // No updates needed, just return existing
+      create: { userId },
     });
-
-    if (!userXP) {
-      userXP = await this.prisma.userXP.create({
-        data: { userId },
-      });
-    }
-
-    return userXP;
   }
 
   async getUserProfile(userId: string) {
@@ -440,7 +436,7 @@ export class GamificationService {
       if (isCompleted && !unlockedIds.has(achievement.id)) {
         newUnlocks.push(achievement);
         // Award XP for achievement
-        await this.awardXP(userId, 'ACHIEVEMENT' as any, `Logro: ${achievement.title}`);
+        await this.awardXP(userId, 'ACHIEVEMENT', `Logro: ${achievement.title}`);
       }
     }
 
