@@ -101,10 +101,10 @@ export default function SocialPage() {
         social.getSharedDecks(token).catch(() => []),
       ]);
       setBuddyPreferences(prefs);
-      setBuddyMatches(matches);
-      setListings(allListings);
-      setMyListings(mine);
-      setSharedDecks(decks);
+      setBuddyMatches(Array.isArray(matches) ? matches : []);
+      setListings(Array.isArray(allListings) ? allListings : []);
+      setMyListings(Array.isArray(mine) ? mine : []);
+      setSharedDecks(Array.isArray(decks) ? decks : []);
     } catch (error) {
       console.error('Error loading:', error);
     } finally {
@@ -245,7 +245,7 @@ export default function SocialPage() {
     return <Badge variant={color as any}>{label}</Badge>;
   };
 
-  const filteredListings = listings.filter(listing => {
+  const filteredListings = (Array.isArray(listings) ? listings : []).filter(listing => {
     const matchesSearch = !searchQuery ||
       listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.description?.toLowerCase().includes(searchQuery.toLowerCase());
