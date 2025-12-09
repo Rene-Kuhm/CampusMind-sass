@@ -122,6 +122,83 @@ Transformar la manera en que los universitarios estudian, organizan su tiempo y 
 | PWA | Implementado | Instalable como app nativa |
 | i18n | Preparado | Soporte para multiples idiomas |
 
+### New Student Features (v2.0)
+
+#### OCR - Text Extraction
+- Subir imagenes (PNG, JPG)
+- Extraccion de texto con IA
+- Mejora automatica del texto
+- Asociar a materias
+- Soporte multiidioma (ES, EN, PT)
+
+#### Forums - Community Discussions
+- Categorias de discusion (General, Tecnico, Examenes, etc.)
+- Hilos y respuestas con votos
+- Sistema de karma y reputacion
+- Etiquetas y busqueda
+- Marcar respuestas como aceptadas
+
+#### Tutoring - Peer Learning
+- Busqueda de tutores por materia
+- Perfiles con calificaciones y resenas
+- Agendamiento de sesiones
+- Videollamadas integradas
+- Sistema de pagos entre usuarios
+
+#### Bibliography - Citation Management
+- Crear bibliografias por proyecto
+- Agregar citas manualmente o por DOI
+- Exportar en multiples formatos (APA, MLA, Chicago, IEEE, Harvard)
+- Importar desde bases de datos academicas
+
+#### Study Plans - AI Generated
+- Planes personalizados segun estilo de aprendizaje
+- Actividades diarias con duracion estimada
+- Seguimiento de progreso
+- Regenerar planes con IA
+- Soporte para Visual, Auditivo, Lectura, Kinestesico
+
+#### Transcription - Audio/Video to Text
+- Subir archivos de audio (MP3, WAV) o video (MP4, WebM)
+- Transcripcion automatica con IA
+- Segmentos con marcas de tiempo
+- Exportar a TXT, SRT, VTT
+- Resumen automatico del contenido
+
+#### Video Summary - YouTube Integration
+- Pegar URL de YouTube
+- Extraer resumen automatico
+- Puntos clave y conclusiones
+- Timestamps navegables
+- Generar notas y flashcards del video
+
+#### Integrations Panel
+- **Notion**: Sincronizar notas y documentos
+- **Google Drive**: Guardar y acceder archivos
+- **Discord**: Notificaciones y recordatorios
+- **Spotify**: Playlists de estudio
+- **GitHub**: Proyectos de codigo
+- **Slack**: Mensajeria y canales
+
+#### Email Reports
+- Reportes diarios, semanales o mensuales
+- Incluir estadisticas de estudio
+- Resumen de tareas y metas
+- Logros desbloqueados
+- Recomendaciones personalizadas con IA
+
+#### LMS Integration
+- **Moodle**: Sincronizar cursos y tareas
+- **Google Classroom**: Importar clases
+- **Canvas LMS**: Conectar con tu institucion
+- Importar fechas de entrega automaticamente
+
+#### Calendar Sync
+- Sincronizacion bidireccional con Google Calendar
+- Exportar tareas, examenes y sesiones de estudio
+- Importar eventos externos
+- Recordatorios configurables
+
 ---
 
 ## Tech Stack
@@ -228,16 +305,31 @@ campusmind/
 │   ├── api/                    # NestJS Backend
 │   │   ├── src/
 │   │   │   ├── modules/
-│   │   │   │   ├── auth/       # Authentication & 2FA
-│   │   │   │   ├── subjects/   # Subjects/Workspaces
-│   │   │   │   ├── resources/  # Academic Resources
-│   │   │   │   ├── flashcards/ # Flashcards & SM-2
-│   │   │   │   ├── quizzes/    # Quizzes & Exams
-│   │   │   │   ├── calendar/   # Study Calendar
-│   │   │   │   ├── rag/        # AI/RAG Module
-│   │   │   │   ├── billing/    # Subscriptions & Limits
-│   │   │   │   ├── notifications/
-│   │   │   │   └── academic/   # Library & Search
+│   │   │   │   ├── auth/           # Authentication & 2FA
+│   │   │   │   ├── subjects/       # Subjects/Workspaces
+│   │   │   │   ├── resources/      # Academic Resources
+│   │   │   │   ├── flashcards/     # Flashcards & SM-2
+│   │   │   │   ├── quizzes/        # Quizzes & Exams
+│   │   │   │   ├── calendar/       # Study Calendar
+│   │   │   │   ├── rag/            # AI/RAG Module
+│   │   │   │   ├── billing/        # Subscriptions & Limits
+│   │   │   │   ├── notifications/  # Push & Email
+│   │   │   │   ├── academic/       # Library & Search
+│   │   │   │   ├── goals/          # Academic Goals
+│   │   │   │   ├── analytics/      # Usage Analytics
+│   │   │   │   ├── ocr/            # Text Extraction
+│   │   │   │   ├── calendar-sync/  # Google Calendar Sync
+│   │   │   │   ├── groups/         # Study Groups
+│   │   │   │   ├── gamification/   # Badges & Achievements
+│   │   │   │   ├── forums/         # Discussion Forums
+│   │   │   │   ├── tutoring/       # Peer Tutoring
+│   │   │   │   ├── bibliography/   # Citation Management
+│   │   │   │   ├── study-plans/    # AI Study Plans
+│   │   │   │   ├── transcription/  # Audio/Video Transcription
+│   │   │   │   ├── video-summary/  # YouTube Summaries
+│   │   │   │   ├── email-reports/  # Scheduled Reports
+│   │   │   │   ├── lms/            # LMS Integration
+│   │   │   │   └── integrations/   # External Services
 │   │   │   ├── common/         # Guards, Decorators, Pipes
 │   │   │   ├── database/       # Prisma Service
 │   │   │   └── main.ts
@@ -250,6 +342,24 @@ campusmind/
 │           ├── app/
 │           │   ├── (auth)/     # Auth pages
 │           │   ├── app/        # Protected app pages
+│           │   │   ├── dashboard/
+│           │   │   ├── subjects/
+│           │   │   ├── flashcards/
+│           │   │   ├── quizzes/
+│           │   │   ├── calendar/
+│           │   │   ├── copilot/
+│           │   │   ├── ocr/           # NEW: OCR Text Extraction
+│           │   │   ├── forums/        # NEW: Discussion Forums
+│           │   │   ├── tutoring/      # NEW: Peer Tutoring
+│           │   │   ├── bibliography/  # NEW: Citation Management
+│           │   │   ├── study-plans/   # NEW: AI Study Plans
+│           │   │   ├── transcription/ # NEW: Audio/Video Transcription
+│           │   │   ├── video-summary/ # NEW: YouTube Summaries
+│           │   │   ├── lms/           # NEW: LMS Integration
+│           │   │   └── settings/
+│           │   │       ├── integrations/   # NEW: External Services
+│           │   │       ├── email-reports/  # NEW: Report Config
+│           │   │       └── calendar-sync/  # NEW: Google Calendar
 │           │   └── (marketing)/ # Landing pages
 │           ├── components/
 │           │   ├── ui/         # Base UI components
@@ -670,6 +780,112 @@ pnpm docker:down
 | `/api/v1/billing/checkout` | POST | Create checkout session |
 | `/api/v1/billing/usage` | GET | Get usage stats |
 
+### OCR (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/ocr/process` | POST | Process image for text extraction |
+| `/api/v1/ocr` | GET | List OCR documents |
+| `/api/v1/ocr/:id` | GET | Get document details |
+| `/api/v1/ocr/:id/reprocess` | POST | Reprocess document |
+| `/api/v1/ocr/:id` | DELETE | Delete document |
+
+### Forums (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/forums/categories` | GET | List categories |
+| `/api/v1/forums/threads` | GET/POST | List/Create threads |
+| `/api/v1/forums/threads/:id` | GET/PATCH/DELETE | Thread operations |
+| `/api/v1/forums/threads/:id/replies` | GET/POST | Thread replies |
+| `/api/v1/forums/replies/:id/vote` | POST | Vote on reply |
+| `/api/v1/forums/replies/:id/accept` | POST | Accept answer |
+
+### Tutoring (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/tutoring/tutors` | GET | Search tutors |
+| `/api/v1/tutoring/tutors/:id` | GET | Get tutor profile |
+| `/api/v1/tutoring/sessions` | GET/POST | List/Book sessions |
+| `/api/v1/tutoring/sessions/:id` | PATCH | Update session |
+| `/api/v1/tutoring/sessions/:id/cancel` | POST | Cancel session |
+| `/api/v1/tutoring/reviews` | POST | Leave review |
+
+### Bibliography (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/bibliography` | GET/POST | List/Create bibliographies |
+| `/api/v1/bibliography/:id` | GET/PATCH/DELETE | Bibliography operations |
+| `/api/v1/bibliography/:id/citations` | GET/POST | Manage citations |
+| `/api/v1/bibliography/:id/import-doi` | POST | Import from DOI |
+| `/api/v1/bibliography/:id/export` | GET | Export (APA, MLA, etc.) |
+
+### Study Plans (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/study-plans` | GET | List study plans |
+| `/api/v1/study-plans/generate` | POST | Generate AI plan |
+| `/api/v1/study-plans/:id` | GET/DELETE | Plan operations |
+| `/api/v1/study-plans/:id/regenerate` | POST | Regenerate plan |
+| `/api/v1/study-plans/:id/activities/:actId` | PATCH | Update activity |
+
+### Transcription (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/transcription/transcribe` | POST | Transcribe audio/video |
+| `/api/v1/transcription` | GET | List transcriptions |
+| `/api/v1/transcription/:id` | GET/DELETE | Transcription operations |
+| `/api/v1/transcription/:id/export` | GET | Export (TXT, SRT, VTT) |
+
+### Video Summary (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/video-summary/summarize` | POST | Summarize YouTube video |
+| `/api/v1/video-summary` | GET | List summaries |
+| `/api/v1/video-summary/:id` | GET/DELETE | Summary operations |
+
+### Integrations (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/integrations` | GET | List user integrations |
+| `/api/v1/integrations/connect/:type` | POST | Connect service |
+| `/api/v1/integrations/:id` | DELETE | Disconnect service |
+| `/api/v1/integrations/:id/sync` | POST | Sync integration |
+
+### Email Reports (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/email-reports/config` | GET/PATCH | Get/Update config |
+| `/api/v1/email-reports/send-test` | POST | Send test email |
+
+### LMS (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/lms/connections` | GET | List LMS connections |
+| `/api/v1/lms/connect` | POST | Connect to LMS |
+| `/api/v1/lms/connections/:id` | DELETE | Disconnect LMS |
+| `/api/v1/lms/courses` | GET | List synced courses |
+| `/api/v1/lms/sync` | POST | Sync courses |
+| `/api/v1/lms/courses/:id/import` | POST | Import assignments |
+
+### Calendar Sync (New)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/calendar-sync/config` | GET/PATCH | Get/Update config |
+| `/api/v1/calendar-sync/connect` | POST | Connect Google Calendar |
+| `/api/v1/calendar-sync/disconnect` | POST | Disconnect |
+| `/api/v1/calendar-sync/calendars` | GET | List calendars |
+| `/api/v1/calendar-sync/sync` | POST | Trigger sync |
+
 ---
 
 ## Environment Variables
@@ -774,7 +990,7 @@ This project is proprietary software. All rights reserved.
 
 ## Roadmap
 
-### Phase 1 - MVP (Current)
+### Phase 1 - MVP (Completed)
 - [x] Authentication & User Management
 - [x] Subjects/Workspaces CRUD
 - [x] Flashcards with Spaced Repetition
@@ -784,17 +1000,28 @@ This project is proprietary software. All rights reserved.
 - [x] Billing & Subscriptions
 - [x] Notifications System
 
-### Phase 2 - Enhanced Features
-- [ ] Collaborative Study Groups
-- [ ] Mind Maps Editor
-- [ ] Audio Podcasts Generation
-- [ ] Advanced Analytics Dashboard
-- [ ] Mobile App (React Native)
+### Phase 2 - Enhanced Features (Completed)
+- [x] OCR Text Extraction
+- [x] Discussion Forums
+- [x] Peer Tutoring System
+- [x] Bibliography & Citations
+- [x] AI Study Plans
+- [x] Audio/Video Transcription
+- [x] YouTube Video Summaries
+- [x] External Integrations (Notion, Drive, Discord, Spotify)
+- [x] Email Reports
+- [x] LMS Integration (Moodle, Classroom, Canvas)
+- [x] Google Calendar Sync
+- [x] Gamification & Achievements
+- [x] Study Groups
 
-### Phase 3 - Scale
+### Phase 3 - Scale & Mobile
+- [ ] Mobile App (React Native)
 - [ ] Multi-tenant Architecture
 - [ ] Institution Accounts
-- [ ] LTI Integration (Moodle, Canvas)
+- [ ] Advanced Analytics Dashboard
+- [ ] Audio Podcasts Generation
+- [ ] Mind Maps Editor
 - [ ] API for Third-party Integrations
 
 ---
