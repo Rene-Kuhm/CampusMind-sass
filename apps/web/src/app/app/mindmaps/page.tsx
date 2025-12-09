@@ -418,7 +418,7 @@ export default function MindMapsPage() {
   // Load subjects
   useEffect(() => {
     if (token) {
-      subjectsApi.list(token).then(setSubjects).catch(console.error);
+      subjectsApi.list(token).then(data => setSubjects(Array.isArray(data) ? data : [])).catch(console.error);
     }
   }, [token]);
 

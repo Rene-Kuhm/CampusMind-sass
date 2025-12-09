@@ -56,8 +56,8 @@ export default function ForumsPage() {
   // Load categories
   useEffect(() => {
     if (token) {
-      forums.getCategories(token).then(setCategories).catch(console.error);
-      forums.getPopularTags(token, 10).then(setPopularTags).catch(console.error);
+      forums.getCategories(token).then(data => setCategories(Array.isArray(data) ? data : [])).catch(console.error);
+      forums.getPopularTags(token, 10).then(data => setPopularTags(Array.isArray(data) ? data : [])).catch(console.error);
     }
   }, [token]);
 
