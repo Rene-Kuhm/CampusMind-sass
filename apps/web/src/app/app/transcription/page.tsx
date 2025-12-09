@@ -263,7 +263,7 @@ export default function TranscriptionPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleCopy(selectedTranscription.text || '')}
+                    onClick={() => handleCopy(selectedTranscription.transcribedText || '')}
                   >
                     {copied ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -281,7 +281,7 @@ export default function TranscriptionPage() {
                       ))
                     ) : (
                       <p className="whitespace-pre-wrap text-sm text-secondary-700">
-                        {selectedTranscription.text || 'Sin transcripción disponible'}
+                        {selectedTranscription.transcribedText || 'Sin transcripción disponible'}
                       </p>
                     )}
                   </div>
@@ -385,9 +385,9 @@ export default function TranscriptionPage() {
                         </>
                       )}
                     </div>
-                    {t.text && (
+                    {t.transcribedText && (
                       <p className="text-sm text-secondary-600 line-clamp-2">
-                        {t.text.substring(0, 100)}...
+                        {t.transcribedText.substring(0, 100)}...
                       </p>
                     )}
                     <div className="flex items-center justify-between pt-3 border-t border-secondary-100 mt-3">
