@@ -146,7 +146,7 @@ export default function VideoSummaryPage() {
 
   // Detail view
   if (selectedSummary) {
-    const videoId = getYoutubeVideoId(selectedSummary.youtubeUrl);
+    const videoId = getYoutubeVideoId(selectedSummary.youtubeUrl || selectedSummary.videoUrl);
 
     return (
       <div className="min-h-screen">
@@ -169,9 +169,9 @@ export default function VideoSummaryPage() {
                   <h1 className="text-2xl font-bold text-secondary-900 line-clamp-1">{selectedSummary.videoTitle}</h1>
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusBadge(selectedSummary.status)}
-                    {selectedSummary.duration && (
+                    {selectedSummary.videoDuration && (
                       <span className="text-sm text-secondary-500">
-                        {formatDuration(selectedSummary.duration)}
+                        {formatDuration(selectedSummary.videoDuration)}
                       </span>
                     )}
                     <span className="text-sm text-secondary-500">
@@ -292,7 +292,7 @@ export default function VideoSummaryPage() {
                         <span className="text-sm font-mono text-red-500 whitespace-nowrap">
                           {formatDuration(ts.time)}
                         </span>
-                        <span className="text-sm text-secondary-700 line-clamp-1">{ts.label}</span>
+                        <span className="text-sm text-secondary-700 line-clamp-1">{ts.topic}</span>
                       </button>
                     ))}
                   </div>
@@ -377,7 +377,7 @@ export default function VideoSummaryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {summaries.map(summary => {
-                const videoId = getYoutubeVideoId(summary.youtubeUrl);
+                const videoId = getYoutubeVideoId(summary.youtubeUrl || summary.videoUrl);
                 return (
                   <Card
                     key={summary.id}
@@ -400,9 +400,9 @@ export default function VideoSummaryPage() {
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Play className="h-12 w-12 text-white" />
                       </div>
-                      {summary.duration && (
+                      {summary.videoDuration && (
                         <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                          {formatDuration(summary.duration)}
+                          {formatDuration(summary.videoDuration)}
                         </div>
                       )}
                     </div>

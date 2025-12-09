@@ -1785,6 +1785,7 @@ export interface Transcription {
   sourceUrl?: string;
   fileUrl?: string;
   fileName?: string;
+  fileType?: string;
   subjectId?: string;
   duration?: number;
   language?: string;
@@ -1828,20 +1829,34 @@ export interface VideoSummary {
   id: string;
   title: string;
   videoUrl: string;
+  youtubeUrl?: string; // alias for videoUrl
   videoPlatform: string;
   videoTitle?: string;
   videoThumbnail?: string;
   videoDuration?: number;
+  channelName?: string;
+  subjectId?: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   summary?: string;
   keyPoints?: string[];
   timestamps?: { time: number; topic: string }[];
+  tags?: string[];
   createdAt: string;
 }
 
 export const videoSummary = {
   create: (token: string, data: { title: string; videoUrl: string; subjectId?: string; language?: string }) =>
     request<VideoSummary>('/video-summary', { method: 'POST', body: data, token }),
+
+  summarize: (token: string, data: { title?: string; videoUrl?: string; youtubeUrl?: string; subjectId?: string; language?: string; generateNotes?: boolean; generateFlashcards?: boolean }) =>
+    request<VideoSummary>('/video-summary/summarize', {
+      method: 'POST',
+      body: {
+        ...data,
+        videoUrl: data.videoUrl || data.youtubeUrl,
+      },
+      token
+    }),
 
   list: (token: string, subjectId?: string) =>
     request<VideoSummary[]>(`/video-summary${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
