@@ -1418,6 +1418,553 @@ export const passwordReset = {
     request<{ message: string }>('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword }, token }),
 };
 
+// ============================================
+// OCR ENDPOINTS
+// ============================================
+
+export interface OcrDocument {
+  id: string;
+  title: string;
+  fileUrl: string;
+  extractedText: string;
+  enhancedText?: string;
+  language?: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  createdAt: string;
+}
+
+export const ocr = {
+  process: (token: string, data: { title: string; fileUrl: string; fileName: string; fileType: string; fileSize: number; subjectId?: string; language?: string }) =>
+    request<OcrDocument>('/ocr/process', { method: 'POST', body: data, token }),
+
+  list: (token: string, subjectId?: string) =>
+    request<OcrDocument[]>(`/ocr${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<OcrDocument>(`/ocr/${id}`, { token }),
+
+  reprocess: (token: string, id: string) =>
+    request<OcrDocument>(`/ocr/${id}/reprocess`, { method: 'POST', token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/ocr/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
+// FORUMS ENDPOINTS
+// ============================================
+
+export interface ForumCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  threadCount: number;
+}
+
+export interface ForumThread {
+  id: string;
+  title: string;
+  content: string;
+  categoryId: string;
+  authorId: string;
+  author: { profile: { firstName: string; lastName: string; avatar?: string } };
+  isPinned: boolean;
+  isLocked: boolean;
+  isSolved: boolean;
+  viewCount: number;
+  replyCount: number;
+  voteScore: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ForumReply {
+  id: string;
+  content: string;
+  authorId: string;
+  author: { profile: { firstName: string; lastName: string; avatar?: string } };
+  isAccepted: boolean;
+  voteScore: number;
+  createdAt: string;
+}
+
+export const forums = {
+  getCategories: (token: string) =>
+    request<ForumCategory[]>('/forums/categories', { token }),
+
+  createCategory: (token: string, data: { name: string; slug: string; description?: string; icon?: string; color?: string }) =>
+    request<ForumCategory>('/forums/categories', { method: 'POST', body: data, token }),
+
+  getThreads: (token: string, params?: { categoryId?: string; search?: string; tags?: string; sort?: string; page?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.tags) searchParams.set('tags', params.tags);
+    if (params?.sort) searchParams.set('sort', params.sort);
+    if (params?.page) searchParams.set('page', String(params.page));
+    return request<{ threads: ForumThread[]; total: number; page: number; totalPages: number }>(`/forums/threads?${searchParams}`, { token });
+  },
+
+  getThread: (token: string, id: string) =>
+    request<ForumThread & { replies: ForumReply[] }>(`/forums/threads/${id}`, { token }),
+
+  createThread: (token: string, data: { title: string; content: string; categoryId: string; tags?: string[] }) =>
+    request<ForumThread>('/forums/threads', { method: 'POST', body: data, token }),
+
+  updateThread: (token: string, id: string, data: { title?: string; content?: string; tags?: string[] }) =>
+    request<ForumThread>(`/forums/threads/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteThread: (token: string, id: string) =>
+    request<{ success: boolean }>(`/forums/threads/${id}`, { method: 'DELETE', token }),
+
+  createReply: (token: string, threadId: string, data: { content: string; parentId?: string }) =>
+    request<ForumReply>(`/forums/threads/${threadId}/replies`, { method: 'POST', body: data, token }),
+
+  acceptReply: (token: string, replyId: string) =>
+    request<ForumReply>(`/forums/replies/${replyId}/accept`, { method: 'POST', token }),
+
+  voteThread: (token: string, threadId: string, value: 1 | -1) =>
+    request<{ voteScore: number }>(`/forums/threads/${threadId}/vote`, { method: 'POST', body: { value }, token }),
+
+  voteReply: (token: string, replyId: string, value: 1 | -1) =>
+    request<{ voteScore: number }>(`/forums/replies/${replyId}/vote`, { method: 'POST', body: { value }, token }),
+
+  getPopularTags: (token: string, limit?: number) =>
+    request<{ tag: string; count: number }[]>(`/forums/tags/popular${limit ? `?limit=${limit}` : ''}`, { token }),
+};
+
+// ============================================
+// TUTORING ENDPOINTS
+// ============================================
+
+export interface TutorProfile {
+  id: string;
+  userId: string;
+  user: { profile: { firstName: string; lastName: string; avatar?: string } };
+  bio?: string;
+  subjects: string[];
+  hourlyRate?: number;
+  availability?: any;
+  rating: number;
+  reviewCount: number;
+  totalSessions: number;
+  isVerified: boolean;
+  university?: string;
+}
+
+export interface TutoringSession {
+  id: string;
+  studentId: string;
+  tutorId: string;
+  subject: string;
+  scheduledAt: string;
+  duration: number;
+  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
+  meetingUrl?: string;
+}
+
+export interface TutorReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  student: { profile: { firstName: string; lastName: string } };
+}
+
+export const tutoring = {
+  createProfile: (token: string, data: { bio?: string; subjects: string[]; hourlyRate?: number; availability?: any }) =>
+    request<TutorProfile>('/tutoring/profile', { method: 'POST', body: data, token }),
+
+  updateProfile: (token: string, data: Partial<TutorProfile>) =>
+    request<TutorProfile>('/tutoring/profile', { method: 'PATCH', body: data, token }),
+
+  getMyProfile: (token: string) =>
+    request<TutorProfile>('/tutoring/profile/me', { token }),
+
+  searchTutors: (token: string, params?: { subject?: string; university?: string; minRating?: number; maxRate?: number; page?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.subject) searchParams.set('subject', params.subject);
+    if (params?.university) searchParams.set('university', params.university);
+    if (params?.minRating) searchParams.set('minRating', String(params.minRating));
+    if (params?.maxRate) searchParams.set('maxRate', String(params.maxRate));
+    if (params?.page) searchParams.set('page', String(params.page));
+    return request<{ tutors: TutorProfile[]; total: number; page: number; totalPages: number }>(`/tutoring/tutors?${searchParams}`, { token });
+  },
+
+  getTutor: (token: string, id: string) =>
+    request<TutorProfile & { reviews: TutorReview[] }>(`/tutoring/tutors/${id}`, { token }),
+
+  bookSession: (token: string, data: { tutorId: string; subject: string; scheduledAt: string; duration: number; notes?: string }) =>
+    request<TutoringSession>('/tutoring/sessions', { method: 'POST', body: data, token }),
+
+  getSessionsAsStudent: (token: string) =>
+    request<TutoringSession[]>('/tutoring/sessions/student', { token }),
+
+  getSessionsAsTutor: (token: string) =>
+    request<TutoringSession[]>('/tutoring/sessions/tutor', { token }),
+
+  updateSession: (token: string, id: string, data: { status?: string; notes?: string; meetingUrl?: string }) =>
+    request<TutoringSession>(`/tutoring/sessions/${id}`, { method: 'PATCH', body: data, token }),
+
+  createReview: (token: string, tutorId: string, data: { rating: number; comment?: string; sessionId?: string }) =>
+    request<TutorReview>(`/tutoring/tutors/${tutorId}/reviews`, { method: 'POST', body: data, token }),
+
+  getSubjects: (token: string) =>
+    request<string[]>('/tutoring/subjects', { token }),
+};
+
+// ============================================
+// BIBLIOGRAPHY ENDPOINTS
+// ============================================
+
+export type CitationType = 'BOOK' | 'ARTICLE' | 'JOURNAL' | 'WEBSITE' | 'THESIS' | 'CONFERENCE' | 'REPORT' | 'VIDEO' | 'PODCAST' | 'OTHER';
+export type CitationStyle = 'APA' | 'MLA' | 'CHICAGO' | 'HARVARD' | 'IEEE' | 'VANCOUVER';
+
+export interface Bibliography {
+  id: string;
+  name: string;
+  description?: string;
+  subjectId?: string;
+  citationCount: number;
+  createdAt: string;
+}
+
+export interface Citation {
+  id: string;
+  type: CitationType;
+  title: string;
+  authors?: string[];
+  year?: number;
+  url?: string;
+  doi?: string;
+  publisher?: string;
+  journal?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  notes?: string;
+  tags?: string[];
+}
+
+export const bibliography = {
+  create: (token: string, data: { name: string; description?: string; subjectId?: string }) =>
+    request<Bibliography>('/bibliography', { method: 'POST', body: data, token }),
+
+  list: (token: string, subjectId?: string) =>
+    request<Bibliography[]>(`/bibliography${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<Bibliography & { citations: Citation[] }>(`/bibliography/${id}`, { token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/bibliography/${id}`, { method: 'DELETE', token }),
+
+  addCitation: (token: string, bibliographyId: string, data: Partial<Citation>) =>
+    request<Citation>(`/bibliography/${bibliographyId}/citations`, { method: 'POST', body: data, token }),
+
+  updateCitation: (token: string, citationId: string, data: Partial<Citation>) =>
+    request<Citation>(`/bibliography/citations/${citationId}`, { method: 'PATCH', body: data, token }),
+
+  deleteCitation: (token: string, citationId: string) =>
+    request<{ success: boolean }>(`/bibliography/citations/${citationId}`, { method: 'DELETE', token }),
+
+  export: (token: string, bibliographyId: string, style: CitationStyle = 'APA') =>
+    request<{ formatted: string; bibtex: string }>(`/bibliography/${bibliographyId}/export?style=${style}`, { token }),
+
+  importFromDOI: (token: string, bibliographyId: string, doi: string) =>
+    request<Citation>(`/bibliography/${bibliographyId}/import/doi`, { method: 'POST', body: { doi }, token }),
+};
+
+// ============================================
+// STUDY PLANS ENDPOINTS
+// ============================================
+
+export interface StudyPlan {
+  id: string;
+  title: string;
+  description?: string;
+  subjectId?: string;
+  startDate: string;
+  endDate: string;
+  totalItems: number;
+  completedItems: number;
+  progress: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'PAUSED';
+  items: StudyPlanItem[];
+  createdAt: string;
+}
+
+export interface StudyPlanItem {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDate: string;
+  duration: number;
+  isCompleted: boolean;
+  completedAt?: string;
+  order: number;
+}
+
+export const studyPlans = {
+  create: (token: string, data: { title: string; description?: string; subjectId?: string; startDate: string; endDate: string; items: { title: string; description?: string; scheduledDate: string; duration: number }[] }) =>
+    request<StudyPlan>('/study-plans', { method: 'POST', body: data, token }),
+
+  generateWithAI: (token: string, data: { subjectId?: string; topic: string; examDate: string; hoursPerDay: number; difficulty?: string; goals?: string }) =>
+    request<StudyPlan>('/study-plans/generate', { method: 'POST', body: data, token }),
+
+  list: (token: string, subjectId?: string) =>
+    request<StudyPlan[]>(`/study-plans${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<StudyPlan>(`/study-plans/${id}`, { token }),
+
+  getTodayItems: (token: string) =>
+    request<StudyPlanItem[]>('/study-plans/today', { token }),
+
+  updateItem: (token: string, itemId: string, data: { isCompleted?: boolean; notes?: string }) =>
+    request<StudyPlanItem>(`/study-plans/items/${itemId}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/study-plans/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
+// TRANSCRIPTION ENDPOINTS
+// ============================================
+
+export interface Transcription {
+  id: string;
+  title: string;
+  sourceType: 'UPLOAD' | 'YOUTUBE' | 'RECORDING' | 'URL';
+  sourceUrl?: string;
+  duration?: number;
+  language?: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  transcribedText?: string;
+  summary?: string;
+  segments?: { start: number; end: number; text: string }[];
+  createdAt: string;
+}
+
+export const transcription = {
+  create: (token: string, data: { title: string; subjectId?: string; sourceType: string; sourceUrl?: string; fileName?: string; language?: string }) =>
+    request<Transcription>('/transcription', { method: 'POST', body: data, token }),
+
+  list: (token: string, subjectId?: string) =>
+    request<Transcription[]>(`/transcription${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<Transcription>(`/transcription/${id}`, { token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/transcription/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
+// VIDEO SUMMARY ENDPOINTS
+// ============================================
+
+export interface VideoSummary {
+  id: string;
+  title: string;
+  videoUrl: string;
+  videoPlatform: string;
+  videoTitle?: string;
+  videoThumbnail?: string;
+  videoDuration?: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  summary?: string;
+  keyPoints?: string[];
+  timestamps?: { time: number; topic: string }[];
+  createdAt: string;
+}
+
+export const videoSummary = {
+  create: (token: string, data: { title: string; videoUrl: string; subjectId?: string; language?: string }) =>
+    request<VideoSummary>('/video-summary', { method: 'POST', body: data, token }),
+
+  list: (token: string, subjectId?: string) =>
+    request<VideoSummary[]>(`/video-summary${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<VideoSummary>(`/video-summary/${id}`, { token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/video-summary/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
+// EMAIL REPORTS ENDPOINTS
+// ============================================
+
+export interface EmailReportConfig {
+  id: string;
+  isEnabled: boolean;
+  frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  timeOfDay: string;
+  timezone: string;
+  includeStudyTime: boolean;
+  includeFlashcards: boolean;
+  includeQuizzes: boolean;
+  includeTasks: boolean;
+  includeGoals: boolean;
+  includeUpcoming: boolean;
+}
+
+export const emailReports = {
+  getConfig: (token: string) =>
+    request<EmailReportConfig>('/email-reports/config', { token }),
+
+  updateConfig: (token: string, data: Partial<EmailReportConfig>) =>
+    request<EmailReportConfig>('/email-reports/config', { method: 'PATCH', body: data, token }),
+
+  preview: (token: string) =>
+    request<any>('/email-reports/preview', { token }),
+
+  sendNow: (token: string) =>
+    request<{ success: boolean }>('/email-reports/send', { method: 'POST', token }),
+};
+
+// ============================================
+// LMS ENDPOINTS
+// ============================================
+
+export interface LmsIntegration {
+  id: string;
+  provider: 'MOODLE' | 'GOOGLE_CLASSROOM' | 'CANVAS' | 'BLACKBOARD';
+  instanceUrl?: string;
+  accountName?: string;
+  accountEmail?: string;
+  isActive: boolean;
+  lastSyncAt?: string;
+  createdAt: string;
+}
+
+export interface LmsCourse {
+  id: string;
+  externalId: string;
+  name: string;
+  shortName?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const lms = {
+  getIntegrations: (token: string) =>
+    request<LmsIntegration[]>('/lms/integrations', { token }),
+
+  deleteIntegration: (token: string, id: string) =>
+    request<{ success: boolean }>(`/lms/integrations/${id}`, { method: 'DELETE', token }),
+
+  // Moodle
+  connectMoodle: (token: string, data: { instanceUrl: string; moodleToken: string }) =>
+    request<LmsIntegration>('/lms/moodle/connect', { method: 'POST', body: { instanceUrl: data.instanceUrl, token: data.moodleToken }, token }),
+
+  getMoodleCourses: (token: string) =>
+    request<LmsCourse[]>('/lms/moodle/courses', { token }),
+
+  syncMoodleCourse: (token: string, courseId: string, subjectId?: string) =>
+    request<{ success: boolean; synced: { assignments: number; grades: number } }>(`/lms/moodle/sync/${courseId}`, { method: 'POST', body: { subjectId }, token }),
+
+  // Google Classroom
+  getGoogleClassroomAuthUrl: (token: string) =>
+    request<{ url: string }>('/lms/google-classroom/auth-url', { token }),
+
+  getGoogleClassroomCourses: (token: string) =>
+    request<LmsCourse[]>('/lms/google-classroom/courses', { token }),
+};
+
+// ============================================
+// EXTERNAL INTEGRATIONS ENDPOINTS
+// ============================================
+
+export interface ExternalIntegration {
+  id: string;
+  provider: 'NOTION' | 'GOOGLE_DRIVE' | 'DISCORD' | 'SPOTIFY';
+  accountName?: string;
+  accountEmail?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export const integrations = {
+  list: (token: string) =>
+    request<ExternalIntegration[]>('/integrations', { token }),
+
+  delete: (token: string, id: string) =>
+    request<{ success: boolean }>(`/integrations/${id}`, { method: 'DELETE', token }),
+
+  // Notion
+  getNotionAuthUrl: (token: string) =>
+    request<{ url: string }>('/integrations/notion/auth-url', { token }),
+
+  exportToNotion: (token: string, data: { type: string; data: any }) =>
+    request<{ success: boolean; notionPageId: string }>('/integrations/notion/export', { method: 'POST', body: data, token }),
+
+  // Google Drive
+  getGoogleDriveAuthUrl: (token: string) =>
+    request<{ url: string }>('/integrations/google-drive/auth-url', { token }),
+
+  importFromDrive: (token: string, fileId: string) =>
+    request<{ fileName: string; mimeType: string; content: any }>(`/integrations/google-drive/import/${fileId}`, { token }),
+
+  // Discord
+  getDiscordAuthUrl: (token: string) =>
+    request<{ url: string }>('/integrations/discord/auth-url', { token }),
+
+  sendDiscordNotification: (token: string, message: string) =>
+    request<{ success: boolean }>('/integrations/discord/notify', { method: 'POST', body: { message }, token }),
+
+  // Spotify
+  getSpotifyAuthUrl: (token: string) =>
+    request<{ url: string }>('/integrations/spotify/auth-url', { token }),
+
+  getStudyPlaylists: (token: string) =>
+    request<{ id: string; name: string; description: string; imageUrl: string; tracksCount: number; uri: string }[]>('/integrations/spotify/playlists', { token }),
+};
+
+// ============================================
+// CALENDAR SYNC ENDPOINTS
+// ============================================
+
+export interface CalendarIntegration {
+  id: string;
+  provider: 'GOOGLE' | 'OUTLOOK' | 'APPLE';
+  accountEmail?: string;
+  syncEnabled: boolean;
+  syncDirection: 'IMPORT' | 'EXPORT' | 'BOTH';
+  lastSyncAt?: string;
+  createdAt: string;
+}
+
+export const calendarSync = {
+  getIntegrations: (token: string) =>
+    request<CalendarIntegration[]>('/calendar-sync/integrations', { token }),
+
+  getGoogleAuthUrl: (token: string) =>
+    request<{ url: string }>('/calendar-sync/google/auth-url', { token }),
+
+  syncCalendar: (token: string, provider: 'GOOGLE' | 'OUTLOOK' | 'APPLE') =>
+    request<{ success: boolean; synced: number }>(`/calendar-sync/sync/${provider}`, { method: 'POST', token }),
+
+  updateIntegration: (token: string, id: string, data: { syncEnabled?: boolean; syncDirection?: 'IMPORT' | 'EXPORT' | 'BOTH' }) =>
+    request<CalendarIntegration>(`/calendar-sync/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteIntegration: (token: string, id: string) =>
+    request<{ success: boolean }>(`/calendar-sync/${id}`, { method: 'DELETE', token }),
+
+  exportIcal: (token: string) =>
+    request<Blob>('/calendar-sync/export/ical', { token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -1436,4 +1983,15 @@ export default {
   settings,
   twoFactor,
   passwordReset,
+  ocr,
+  forums,
+  tutoring,
+  bibliography,
+  studyPlans,
+  transcription,
+  videoSummary,
+  emailReports,
+  lms,
+  integrations,
+  calendarSync,
 };
