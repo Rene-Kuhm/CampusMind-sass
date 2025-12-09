@@ -84,8 +84,8 @@ export default function TimerPage() {
       setActiveSession(active);
       setStats(sessionStats);
       setTodayStats(today);
-      setWeekStats(week);
-      setHistory(hist);
+      setWeekStats(Array.isArray(week) ? week : []);
+      setHistory(Array.isArray(hist) ? hist : []);
 
       if (active && active.status === 'ACTIVE') {
         const elapsed = Math.floor((Date.now() - new Date(active.startedAt).getTime()) / 1000);
