@@ -34,7 +34,7 @@ import {
 // INTERFACES
 // ============================================
 
-interface WritingDocument {
+export interface WritingDocument {
   id: string;
   userId: string;
   title: string;
@@ -51,7 +51,7 @@ interface WritingDocument {
   updatedAt: Date;
 }
 
-interface DocumentVersion {
+export interface DocumentVersion {
   id: string;
   documentId: string;
   versionNumber: number;

@@ -439,7 +439,7 @@ export class CareerService {
 
     const where: Record<string, unknown> = {
       isActive: true,
-      OR: filters.expiresAt
+      OR: filters.includeExpired
         ? undefined
         : [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     };

@@ -86,6 +86,11 @@ export class JobFilterDto {
   @IsNumber()
   @Min(1)
   limit?: number;
+
+  @ApiPropertyOptional({ example: false, description: 'Include expired job postings' })
+  @IsOptional()
+  @IsBoolean()
+  includeExpired?: boolean;
 }
 
 // ============================================
