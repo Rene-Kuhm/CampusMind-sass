@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import api, { Achievement as ApiAchievement, UserAchievement, GamificationProfile } from '@/lib/api';
 import {
   Trophy,
   Star,
@@ -18,10 +20,11 @@ import {
   MessageCircle,
   Moon,
   Sunrise,
-  Calendar
+  Calendar,
+  Loader2,
 } from 'lucide-react';
 import {
-  Achievement,
+  Achievement as LocalAchievement,
   UserAchievements,
   getUserAchievements,
   ALL_ACHIEVEMENTS,
@@ -49,22 +52,52 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export default function AchievementsPage() {
+  const { token } = useAuth();
   const [userAchievements, setUserAchievements] = useState<UserAchievements>({
     unlocked: [],
     inProgress: [],
     totalXpEarned: 0,
   });
+  const [apiAchievements, setApiAchievements] = useState<{ all: ApiAchievement[]; unlocked: UserAchievement[] } | null>(null);
+  const [gamificationProfile, setGamificationProfile] = useState<GamificationProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
 
+  // Load gamification data from API
+  const loadGamificationData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [profile, achievements] = await Promise.all([
+        api.gamificationApi.getProfile(token),
+        api.gamificationApi.getAllAchievements(token),
+      ]);
+      setGamificationProfile(profile);
+      setApiAchievements(achievements);
+    } catch (error) {
+      console.error('Error loading gamification data:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
-    setUserAchievements(getUserAchievements());
-  }, []);
+    const loadData = async () => {
+      setIsLoading(true);
+      // Load local achievements as fallback
+      setUserAchievements(getUserAchievements());
+      // Load API achievements
+      await loadGamificationData();
+      setIsLoading(false);
+    };
+    loadData();
+  }, [loadGamificationData]);
 
   const categories = ['all', 'study', 'streak', 'social', 'mastery', 'special'] as const;
   const rarities = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
 
-  const unlockedIds = new Set(userAchievements.unlocked.map(a => a.id));
+  // Use API data if available, otherwise fallback to local
+  const unlockedIds = apiAchievements
+    ? new Set(apiAchievements.unlocked.map(a => a.achievementId))
+    : new Set(userAchievements.unlocked.map(a => a.id));
   const inProgressMap = new Map(userAchievements.inProgress.map(a => [a.id, a]));
 
   const filteredAchievements = ALL_ACHIEVEMENTS.filter(achievement => {
@@ -73,11 +106,16 @@ export default function AchievementsPage() {
     return true;
   });
 
-  const totalAchievements = ALL_ACHIEVEMENTS.length;
-  const unlockedCount = userAchievements.unlocked.length;
-  const completionPercentage = Math.round((unlockedCount / totalAchievements) * 100);
+  // Use API counts if available
+  const totalAchievements = apiAchievements ? apiAchievements.all.length : ALL_ACHIEVEMENTS.length;
+  const unlockedCount = apiAchievements ? apiAchievements.unlocked.length : userAchievements.unlocked.length;
+  const completionPercentage = totalAchievements > 0 ? Math.round((unlockedCount / totalAchievements) * 100) : 0;
 
-  const totalPossibleXp = ALL_ACHIEVEMENTS.reduce((sum, a) => sum + a.xpReward, 0);
+  // Use API XP data if available
+  const totalXpEarned = gamificationProfile?.totalXP || userAchievements.totalXpEarned;
+  const totalPossibleXp = apiAchievements
+    ? apiAchievements.all.reduce((sum, a) => sum + a.xpReward, 0)
+    : ALL_ACHIEVEMENTS.reduce((sum, a) => sum + a.xpReward, 0);
 
   const getAchievementStatus = (id: string): 'unlocked' | 'in_progress' | 'locked' => {
     if (unlockedIds.has(id)) return 'unlocked';
@@ -94,6 +132,15 @@ export default function AchievementsPage() {
     const IconComponent = ICON_MAP[iconName] || Trophy;
     return <IconComponent className={className} />;
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -145,9 +192,9 @@ export default function AchievementsPage() {
                 <Star className="h-6 w-6 text-purple-500" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">XP Ganado</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">XP Total</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {userAchievements.totalXpEarned.toLocaleString()}
+                  {totalXpEarned.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -161,7 +208,7 @@ export default function AchievementsPage() {
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">XP Disponible</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {(totalPossibleXp - userAchievements.totalXpEarned).toLocaleString()}
+                  {Math.max(0, totalPossibleXp - totalXpEarned).toLocaleString()}
                 </p>
               </div>
             </div>

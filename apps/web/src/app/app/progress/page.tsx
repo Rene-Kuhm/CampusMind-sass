@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { subjects as subjectsApi, Subject, rag, RagStats } from '@/lib/api';
+import api, { subjects as subjectsApi, Subject, rag, RagStats, GamificationProfile, UserAchievement, Achievement as ApiAchievement } from '@/lib/api';
 import {
   Card,
   CardContent,
@@ -26,6 +26,7 @@ import {
   Layers,
   Timer,
   FileQuestion,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,14 +37,16 @@ interface StudyStats {
   currentStreak: number;
   longestStreak: number;
   totalPoints: number;
+  totalXP: number;
   level: number;
+  xpToNextLevel: number;
   weeklyProgress: number[];
   flashcardAccuracy: number;
   quizAverageScore: number;
   subjectProgress: { name: string; progress: number; color: string }[];
 }
 
-interface Achievement {
+interface LocalAchievement {
   id: string;
   name: string;
   description: string;
@@ -87,6 +90,9 @@ export default function ProgressPage() {
   const { token } = useAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [ragStats, setRagStats] = useState<RagStats | null>(null);
+  const [gamificationProfile, setGamificationProfile] = useState<GamificationProfile | null>(null);
+  const [apiAchievements, setApiAchievements] = useState<{ all: ApiAchievement[]; unlocked: UserAchievement[] } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<StudyStats>({
     totalFlashcardsStudied: 0,
     totalQuizzesCompleted: 0,
@@ -94,14 +100,16 @@ export default function ProgressPage() {
     currentStreak: 0,
     longestStreak: 0,
     totalPoints: 0,
+    totalXP: 0,
     level: 1,
+    xpToNextLevel: 100,
     weeklyProgress: [0, 0, 0, 0, 0, 0, 0],
     flashcardAccuracy: 0,
     quizAverageScore: 0,
     subjectProgress: [],
   });
 
-  const [achievements, setAchievements] = useState<Achievement[]>([
+  const [achievements, setAchievements] = useState<LocalAchievement[]>([
     {
       id: 'first-flashcard',
       name: 'Primer paso',
@@ -149,12 +157,33 @@ export default function ProgressPage() {
     },
   ]);
 
+  // Load gamification data from API
+  const loadGamificationData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [profile, achievements] = await Promise.all([
+        api.gamificationApi.getProfile(token),
+        api.gamificationApi.getAllAchievements(token),
+      ]);
+      setGamificationProfile(profile);
+      setApiAchievements(achievements);
+      // Update streak on load
+      await api.gamificationApi.updateStreak(token);
+    } catch (error) {
+      console.error('Error loading gamification data:', error);
+    }
+  }, [token]);
+
   // Load data
   useEffect(() => {
     const loadData = async () => {
       if (!token) return;
+      setIsLoading(true);
 
       try {
+        // Load gamification data from API first
+        await loadGamificationData();
+
         // Load subjects
         const subjectsData = await subjectsApi.list(token);
         setSubjects(subjectsData);
@@ -163,12 +192,11 @@ export default function ProgressPage() {
         const ragStatsData = await rag.getStats(token);
         setRagStats(ragStatsData);
 
-        // Load local stats
+        // Load local stats (supplementary data)
         const savedFlashcardStats = localStorage.getItem('flashcard-stats');
         const savedQuizAttempts = localStorage.getItem('quiz-attempts');
         const savedPomodoroStats = localStorage.getItem('pomodoro-stats');
         const savedFlashcards = localStorage.getItem('flashcard-cards');
-        const savedQuizzes = localStorage.getItem('quiz-list');
 
         let flashcardStats = { cardsStudiedToday: 0, streak: 0 };
         let quizAttempts: { score: number; percentage: number }[] = [];
@@ -189,7 +217,7 @@ export default function ProgressPage() {
           flashcardCards = JSON.parse(savedFlashcards);
         }
 
-        // Calculate stats
+        // Calculate local stats
         const totalFlashcardsStudied = flashcardCards.reduce((sum, c) => sum + c.timesReviewed, 0);
         const totalCorrect = flashcardCards.reduce((sum, c) => sum + c.timesCorrect, 0);
         const flashcardAccuracy = totalFlashcardsStudied > 0 ? (totalCorrect / totalFlashcardsStudied) * 100 : 0;
@@ -197,13 +225,6 @@ export default function ProgressPage() {
         const quizAverageScore = quizAttempts.length > 0
           ? quizAttempts.reduce((sum, a) => sum + a.percentage, 0) / quizAttempts.length
           : 0;
-
-        // Calculate points (simplified gamification)
-        const pointsFromFlashcards = totalCorrect * 10;
-        const pointsFromQuizzes = quizAttempts.reduce((sum, a) => sum + Math.floor(a.percentage), 0);
-        const pointsFromTime = Math.floor(pomodoroMinutes / 5);
-        const pointsFromStreak = flashcardStats.streak * 50;
-        const totalPoints = pointsFromFlashcards + pointsFromQuizzes + pointsFromTime + pointsFromStreak;
 
         // Generate weekly progress (mock data based on current stats)
         const weeklyProgress = [
@@ -223,21 +244,18 @@ export default function ProgressPage() {
           color: s.color || ['blue', 'violet', 'emerald', 'rose', 'amber'][i],
         }));
 
-        setStats({
+        setStats(prev => ({
+          ...prev,
           totalFlashcardsStudied,
           totalQuizzesCompleted: quizAttempts.length,
           totalTimeSpentMinutes: pomodoroMinutes + Math.floor(totalFlashcardsStudied * 0.5),
-          currentStreak: flashcardStats.streak || 0,
-          longestStreak: Math.max(flashcardStats.streak || 0, 7),
-          totalPoints,
-          level: getLevel(totalPoints).level,
           weeklyProgress,
           flashcardAccuracy,
           quizAverageScore,
           subjectProgress,
-        });
+        }));
 
-        // Update achievements
+        // Update local achievements based on local progress
         setAchievements(prev => prev.map(a => {
           switch (a.id) {
             case 'first-flashcard':
@@ -257,13 +275,40 @@ export default function ProgressPage() {
 
       } catch (error) {
         console.error('Error loading progress data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadData();
-  }, [token]);
+  }, [token, loadGamificationData]);
 
-  const levelInfo = getLevel(stats.totalPoints);
+  // Update stats when gamification profile changes
+  useEffect(() => {
+    if (gamificationProfile) {
+      setStats(prev => ({
+        ...prev,
+        currentStreak: gamificationProfile.currentStreak,
+        longestStreak: gamificationProfile.longestStreak,
+        totalPoints: gamificationProfile.totalPoints,
+        totalXP: gamificationProfile.totalXP,
+        level: gamificationProfile.currentLevel,
+        xpToNextLevel: gamificationProfile.xpToNextLevel,
+      }));
+    }
+  }, [gamificationProfile]);
+
+  // Use API level info if available, otherwise calculate locally
+  const levelInfo = gamificationProfile
+    ? {
+        level: gamificationProfile.currentLevel,
+        name: LEVEL_NAMES[Math.min(gamificationProfile.currentLevel - 1, LEVEL_NAMES.length - 1)],
+        progress: gamificationProfile.xpToNextLevel > 0
+          ? ((gamificationProfile.totalXP % (gamificationProfile.xpToNextLevel || 100)) / (gamificationProfile.xpToNextLevel || 100)) * 100
+          : 100,
+        nextThreshold: gamificationProfile.totalXP + gamificationProfile.xpToNextLevel,
+      }
+    : getLevel(stats.totalPoints);
   const maxWeekly = Math.max(...stats.weeklyProgress, 1);
 
   const achievementIcons = {
@@ -273,6 +318,15 @@ export default function ProgressPage() {
     time: <Timer className="h-5 w-5" />,
     accuracy: <Target className="h-5 w-5" />,
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -312,8 +366,8 @@ export default function ProgressPage() {
               </div>
               <div className="w-px h-10 bg-secondary-200" />
               <div className="text-center">
-                <p className="text-2xl font-bold text-secondary-900">{stats.totalPoints}</p>
-                <p className="text-xs text-secondary-500">puntos</p>
+                <p className="text-2xl font-bold text-secondary-900">{stats.totalXP.toLocaleString()}</p>
+                <p className="text-xs text-secondary-500">XP total</p>
               </div>
             </div>
           </div>
@@ -452,7 +506,7 @@ export default function ProgressPage() {
                     />
                   </div>
                   <p className="text-xs text-secondary-400 text-center">
-                    {stats.totalPoints} / {levelInfo.nextThreshold} puntos
+                    {stats.totalXP.toLocaleString()} XP ({stats.xpToNextLevel.toLocaleString()} XP para siguiente nivel)
                   </p>
                 </div>
 
@@ -477,54 +531,88 @@ export default function ProgressPage() {
             {/* Achievements */}
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <Award className="h-5 w-5 text-amber-500" />
-                  <h3 className="font-semibold text-secondary-900">Logros</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-semibold text-secondary-900">Logros</h3>
+                  </div>
+                  {apiAchievements && (
+                    <span className="text-sm text-secondary-500">
+                      {apiAchievements.unlocked.length}/{apiAchievements.all.length}
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-4">
-                  {achievements.map(achievement => (
-                    <div
-                      key={achievement.id}
-                      className={cn(
-                        'flex items-center gap-4 p-3 rounded-xl transition-colors',
-                        achievement.unlocked
-                          ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100'
-                          : 'bg-secondary-50'
-                      )}
-                    >
-                      <div className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center',
-                        achievement.unlocked
-                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
-                          : 'bg-secondary-200 text-secondary-400'
-                      )}>
-                        {achievementIcons[achievement.icon]}
+                  {/* Show API achievements if available */}
+                  {apiAchievements && apiAchievements.unlocked.length > 0 ? (
+                    apiAchievements.unlocked.slice(0, 5).map(ua => (
+                      <div
+                        key={ua.id}
+                        className="flex items-center gap-4 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100"
+                      >
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+                          <Trophy className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-secondary-900">
+                            {ua.achievement.name}
+                          </p>
+                          <p className="text-xs text-secondary-400 truncate">
+                            {ua.achievement.description}
+                          </p>
+                          <p className="text-xs text-amber-600 mt-1">
+                            +{ua.achievement.xpReward} XP
+                          </p>
+                        </div>
+                        <CheckCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          'font-medium',
-                          achievement.unlocked ? 'text-secondary-900' : 'text-secondary-500'
+                    ))
+                  ) : (
+                    // Fallback to local achievements
+                    achievements.map(achievement => (
+                      <div
+                        key={achievement.id}
+                        className={cn(
+                          'flex items-center gap-4 p-3 rounded-xl transition-colors',
+                          achievement.unlocked
+                            ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100'
+                            : 'bg-secondary-50'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-10 h-10 rounded-lg flex items-center justify-center',
+                          achievement.unlocked
+                            ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
+                            : 'bg-secondary-200 text-secondary-400'
                         )}>
-                          {achievement.name}
-                        </p>
-                        <p className="text-xs text-secondary-400 truncate">
-                          {achievement.description}
-                        </p>
-                        {!achievement.unlocked && (
-                          <div className="mt-2 h-1.5 bg-secondary-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-secondary-400 rounded-full"
-                              style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
-                            />
-                          </div>
+                          {achievementIcons[achievement.icon]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            'font-medium',
+                            achievement.unlocked ? 'text-secondary-900' : 'text-secondary-500'
+                          )}>
+                            {achievement.name}
+                          </p>
+                          <p className="text-xs text-secondary-400 truncate">
+                            {achievement.description}
+                          </p>
+                          {!achievement.unlocked && (
+                            <div className="mt-2 h-1.5 bg-secondary-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-secondary-400 rounded-full"
+                                style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {achievement.unlocked && (
+                          <CheckCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
                         )}
                       </div>
-                      {achievement.unlocked && (
-                        <CheckCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-                      )}
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
