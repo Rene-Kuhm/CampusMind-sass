@@ -16,7 +16,6 @@ import {
   Calendar,
   Brain,
   CreditCard,
-  HelpCircle,
   Zap,
   Library,
   Timer,
@@ -27,6 +26,17 @@ import {
   Users,
   Trophy,
   Target,
+  CheckSquare,
+  Bell,
+  Briefcase,
+  PenTool,
+  Braces,
+  GraduationCap as Grades,
+  Mic,
+  Heart,
+  TrendingUp,
+  FileText,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -72,6 +82,12 @@ const navigation = [
     gradient: 'from-orange-500 to-red-500',
   },
   {
+    name: 'Tareas',
+    href: '/app/tasks',
+    icon: CheckSquare,
+    gradient: 'from-teal-500 to-emerald-500',
+  },
+  {
     name: 'Notas',
     href: '/app/notes',
     icon: StickyNote,
@@ -90,8 +106,8 @@ const navigation = [
     gradient: 'from-cyan-500 to-blue-500',
   },
   {
-    name: 'Pomodoro',
-    href: '/app/pomodoro',
+    name: 'Temporizador',
+    href: '/app/timer',
     icon: Timer,
     gradient: 'from-rose-500 to-orange-500',
   },
@@ -108,10 +124,29 @@ const navigation = [
     gradient: 'from-emerald-500 to-teal-500',
   },
   {
+    name: 'Analíticas',
+    href: '/app/analytics',
+    icon: TrendingUp,
+    gradient: 'from-blue-500 to-purple-500',
+    badge: 'Nuevo',
+  },
+  {
+    name: 'Metas',
+    href: '/app/goals',
+    icon: Target,
+    gradient: 'from-amber-500 to-yellow-500',
+  },
+  {
     name: 'Grupos',
     href: '/app/groups',
     icon: Users,
     gradient: 'from-blue-500 to-indigo-500',
+  },
+  {
+    name: 'Social',
+    href: '/app/social',
+    icon: Users,
+    gradient: 'from-purple-500 to-pink-500',
   },
   {
     name: 'Clasificación',
@@ -124,7 +159,48 @@ const navigation = [
     href: '/app/challenges',
     icon: Target,
     gradient: 'from-rose-500 to-pink-500',
-    badge: 'Nuevo',
+  },
+  {
+    name: 'Calificaciones',
+    href: '/app/grades',
+    icon: Grades,
+    gradient: 'from-green-500 to-emerald-500',
+  },
+  {
+    name: 'Grabaciones',
+    href: '/app/recordings',
+    icon: Mic,
+    gradient: 'from-red-500 to-rose-500',
+  },
+  {
+    name: 'Bienestar',
+    href: '/app/wellness',
+    icon: Heart,
+    gradient: 'from-pink-500 to-red-500',
+  },
+  {
+    name: 'Carrera',
+    href: '/app/career',
+    icon: Briefcase,
+    gradient: 'from-slate-500 to-gray-600',
+  },
+  {
+    name: 'Herramientas',
+    href: '/app/tools',
+    icon: Braces,
+    gradient: 'from-gray-500 to-slate-500',
+  },
+  {
+    name: 'Escritura',
+    href: '/app/writing',
+    icon: PenTool,
+    gradient: 'from-indigo-500 to-blue-500',
+  },
+  {
+    name: 'Notificaciones',
+    href: '/app/notifications',
+    icon: Bell,
+    gradient: 'from-orange-500 to-amber-500',
   },
 ];
 
