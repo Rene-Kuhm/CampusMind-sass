@@ -510,7 +510,14 @@ export default function TimerPage() {
                           strokeLinecap="round"
                           strokeDasharray={2 * Math.PI * 120}
                           strokeDashoffset={
-                            2 * Math.PI * 120 * (1 - (activeSession ? timeLeft / (activeSession.targetMinutes * 60) : 1))
+                            (() => {
+                              const circumference = 2 * Math.PI * 120;
+                              if (!activeSession) return 0;
+                              const totalSeconds = (activeSession.targetMinutes || customDuration || 25) * 60;
+                              if (totalSeconds <= 0) return 0;
+                              const progress = Math.max(0, Math.min(1, timeLeft / totalSeconds));
+                              return circumference * (1 - progress);
+                            })()
                           }
                           className="transition-all duration-1000"
                         />
