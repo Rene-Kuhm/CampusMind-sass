@@ -137,6 +137,14 @@ export class UsageLimitsService {
       case UsageTypeEnum.STORAGE_MB:
         return this.getUsageRecordCount(subscription.id, UsageType.STORAGE_MB, periodStart);
 
+      case UsageTypeEnum.TASKS:
+        return this.prisma.task.count({
+          where: { userId, status: { not: 'COMPLETED' } },
+        });
+
+      case UsageTypeEnum.STUDY_SESSIONS:
+        return this.getUsageRecordCount(subscription.id, UsageType.STUDY_SESSIONS, periodStart);
+
       default:
         return 0;
     }
@@ -367,6 +375,10 @@ export class UsageLimitsService {
         return UsageType.STORAGE_MB;
       case UsageTypeEnum.SUBJECTS:
         return UsageType.SUBJECTS;
+      case UsageTypeEnum.TASKS:
+        return UsageType.TASKS;
+      case UsageTypeEnum.STUDY_SESSIONS:
+        return UsageType.STUDY_SESSIONS;
       default:
         throw new Error(`Unknown usage type: ${usageType}`);
     }
