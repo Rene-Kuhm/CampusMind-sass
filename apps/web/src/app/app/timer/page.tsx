@@ -94,7 +94,9 @@ export default function TimerPage() {
         }
       });
 
-      const active = results[0].status === 'fulfilled' ? results[0].value : null;
+      const activeResult = results[0].status === 'fulfilled' ? results[0].value : null;
+      // Ensure active session has a valid ID, otherwise treat as null
+      const active = activeResult && activeResult.id ? activeResult : null;
       const sessionStats = results[1].status === 'fulfilled' ? results[1].value : null;
       const today = results[2].status === 'fulfilled' ? results[2].value : null;
       const week = results[3].status === 'fulfilled' ? results[3].value : [];
@@ -213,7 +215,11 @@ export default function TimerPage() {
 
   // Pause session
   const handlePause = async () => {
-    if (!token || !activeSession) return;
+    if (!token || !activeSession || !activeSession.id) {
+      console.warn('[Timer] Cannot pause: no valid session');
+      resetSessionState();
+      return;
+    }
     try {
       await studySessions.pause(token, activeSession.id);
       setIsRunning(false);
@@ -228,7 +234,11 @@ export default function TimerPage() {
 
   // Resume session
   const handleResume = async () => {
-    if (!token || !activeSession) return;
+    if (!token || !activeSession || !activeSession.id) {
+      console.warn('[Timer] Cannot resume: no valid session');
+      resetSessionState();
+      return;
+    }
     try {
       await studySessions.resume(token, activeSession.id);
       setIsRunning(true);
@@ -243,7 +253,12 @@ export default function TimerPage() {
 
   // End session
   const handleEnd = async () => {
-    if (!token || !activeSession) return;
+    if (!token || !activeSession || !activeSession.id) {
+      console.warn('[Timer] Cannot end: no valid session');
+      resetSessionState();
+      setIsEndModalOpen(false);
+      return;
+    }
     try {
       await studySessions.end(token, activeSession.id, {
         focusScore,
@@ -269,7 +284,11 @@ export default function TimerPage() {
 
   // Abandon session
   const handleAbandon = async () => {
-    if (!token || !activeSession) return;
+    if (!token || !activeSession || !activeSession.id) {
+      console.warn('[Timer] Cannot abandon: no valid session');
+      resetSessionState();
+      return;
+    }
     try {
       await studySessions.abandon(token, activeSession.id);
       setActiveSession(null);
