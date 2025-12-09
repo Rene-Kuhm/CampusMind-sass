@@ -76,6 +76,7 @@ export default function TimerPage() {
   const loadData = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
+    console.log('[Timer] Loading data...');
     try {
       const results = await Promise.allSettled([
         studySessions.getActive(token),
@@ -85,11 +86,20 @@ export default function TimerPage() {
         studySessions.getHistory(token, { limit: 20 }),
       ]);
 
+      // Log any rejected promises
+      results.forEach((result, index) => {
+        const endpoints = ['getActive', 'getStats', 'getTodayStats', 'getWeekStats', 'getHistory'];
+        if (result.status === 'rejected') {
+          console.error(`[Timer] ${endpoints[index]} failed:`, result.reason);
+        }
+      });
+
       const active = results[0].status === 'fulfilled' ? results[0].value : null;
       const sessionStats = results[1].status === 'fulfilled' ? results[1].value : null;
       const today = results[2].status === 'fulfilled' ? results[2].value : null;
       const week = results[3].status === 'fulfilled' ? results[3].value : [];
       const hist = results[4].status === 'fulfilled' ? results[4].value : [];
+      console.log('[Timer] Data loaded:', { active, sessionStats, today, week: week?.length, hist: hist?.length });
 
       setActiveSession(active);
       if (sessionStats) setStats(sessionStats);
@@ -165,18 +175,21 @@ export default function TimerPage() {
     }
     try {
       const breakDuration = isCustomMode ? customBreak : selectedPreset.break;
-      const session = await studySessions.start(token, {
+      const startData = {
         subjectId: selectedSubject || undefined,
         type: selectedPreset.type,
         targetMinutes: customDuration,
         breakMinutes: breakDuration,
-      });
+      };
+      console.log('[Timer] Starting session with data:', startData);
+      const session = await studySessions.start(token, startData);
+      console.log('[Timer] Session started successfully:', session);
       setActiveSession(session);
       setTimeLeft(customDuration * 60);
       setIsRunning(true);
       setIsBreak(false);
     } catch (error) {
-      console.error('Error starting session:', error);
+      console.error('[Timer] Error starting session:', error);
     }
   };
 
