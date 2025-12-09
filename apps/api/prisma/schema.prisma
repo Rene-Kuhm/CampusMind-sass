@@ -91,6 +91,35 @@ model User {
   // Email Reports
   emailReportConfig EmailReportConfig?
 
+  // Audio Recordings
+  audioRecordings   AudioRecording[]
+
+  // Writing Assistant
+  writingDocuments  WritingDocument[]
+
+  // Wellness
+  wellnessLogs      WellnessLog[]
+  breakReminder     BreakReminder?
+
+  // Career
+  cv                UserCV?
+  jobApplications   JobApplication[]
+
+  // Tools
+  formulaSheets     FormulaSheet[]
+  codeSnippets      CodeSnippet[]
+
+  // Social/Community
+  professorReviews  ProfessorReview[]
+  buddyMatches1     StudyBuddyMatch[] @relation("BuddyUser1")
+  buddyMatches2     StudyBuddyMatch[] @relation("BuddyUser2")
+  buddyPreferences  StudyBuddyPreferences?
+  marketplaceListings MarketplaceListing[]
+  sentMessages      MarketplaceMessage[] @relation("MessageSender")
+  receivedMessages  MarketplaceMessage[] @relation("MessageReceiver")
+  sharedDecks       SharedFlashcardDeck[]
+  deckRatings       DeckRating[]
+
   @@map("users")
 }
 
@@ -166,6 +195,16 @@ model Subject {
   ocrDocuments   OcrDocument[]
   videoSummaries VideoSummary[]
   lmsCourses     LmsCourse[]
+
+  // Audio Recordings
+  audioRecordings AudioRecording[]
+
+  // Writing Assistant
+  writingDocuments WritingDocument[]
+
+  // Tools
+  formulaSheets  FormulaSheet[]
+  codeSnippets   CodeSnippet[]
 
   @@index([userId])
   @@map("subjects")
@@ -381,6 +420,7 @@ model FlashcardDeck {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   flashcards  Flashcard[]
+  sharedDeck  SharedFlashcardDeck?
 
   @@index([userId])
   @@index([subjectId])
@@ -798,6 +838,7 @@ model Professor {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   classes     ClassSchedule[]
+  reviews     ProfessorReview[]
 
   @@index([userId])
   @@map("professors")
@@ -2114,4 +2155,905 @@ enum IntegrationProvider {
   MENDELEY
   DISCORD
   SPOTIFY
+}
+
+// ============================================
+// AUDIO RECORDINGS (GRABACIONES DE CLASE)
+// ============================================
+
+model AudioRecording {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+
+  // Archivo de audio
+  fileUrl     String   @map("file_url")
+  fileName    String   @map("file_name")
+  fileSize    Int      @map("file_size") // bytes
+  mimeType    String   @map("mime_type")
+  duration    Int      // segundos
+
+  // Metadatos
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+  location    String?  // Aula, edificio
+  professorName String? @map("professor_name")
+
+  // Transcripción vinculada
+  transcriptionId String? @unique @map("transcription_id")
+
+  // Estado
+  isProcessed Boolean  @default(false) @map("is_processed")
+  isFavorite  Boolean  @default(false) @map("is_favorite")
+
+  // Tags
+  tags        String[] @default([])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  bookmarks   RecordingBookmark[]
+  notes       RecordingNote[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("audio_recordings")
+}
+
+model RecordingBookmark {
+  id          String   @id @default(cuid())
+  recordingId String   @map("recording_id")
+
+  timestamp   Int      // segundos desde el inicio
+  label       String
+  color       String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  recording   AudioRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([recordingId])
+  @@map("recording_bookmarks")
+}
+
+model RecordingNote {
+  id          String   @id @default(cuid())
+  recordingId String   @map("recording_id")
+
+  timestamp   Int?     // segundos (opcional, puede ser nota general)
+  content     String
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  recording   AudioRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@index([recordingId])
+  @@map("recording_notes")
+}
+
+// ============================================
+// WRITING ASSISTANT (ASISTENTE DE ESCRITURA)
+// ============================================
+
+model WritingDocument {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  content     String   @db.Text
+  type        WritingType @default(ESSAY)
+
+  // Template usado
+  templateId  String?  @map("template_id")
+
+  // Metadatos
+  wordCount   Int      @default(0) @map("word_count")
+  targetWords Int?     @map("target_words")
+  language    String   @default("es")
+
+  // Estado
+  status      WritingStatus @default(DRAFT)
+
+  // AI Analysis
+  grammarScore    Float?  @map("grammar_score")
+  styleScore      Float?  @map("style_score")
+  plagiarismScore Float?  @map("plagiarism_score") // 0 = no plagio
+  suggestions     Json?   // Sugerencias de mejora
+
+  // Versiones
+  version     Int      @default(1)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  history     WritingHistory[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("writing_documents")
+}
+
+model WritingHistory {
+  id          String   @id @default(cuid())
+  documentId  String   @map("document_id")
+
+  content     String   @db.Text
+  version     Int
+  wordCount   Int      @map("word_count")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  document    WritingDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("writing_history")
+}
+
+model WritingTemplate {
+  id          String   @id @default(cuid())
+
+  name        String
+  description String?
+  type        WritingType
+  content     String   @db.Text // Template con placeholders
+  structure   Json?    // Estructura del documento
+
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("writing_templates")
+}
+
+enum WritingType {
+  ESSAY
+  REPORT
+  THESIS
+  SUMMARY
+  REVIEW
+  LAB_REPORT
+  RESEARCH_PAPER
+  PRESENTATION
+  OTHER
+}
+
+enum WritingStatus {
+  DRAFT
+  IN_PROGRESS
+  REVIEW
+  FINAL
+  SUBMITTED
+}
+
+// ============================================
+// WELLNESS & MENTAL HEALTH (BIENESTAR)
+// ============================================
+
+model WellnessLog {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime @db.Date
+
+  // Sueño
+  sleepHours      Float?   @map("sleep_hours")
+  sleepQuality    Int?     @map("sleep_quality") // 1-5
+
+  // Estado de ánimo
+  moodScore       Int?     @map("mood_score") // 1-5
+  stressLevel     Int?     @map("stress_level") // 1-5
+  energyLevel     Int?     @map("energy_level") // 1-5
+
+  // Actividad
+  exerciseMinutes Int?     @map("exercise_minutes")
+  meditationMinutes Int?   @map("meditation_minutes")
+  breaksCount     Int?     @map("breaks_count")
+
+  // Notas
+  notes           String?
+  gratitude       String[] @default([]) // 3 cosas por las que agradecer
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("wellness_logs")
+}
+
+model BreakReminder {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  // Configuración
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  intervalMinutes Int  @default(52) @map("interval_minutes") // Ley 52-17
+  breakMinutes    Int  @default(17) @map("break_minutes")
+
+  // Horario activo
+  startTime   String   @default("08:00") @map("start_time")
+  endTime     String   @default("22:00") @map("end_time")
+  activeDays  Int[]    @default([1,2,3,4,5]) @map("active_days") // 0-6
+
+  // Tipo de recordatorio
+  soundEnabled    Boolean @default(true) @map("sound_enabled")
+  notificationEnabled Boolean @default(true) @map("notification_enabled")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("break_reminders")
+}
+
+model WellnessTip {
+  id          String   @id @default(cuid())
+
+  title       String
+  content     String
+  category    WellnessCategory
+  icon        String?
+
+  // Cuándo mostrar
+  triggerType WellnessTrigger @map("trigger_type")
+  triggerValue String?        @map("trigger_value") // ej: stress > 4
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("wellness_tips")
+}
+
+enum WellnessCategory {
+  STRESS
+  SLEEP
+  EXERCISE
+  MINDFULNESS
+  NUTRITION
+  SOCIAL
+  STUDY_HABITS
+  MOTIVATION
+}
+
+enum WellnessTrigger {
+  RANDOM
+  HIGH_STRESS
+  LOW_SLEEP
+  EXAM_PERIOD
+  LONG_SESSION
+  DAILY
+}
+
+// ============================================
+// CAREER & PROFESSIONAL (CARRERA PROFESIONAL)
+// ============================================
+
+model UserCV {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+
+  // Información personal
+  fullName    String   @map("full_name")
+  title       String?  // ej: "Estudiante de Ingeniería"
+  summary     String?  @db.Text
+  email       String?
+  phone       String?
+  location    String?
+  linkedIn    String?
+  github      String?
+  portfolio   String?
+
+  // Foto
+  photoUrl    String?  @map("photo_url")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  education   CVEducation[]
+  experience  CVExperience[]
+  skills      CVSkill[]
+  projects    CVProject[]
+  certifications CVCertification[]
+  languages   CVLanguage[]
+
+  @@map("user_cvs")
+}
+
+model CVEducation {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  institution String
+  degree      String
+  field       String?  // Campo de estudio
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isCurrent   Boolean  @default(false) @map("is_current")
+  gpa         Float?
+  description String?
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_education")
+}
+
+model CVExperience {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  company     String
+  position    String
+  location    String?
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isCurrent   Boolean  @default(false) @map("is_current")
+  description String?  @db.Text
+  highlights  String[] @default([])
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_experience")
+}
+
+model CVSkill {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  name        String
+  level       SkillLevel @default(INTERMEDIATE)
+  category    String?  // ej: "Programación", "Idiomas"
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_skills")
+}
+
+model CVProject {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  name        String
+  description String?
+  url         String?
+  technologies String[] @default([])
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  highlights  String[] @default([])
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_projects")
+}
+
+model CVCertification {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  name        String
+  issuer      String
+  issueDate   DateTime @map("issue_date")
+  expiryDate  DateTime? @map("expiry_date")
+  credentialId String? @map("credential_id")
+  url         String?
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_certifications")
+}
+
+model CVLanguage {
+  id          String   @id @default(cuid())
+  cvId        String   @map("cv_id")
+
+  name        String
+  level       LanguageLevel
+  order       Int      @default(0)
+
+  cv          UserCV   @relation(fields: [cvId], references: [id], onDelete: Cascade)
+
+  @@index([cvId])
+  @@map("cv_languages")
+}
+
+model JobPosting {
+  id          String   @id @default(cuid())
+
+  title       String
+  company     String
+  location    String?
+  isRemote    Boolean  @default(false) @map("is_remote")
+  type        JobType
+
+  description String   @db.Text
+  requirements String[] @default([])
+  benefits    String[] @default([])
+
+  salaryMin   Int?     @map("salary_min")
+  salaryMax   Int?     @map("salary_max")
+  currency    String   @default("ARS")
+
+  // Filtros
+  career      String?  // Carrera requerida
+  minYear     Int?     @map("min_year") // Año mínimo de cursada
+  skills      String[] @default([])
+
+  // Enlaces
+  applyUrl    String?  @map("apply_url")
+  sourceUrl   String?  @map("source_url")
+
+  // Estado
+  isActive    Boolean  @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  applications JobApplication[]
+
+  @@index([career])
+  @@index([isActive])
+  @@map("job_postings")
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  jobId       String   @map("job_id")
+
+  status      ApplicationStatus @default(APPLIED)
+  coverLetter String?  @map("cover_letter") @db.Text
+  notes       String?
+
+  appliedAt   DateTime @default(now()) @map("applied_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job         JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  interviews  Interview[]
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("job_applications")
+}
+
+model Interview {
+  id            String   @id @default(cuid())
+  applicationId String   @map("application_id")
+
+  type          InterviewType
+  scheduledAt   DateTime @map("scheduled_at")
+  duration      Int?     // minutos
+  location      String?  // URL o dirección
+
+  // Preparación
+  notes         String?
+  questions     String[] @default([]) // Preguntas para preparar
+
+  // Resultado
+  status        InterviewStatus @default(SCHEDULED)
+  feedback      String?
+  rating        Int?     // 1-5
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("interviews")
+}
+
+model InterviewQuestion {
+  id          String   @id @default(cuid())
+
+  question    String
+  category    InterviewCategory
+  difficulty  DifficultyLevel @default(MEDIUM)
+
+  // Respuesta sugerida
+  sampleAnswer String? @map("sample_answer") @db.Text
+  tips        String[] @default([])
+
+  // Frecuencia
+  frequency   Int      @default(0) // Veces que aparece
+
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("interview_questions")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum LanguageLevel {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+  FLUENT
+  NATIVE
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  FREELANCE
+  CONTRACT
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  SCREENING
+  INTERVIEWING
+  OFFER
+  REJECTED
+  ACCEPTED
+  WITHDRAWN
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  IN_PERSON
+  TECHNICAL
+  HR
+  FINAL
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum InterviewCategory {
+  BEHAVIORAL
+  TECHNICAL
+  SITUATIONAL
+  COMPANY
+  ROLE
+  SALARY
+}
+
+// ============================================
+// TOOLS (HERRAMIENTAS ESPECÍFICAS)
+// ============================================
+
+model FormulaSheet {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  category    String?  // Matemáticas, Física, Química
+
+  isPublic    Boolean  @default(false) @map("is_public")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  formulas    Formula[]
+
+  @@index([userId])
+  @@map("formula_sheets")
+}
+
+model Formula {
+  id          String   @id @default(cuid())
+  sheetId     String   @map("sheet_id")
+
+  name        String
+  latex       String   // Fórmula en LaTeX
+  description String?
+  variables   Json?    // { "x": "velocidad", "t": "tiempo" }
+  example     String?
+  tags        String[] @default([])
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  sheet       FormulaSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@index([sheetId])
+  @@map("formulas")
+}
+
+model CodeSnippet {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  code        String   @db.Text
+  language    String   // python, javascript, java, etc.
+
+  // Metadatos
+  tags        String[] @default([])
+  isPublic    Boolean  @default(false) @map("is_public")
+
+  // Ejecución
+  isExecutable Boolean @default(false) @map("is_executable")
+  lastOutput   String? @map("last_output")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([language])
+  @@map("code_snippets")
+}
+
+// ============================================
+// SOCIAL & COMMUNITY (SOCIAL/COMUNIDAD)
+// ============================================
+
+model ProfessorReview {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  professorId String   @map("professor_id")
+
+  // Calificaciones (1-5)
+  overallRating   Int   @map("overall_rating")
+  difficultyRating Int  @map("difficulty_rating")
+  clarityRating   Int   @map("clarity_rating")
+  helpfulnessRating Int @map("helpfulness_rating")
+
+  // Detalles
+  courseName  String?  @map("course_name")
+  grade       String?  // Nota obtenida
+  wouldTakeAgain Boolean @default(false) @map("would_take_again")
+  isForCredit Boolean @default(true) @map("is_for_credit")
+
+  // Comentario
+  comment     String?  @db.Text
+  tags        String[] @default([]) // "exámenes difíciles", "buen explicador"
+
+  // Moderación
+  isAnonymous Boolean  @default(true) @map("is_anonymous")
+  isApproved  Boolean  @default(false) @map("is_approved")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, professorId])
+  @@index([professorId])
+  @@map("professor_reviews")
+}
+
+model StudyBuddyMatch {
+  id          String   @id @default(cuid())
+  userId1     String   @map("user_id_1")
+  userId2     String   @map("user_id_2")
+
+  // Coincidencias
+  commonSubjects String[] @default([]) @map("common_subjects")
+  matchScore  Float    @map("match_score") // 0-100
+
+  // Estado
+  status      MatchStatus @default(PENDING)
+  initiatedBy String   @map("initiated_by") // userId que inició
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user1       User     @relation("BuddyUser1", fields: [userId1], references: [id], onDelete: Cascade)
+  user2       User     @relation("BuddyUser2", fields: [userId2], references: [id], onDelete: Cascade)
+
+  @@unique([userId1, userId2])
+  @@index([userId1])
+  @@index([userId2])
+  @@map("study_buddy_matches")
+}
+
+model StudyBuddyPreferences {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+
+  // Preferencias
+  isSearching Boolean  @default(false) @map("is_searching")
+  subjects    String[] @default([]) // Materias para buscar compañeros
+  studyStyle  StudyStyle @default(BALANCED) @map("study_style")
+  availability Json?   // Horarios disponibles
+
+  // Filtros
+  sameUniversity Boolean @default(false) @map("same_university")
+  sameCareer    Boolean @default(false) @map("same_career")
+  sameYear      Boolean @default(false) @map("same_year")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_buddy_preferences")
+}
+
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  sellerId    String   @map("seller_id")
+
+  title       String
+  description String?  @db.Text
+  type        ListingType
+  condition   ItemCondition @default(GOOD)
+
+  // Precio
+  price       Float
+  currency    String   @default("ARS")
+  isNegotiable Boolean @default(true) @map("is_negotiable")
+
+  // Detalles del item
+  category    String?  // Materia o categoría
+  isbn        String?  // Para libros
+  author      String?  // Para libros
+  edition     String?  // Para libros
+
+  // Imágenes
+  images      String[] @default([])
+
+  // Ubicación
+  location    String?
+  isDelivery  Boolean  @default(false) @map("is_delivery")
+  isPickup    Boolean  @default(true) @map("is_pickup")
+
+  // Estado
+  status      ListingStatus @default(ACTIVE)
+  viewCount   Int      @default(0) @map("view_count")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  seller      User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  messages    MarketplaceMessage[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([type])
+  @@map("marketplace_listings")
+}
+
+model MarketplaceMessage {
+  id          String   @id @default(cuid())
+  listingId   String   @map("listing_id")
+  senderId    String   @map("sender_id")
+  receiverId  String   @map("receiver_id")
+
+  content     String
+  isRead      Boolean  @default(false) @map("is_read")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  listing     MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("marketplace_messages")
+}
+
+model SharedFlashcardDeck {
+  id          String   @id @default(cuid())
+  deckId      String   @map("deck_id")
+  userId      String   @map("user_id") // Quien lo comparte
+
+  title       String
+  description String?
+  tags        String[] @default([])
+  subject     String?
+  university  String?
+
+  // Estadísticas
+  downloadCount Int    @default(0) @map("download_count")
+  rating      Float    @default(0)
+  ratingCount Int      @default(0) @map("rating_count")
+
+  // Moderación
+  isApproved  Boolean  @default(false) @map("is_approved")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  deck        FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratings     DeckRating[]
+
+  @@unique([deckId])
+  @@index([userId])
+  @@index([subject])
+  @@map("shared_flashcard_decks")
+}
+
+model DeckRating {
+  id          String   @id @default(cuid())
+  sharedDeckId String  @map("shared_deck_id")
+  userId      String   @map("user_id")
+
+  rating      Int      // 1-5
+  comment     String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  sharedDeck  SharedFlashcardDeck @relation(fields: [sharedDeckId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedDeckId, userId])
+  @@index([sharedDeckId])
+  @@map("deck_ratings")
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
+}
+
+enum ListingType {
+  BOOK
+  NOTES
+  CALCULATOR
+  EQUIPMENT
+  TUTORING_SERVICE
+  OTHER
+}
+
+enum ItemCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  RESERVED
+  EXPIRED
+  DELETED
 }
