@@ -173,6 +173,24 @@ export default function TimerPage() {
     }
   };
 
+  // Helper to reset session state when session not found
+  const resetSessionState = () => {
+    setActiveSession(null);
+    setIsRunning(false);
+    setTimeLeft(0);
+    setIsBreak(false);
+    setIsEndModalOpen(false);
+  };
+
+  // Check if error is "session not found"
+  const isSessionNotFoundError = (error: unknown): boolean => {
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error as { message: string }).message.toLowerCase();
+      return message.includes('no encontrada') || message.includes('not found');
+    }
+    return false;
+  };
+
   // Pause session
   const handlePause = async () => {
     if (!token || !activeSession) return;
@@ -181,6 +199,10 @@ export default function TimerPage() {
       setIsRunning(false);
     } catch (error) {
       console.error('Error pausing:', error);
+      if (isSessionNotFoundError(error)) {
+        resetSessionState();
+        loadData();
+      }
     }
   };
 
@@ -192,6 +214,10 @@ export default function TimerPage() {
       setIsRunning(true);
     } catch (error) {
       console.error('Error resuming:', error);
+      if (isSessionNotFoundError(error)) {
+        resetSessionState();
+        loadData();
+      }
     }
   };
 
@@ -212,6 +238,12 @@ export default function TimerPage() {
       loadData();
     } catch (error) {
       console.error('Error ending session:', error);
+      if (isSessionNotFoundError(error)) {
+        resetSessionState();
+        setFocusScore(80);
+        setSessionNotes('');
+        loadData();
+      }
     }
   };
 
@@ -226,6 +258,10 @@ export default function TimerPage() {
       loadData();
     } catch (error) {
       console.error('Error abandoning:', error);
+      if (isSessionNotFoundError(error)) {
+        resetSessionState();
+        loadData();
+      }
     }
   };
 
