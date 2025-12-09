@@ -71,6 +71,7 @@ export default function TimerPage() {
   const [isEndModalOpen, setIsEndModalOpen] = useState(false);
   const [focusScore, setFocusScore] = useState(80);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -261,12 +262,14 @@ export default function TimerPage() {
 
   // End session
   const handleEnd = async () => {
+    if (isSaving) return; // Prevent double click
     if (!token || !activeSession || !activeSession.id) {
       console.warn('[Timer] Cannot end: no valid session');
       resetSessionState();
       setIsEndModalOpen(false);
       return;
     }
+    setIsSaving(true);
     try {
       await studySessions.end(token, activeSession.id, {
         focusScore,
@@ -280,13 +283,19 @@ export default function TimerPage() {
       setSessionNotes('');
       loadData();
     } catch (error) {
-      console.error('Error ending session:', error);
+      // If session was already finished, just close the modal and reset
       if (isSessionInvalidError(error)) {
+        console.log('[Timer] Session already ended, resetting state');
         resetSessionState();
+        setIsEndModalOpen(false);
         setFocusScore(80);
         setSessionNotes('');
         loadData();
+      } else {
+        console.error('Error ending session:', error);
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -830,9 +839,11 @@ export default function TimerPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsEndModalOpen(false)}>Cancelar</Button>
-            <Button variant="gradient" onClick={handleEnd}>
-              Guardar y Terminar
+            <Button variant="outline" onClick={() => setIsEndModalOpen(false)} disabled={isSaving}>
+              Cancelar
+            </Button>
+            <Button variant="gradient" onClick={handleEnd} disabled={isSaving}>
+              {isSaving ? 'Guardando...' : 'Guardar y Terminar'}
             </Button>
           </div>
         </div>
