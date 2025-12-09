@@ -77,16 +77,23 @@ export default function TimerPage() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const [active, sessionStats, today, week, hist] = await Promise.all([
+      const results = await Promise.allSettled([
         studySessions.getActive(token),
         studySessions.getStats(token),
         studySessions.getTodayStats(token),
         studySessions.getWeekStats(token),
         studySessions.getHistory(token, { limit: 20 }),
       ]);
+
+      const active = results[0].status === 'fulfilled' ? results[0].value : null;
+      const sessionStats = results[1].status === 'fulfilled' ? results[1].value : null;
+      const today = results[2].status === 'fulfilled' ? results[2].value : null;
+      const week = results[3].status === 'fulfilled' ? results[3].value : [];
+      const hist = results[4].status === 'fulfilled' ? results[4].value : [];
+
       setActiveSession(active);
-      setStats(sessionStats);
-      setTodayStats(today);
+      if (sessionStats) setStats(sessionStats);
+      if (today) setTodayStats(today);
       setWeekStats(Array.isArray(week) ? week : []);
       setHistory(Array.isArray(hist) ? hist : []);
 
