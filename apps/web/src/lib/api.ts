@@ -2986,8 +2986,17 @@ export const studySessions = {
   abandon: (token: string, id: string) =>
     request<StudySession>(`/study-sessions/${id}/abandon`, { method: 'PATCH', token }),
 
-  getActive: (token: string) =>
-    request<StudySession | null>('/study-sessions/active', { token }),
+  getActive: async (token: string): Promise<StudySession | null> => {
+    try {
+      return await request<StudySession | null>('/study-sessions/active', { token });
+    } catch (error) {
+      // Return null if session not found (404)
+      if (error instanceof ApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
 
   getHistory: (token: string, filters?: { subjectId?: string; type?: StudySessionType; startDate?: string; endDate?: string; limit?: number }) => {
     const params = new URLSearchParams();
