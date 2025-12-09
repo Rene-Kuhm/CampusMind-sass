@@ -18,11 +18,6 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/app/timer',
-        destination: '/app/pomodoro',
-        permanent: true,
-      },
-      {
         source: '/app/groups',
         destination: '/app/social',
         permanent: true,
