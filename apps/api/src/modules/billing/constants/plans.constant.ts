@@ -14,6 +14,12 @@ export interface PlanLimits {
   // Quizzes
   quizzesPerMonth: number;
 
+  // Tasks
+  tasksActive: number;
+
+  // Study Sessions
+  studySessionsPerMonth: number;
+
   // Storage
   storageMb: number;
 
@@ -29,6 +35,8 @@ export interface PlanLimits {
   prioritySupport: boolean;
   exportData: boolean;
   betterModels: boolean; // Acceso a GPT-4o full, Llama grande, etc.
+  weeklySchedule: boolean; // Horario semanal de clases
+  ocrNotes: boolean; // OCR de apuntes
 }
 
 export interface PlanPricing {
@@ -72,6 +80,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       documentsPerMonth: 5,
       flashcardsTotal: 100,
       quizzesPerMonth: 5,
+      tasksActive: 10,
+      studySessionsPerMonth: 20,
       storageMb: 50,
 
       // Features
@@ -86,6 +96,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       prioritySupport: false,
       exportData: false,
       betterModels: false,
+      weeklySchedule: false,
+      ocrNotes: false,
     },
     pricing: {
       monthly: { ars: 0, usd: 0 },
@@ -97,6 +109,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       "5 documentos para indexar/mes",
       "100 flashcards",
       "5 quizzes/mes",
+      "10 tareas activas",
+      "20 sesiones de estudio/mes",
       "50 MB almacenamiento",
       "Calendario básico",
     ],
@@ -118,6 +132,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       documentsPerMonth: 50,
       flashcardsTotal: -1, // Sin límites duros
       quizzesPerMonth: -1, // Sin límites duros
+      tasksActive: -1, // Ilimitadas
+      studySessionsPerMonth: -1, // Ilimitadas
       storageMb: 1000, // 1GB
 
       // Features
@@ -132,6 +148,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       prioritySupport: false,
       exportData: true,
       betterModels: false,
+      weeklySchedule: true,
+      ocrNotes: false,
     },
     pricing: {
       monthly: { ars: 9999, usd: 9.99 },
@@ -143,6 +161,9 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       "50 documentos para indexar/mes",
       "Flashcards ilimitadas",
       "Quizzes ilimitados",
+      "Tareas ilimitadas",
+      "Sesiones de estudio ilimitadas",
+      "Horario semanal de clases",
       "1 GB almacenamiento",
       "Calendario completo + recordatorios",
       "Resúmenes con IA",
@@ -166,6 +187,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       documentsPerMonth: -1,
       flashcardsTotal: -1,
       quizzesPerMonth: -1,
+      tasksActive: -1,
+      studySessionsPerMonth: -1,
       storageMb: 10000, // 10GB
 
       // Features - TODO habilitado
@@ -180,6 +203,8 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       prioritySupport: true,
       exportData: true,
       betterModels: true, // GPT-4o full, Llama 3.3 70B, etc.
+      weeklySchedule: true,
+      ocrNotes: true, // OCR de apuntes
     },
     pricing: {
       monthly: { ars: 14999, usd: 14.99 },
@@ -191,6 +216,7 @@ export const PLANS: Record<PlanType, PlanConfig> = {
       "Documentos ilimitados",
       "10 GB almacenamiento",
       "Acceso a modelos premium (GPT-4o, Claude, etc.)",
+      "OCR de apuntes y documentos",
       "Grupos de estudio colaborativos",
       "Leaderboard y competencias",
       "Gamificación y achievements",
@@ -291,6 +317,8 @@ export enum UsageTypeEnum {
   QUIZZES = "QUIZZES",
   STORAGE_MB = "STORAGE_MB",
   SUBJECTS = "SUBJECTS",
+  TASKS = "TASKS",
+  STUDY_SESSIONS = "STUDY_SESSIONS",
 }
 
 // Map usage types to plan limit keys
@@ -301,4 +329,6 @@ export const USAGE_TO_LIMIT_MAP: Record<UsageTypeEnum, keyof PlanLimits> = {
   [UsageTypeEnum.QUIZZES]: "quizzesPerMonth",
   [UsageTypeEnum.STORAGE_MB]: "storageMb",
   [UsageTypeEnum.SUBJECTS]: "subjectsActive",
+  [UsageTypeEnum.TASKS]: "tasksActive",
+  [UsageTypeEnum.STUDY_SESSIONS]: "studySessionsPerMonth",
 };
