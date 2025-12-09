@@ -2974,17 +2974,25 @@ export const studySessions = {
     breakMinutes?: number;
   }) => request<StudySession>('/study-sessions/start', { method: 'POST', body: data, token }),
 
-  end: (token: string, id: string, data?: { focusScore?: number; notes?: string }) =>
-    request<StudySession>(`/study-sessions/${id}/end`, { method: 'PATCH', body: data || {}, token }),
+  end: (token: string, id: string, data?: { focusScore?: number; notes?: string }) => {
+    if (!id) throw new Error('Session ID is required for end');
+    return request<StudySession>(`/study-sessions/${id}/end`, { method: 'PATCH', body: data || {}, token });
+  },
 
-  pause: (token: string, id: string) =>
-    request<StudySession>(`/study-sessions/${id}/pause`, { method: 'PATCH', token }),
+  pause: (token: string, id: string) => {
+    if (!id) throw new Error('Session ID is required for pause');
+    return request<StudySession>(`/study-sessions/${id}/pause`, { method: 'PATCH', token });
+  },
 
-  resume: (token: string, id: string) =>
-    request<StudySession>(`/study-sessions/${id}/resume`, { method: 'PATCH', token }),
+  resume: (token: string, id: string) => {
+    if (!id) throw new Error('Session ID is required for resume');
+    return request<StudySession>(`/study-sessions/${id}/resume`, { method: 'PATCH', token });
+  },
 
-  abandon: (token: string, id: string) =>
-    request<StudySession>(`/study-sessions/${id}/abandon`, { method: 'PATCH', token }),
+  abandon: (token: string, id: string) => {
+    if (!id) throw new Error('Session ID is required for abandon');
+    return request<StudySession>(`/study-sessions/${id}/abandon`, { method: 'PATCH', token });
+  },
 
   getActive: async (token: string): Promise<StudySession | null> => {
     try {
