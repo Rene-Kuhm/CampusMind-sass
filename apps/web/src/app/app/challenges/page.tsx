@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import api, { GamificationProfile } from '@/lib/api';
 import {
   Flame,
   Clock,
@@ -13,11 +15,11 @@ import {
   Check,
   Timer,
   Star,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Challenge,
-  DailyProgress,
   getDailyChallenges,
   getDailyProgress,
   updateChallengeProgress,
@@ -38,16 +40,39 @@ const CHALLENGE_ICONS: Record<string, React.ComponentType<{ className?: string }
 };
 
 export default function DailyChallengesPage() {
+  const { token } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [progress, setProgress] = useState<DailyProgress | null>(null);
+  const [localProgress, setLocalProgress] = useState(getDailyProgress());
+  const [gamificationProfile, setGamificationProfile] = useState<GamificationProfile | null>(null);
   const [timeUntilReset, setTimeUntilReset] = useState('');
   const [allCompleted, setAllCompleted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load gamification profile from API
+  const loadGamificationData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const profile = await api.gamificationApi.getProfile(token);
+      setGamificationProfile(profile);
+      // Update streak on load
+      await api.gamificationApi.updateStreak(token);
+    } catch (error) {
+      console.error('Error loading gamification data:', error);
+    }
+  }, [token]);
 
   useEffect(() => {
-    setChallenges(getDailyChallenges());
-    setProgress(getDailyProgress());
-    setTimeUntilReset(getTimeUntilReset());
-    setAllCompleted(areAllChallengesCompleted());
+    const loadData = async () => {
+      setIsLoading(true);
+      setChallenges(getDailyChallenges());
+      setLocalProgress(getDailyProgress());
+      setTimeUntilReset(getTimeUntilReset());
+      setAllCompleted(areAllChallengesCompleted());
+      await loadGamificationData();
+      setIsLoading(false);
+    };
+
+    loadData();
 
     // Update timer every minute
     const interval = setInterval(() => {
@@ -55,22 +80,44 @@ export default function DailyChallengesPage() {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [loadGamificationData]);
 
-  // Simulate completing a challenge (for demo)
-  const handleCompleteChallenge = (challenge: Challenge) => {
+  // Complete a challenge (demo mode)
+  const handleCompleteChallenge = async (challenge: Challenge) => {
     if (challenge.completed) return;
 
     const updated = updateChallengeProgress(challenge.id, challenge.requirement);
     if (updated) {
       setChallenges(getDailyChallenges());
-      setProgress(getDailyProgress());
+      setLocalProgress(getDailyProgress());
       setAllCompleted(areAllChallengesCompleted());
+
+      // Check for new achievements
+      if (token) {
+        try {
+          await api.gamificationApi.checkAchievements(token);
+          // Reload profile to get updated XP
+          const profile = await api.gamificationApi.getProfile(token);
+          setGamificationProfile(profile);
+        } catch (error) {
+          console.error('Error checking achievements:', error);
+        }
+      }
     }
   };
 
   const totalXp = getTotalXpAvailable();
   const completedCount = challenges.filter(c => c.completed).length;
+  const currentStreak = gamificationProfile?.currentStreak || localProgress.streak;
+  const totalXpEarned = gamificationProfile?.totalXP || 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -95,55 +142,55 @@ export default function DailyChallengesPage() {
       </div>
 
       {/* Progress Overview */}
-      {progress && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {/* Daily Progress */}
-          <div className="bg-white dark:bg-secondary-900 rounded-2xl p-6 border border-secondary-200 dark:border-secondary-700">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-secondary-900 dark:text-white">Progreso de Hoy</h3>
-              <span className="text-2xl font-bold text-primary-500">
-                {completedCount}/{challenges.length}
-              </span>
-            </div>
-            <div className="h-3 bg-secondary-200 dark:bg-secondary-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all"
-                style={{ width: `${(completedCount / challenges.length) * 100}%` }}
-              />
-            </div>
-            {allCompleted && (
-              <div className="mt-3 flex items-center gap-2 text-green-600 dark:text-green-400">
-                <Check className="h-5 w-5" />
-                <span className="text-sm font-medium">¡Todos completados!</span>
-              </div>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Daily Progress */}
+        <div className="bg-white dark:bg-secondary-900 rounded-2xl p-6 border border-secondary-200 dark:border-secondary-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-secondary-900 dark:text-white">Progreso de Hoy</h3>
+            <span className="text-2xl font-bold text-primary-500">
+              {completedCount}/{challenges.length}
+            </span>
           </div>
-
-          {/* XP Earned */}
-          <div className="bg-gradient-to-br from-primary-500 to-violet-600 rounded-2xl p-6 text-white">
-            <div className="flex items-center gap-3 mb-2">
-              <Zap className="h-6 w-6 text-amber-300" />
-              <h3 className="font-semibold">XP Ganados Hoy</h3>
-            </div>
-            <p className="text-4xl font-bold">{progress.xpEarned}</p>
-            <p className="text-sm text-white/70 mt-1">
-              de {totalXp} XP disponibles
-            </p>
+          <div className="h-3 bg-secondary-200 dark:bg-secondary-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all"
+              style={{ width: `${(completedCount / challenges.length) * 100}%` }}
+            />
           </div>
-
-          {/* Streak */}
-          <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-6 text-white">
-            <div className="flex items-center gap-3 mb-2">
-              <Flame className="h-6 w-6 text-amber-300" />
-              <h3 className="font-semibold">Racha de Retos</h3>
+          {allCompleted && (
+            <div className="mt-3 flex items-center gap-2 text-green-600 dark:text-green-400">
+              <Check className="h-5 w-5" />
+              <span className="text-sm font-medium">Todos completados!</span>
             </div>
-            <p className="text-4xl font-bold">{progress.streak} días</p>
-            <p className="text-sm text-white/70 mt-1">
-              ¡Sigue así!
-            </p>
-          </div>
+          )}
         </div>
-      )}
+
+        {/* XP Earned */}
+        <div className="bg-gradient-to-br from-primary-500 to-violet-600 rounded-2xl p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <Zap className="h-6 w-6 text-amber-300" />
+            <h3 className="font-semibold">XP Total</h3>
+          </div>
+          <p className="text-4xl font-bold">{totalXpEarned.toLocaleString()}</p>
+          <p className="text-sm text-white/70 mt-1">
+            +{localProgress.xpEarned} XP hoy de {totalXp} disponibles
+          </p>
+        </div>
+
+        {/* Streak */}
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <Flame className="h-6 w-6 text-amber-300" />
+            <h3 className="font-semibold">Racha de Retos</h3>
+          </div>
+          <p className="text-4xl font-bold">{currentStreak} dias</p>
+          <p className="text-sm text-white/70 mt-1">
+            {gamificationProfile?.longestStreak
+              ? `Mejor racha: ${gamificationProfile.longestStreak} dias`
+              : 'Sigue asi!'}
+          </p>
+        </div>
+      </div>
 
       {/* All Completed Celebration */}
       {allCompleted && (
@@ -154,10 +201,10 @@ export default function DailyChallengesPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-amber-900 dark:text-amber-200">
-                ¡Felicidades!
+                Felicidades!
               </h2>
               <p className="text-amber-700 dark:text-amber-300">
-                Has completado todos los retos de hoy. ¡Vuelve mañana para nuevos desafíos!
+                Has completado todos los retos de hoy. Vuelve manana para nuevos desafios!
               </p>
             </div>
             <div className="ml-auto">
@@ -273,28 +320,28 @@ export default function DailyChallengesPage() {
       <div className="mt-8 bg-secondary-50 dark:bg-secondary-800 rounded-2xl p-6">
         <h3 className="font-semibold text-secondary-900 dark:text-white mb-4 flex items-center gap-2">
           <Star className="h-5 w-5 text-amber-500" />
-          Cómo funcionan los retos
+          Como funcionan los retos
         </h3>
         <ul className="space-y-3 text-sm text-secondary-600 dark:text-secondary-400">
           <li className="flex items-start gap-2">
-            <span className="text-primary-500">•</span>
-            Cada día recibes 5 nuevos retos para completar
+            <span className="text-primary-500">-</span>
+            Cada dia recibes 5 nuevos retos para completar
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-primary-500">•</span>
+            <span className="text-primary-500">-</span>
             Los retos se reinician a medianoche
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-primary-500">•</span>
+            <span className="text-primary-500">-</span>
             Completa retos para ganar XP y subir en el ranking
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-primary-500">•</span>
-            Mantén tu racha completando al menos un reto cada día
+            <span className="text-primary-500">-</span>
+            Manten tu racha completando al menos un reto cada dia
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-primary-500">•</span>
-            Los retos difíciles dan más XP pero requieren más esfuerzo
+            <span className="text-primary-500">-</span>
+            Los retos dificiles dan mas XP pero requieren mas esfuerzo
           </li>
         </ul>
       </div>
