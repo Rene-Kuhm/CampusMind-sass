@@ -93,7 +93,7 @@ export default function LmsPage() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const data = await lms.getConnections(token);
+      const data = await lms.getIntegrations(token);
       setConnections(data);
     } catch (error) {
       console.error('Error loading connections:', error);
@@ -132,8 +132,8 @@ export default function LmsPage() {
         });
       } else {
         // OAuth flow for Google Classroom
-        const authUrl = await lms.getAuthUrl(token, selectedPlatform);
-        window.open(authUrl, '_blank', 'width=600,height=700');
+        const authResponse = await lms.getAuthUrl(token, selectedPlatform);
+        window.open(authResponse.url, '_blank', 'width=600,height=700');
       }
       setIsConnectModalOpen(false);
       setConnectForm({ instanceUrl: '', apiToken: '' });
@@ -152,7 +152,7 @@ export default function LmsPage() {
   const handleDisconnect = async (id: string) => {
     if (!token) return;
     try {
-      await lms.disconnect(token, id);
+      await lms.deleteIntegration(token, id);
       setConnections(prev => prev.filter(c => c.id !== id));
       loadCourses();
     } catch (error) {
@@ -186,7 +186,7 @@ export default function LmsPage() {
   };
 
   const getConnectionByPlatform = (platform: string) => {
-    return connections.find(c => c.platform === platform);
+    return connections.find(c => c.provider === platform.toUpperCase());
   };
 
   return (
@@ -341,7 +341,7 @@ export default function LmsPage() {
                               <Users className="h-3 w-3" />
                               {course.instructor}
                             </span>
-                            {course.pendingAssignments > 0 && (
+                            {(course.pendingAssignments ?? 0) > 0 && (
                               <span className="flex items-center gap-1 text-amber-600">
                                 <FileText className="h-3 w-3" />
                                 {course.pendingAssignments} pendientes

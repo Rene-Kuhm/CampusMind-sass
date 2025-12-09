@@ -1684,18 +1684,37 @@ export const bibliography = {
 // STUDY PLANS ENDPOINTS
 // ============================================
 
+export interface StudyPlanActivity {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDate: string;
+  day?: number;
+  duration: number;
+  completed: boolean;
+  completedAt?: string;
+  type?: string;
+  resources?: string[];
+}
+
 export interface StudyPlan {
   id: string;
   title: string;
+  topic?: string;
   description?: string;
   subjectId?: string;
   startDate: string;
   endDate: string;
+  targetDate?: string;
   totalItems: number;
   completedItems: number;
   progress: number;
   status: 'ACTIVE' | 'COMPLETED' | 'PAUSED';
+  learningStyle?: 'VISUAL' | 'AUDITORY' | 'READING' | 'KINESTHETIC';
+  difficulty?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  dailyHours?: number;
   items: StudyPlanItem[];
+  activities?: StudyPlanActivity[]; // Alternative to items
   createdAt: string;
 }
 
@@ -1731,6 +1750,28 @@ export const studyPlans = {
 
   delete: (token: string, id: string) =>
     request<{ success: boolean }>(`/study-plans/${id}`, { method: 'DELETE', token }),
+
+  // Alias for generate with flexible input
+  generate: (token: string, data: { subjectId?: string; topic: string; examDate?: string; targetDate?: string; hoursPerDay?: number; dailyHours?: number; difficulty?: string; learningStyle?: string; goals?: string }) =>
+    request<StudyPlan>('/study-plans/generate', {
+      method: 'POST',
+      body: {
+        subjectId: data.subjectId,
+        topic: data.topic,
+        examDate: data.examDate || data.targetDate,
+        hoursPerDay: data.hoursPerDay || data.dailyHours,
+        difficulty: data.difficulty,
+        learningStyle: data.learningStyle,
+        goals: data.goals,
+      },
+      token
+    }),
+
+  updateActivity: (token: string, planId: string, activityId: string, data: { completed?: boolean; notes?: string }) =>
+    request<StudyPlan>(`/study-plans/${planId}/activities/${activityId}`, { method: 'PATCH', body: data, token }),
+
+  regenerate: (token: string, id: string) =>
+    request<StudyPlan>(`/study-plans/${id}/regenerate`, { method: 'POST', token }),
 };
 
 // ============================================
@@ -1742,6 +1783,9 @@ export interface Transcription {
   title: string;
   sourceType: 'UPLOAD' | 'YOUTUBE' | 'RECORDING' | 'URL';
   sourceUrl?: string;
+  fileUrl?: string;
+  fileName?: string;
+  subjectId?: string;
   duration?: number;
   language?: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
@@ -1755,6 +1799,9 @@ export const transcription = {
   create: (token: string, data: { title: string; subjectId?: string; sourceType: string; sourceUrl?: string; fileName?: string; language?: string }) =>
     request<Transcription>('/transcription', { method: 'POST', body: data, token }),
 
+  transcribe: (token: string, data: { title?: string; subjectId?: string; sourceType?: string; sourceUrl?: string; fileName?: string; language?: string; file?: File }) =>
+    request<Transcription>('/transcription/transcribe', { method: 'POST', body: data, token }),
+
   list: (token: string, subjectId?: string) =>
     request<Transcription[]>(`/transcription${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
 
@@ -1763,6 +1810,14 @@ export const transcription = {
 
   delete: (token: string, id: string) =>
     request<{ success: boolean }>(`/transcription/${id}`, { method: 'DELETE', token }),
+
+  export: async (token: string, id: string, format: string): Promise<Blob> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/transcription/${id}/export?format=${format}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Error exporting transcription');
+    return response.blob();
+  },
 };
 
 // ============================================
@@ -1805,17 +1860,26 @@ export const videoSummary = {
 export interface EmailReportConfig {
   id: string;
   isEnabled: boolean;
+  enabled: boolean; // alias for isEnabled
   frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
   dayOfWeek?: number;
   dayOfMonth?: number;
   timeOfDay: string;
   timezone: string;
+  // Original properties
   includeStudyTime: boolean;
   includeFlashcards: boolean;
   includeQuizzes: boolean;
   includeTasks: boolean;
   includeGoals: boolean;
   includeUpcoming: boolean;
+  // Page-specific properties
+  includeStudyStats?: boolean;
+  includeTaskSummary?: boolean;
+  includeGoalProgress?: boolean;
+  includeUpcomingDeadlines?: boolean;
+  includeAchievements?: boolean;
+  includeRecommendations?: boolean;
 }
 
 export const emailReports = {
@@ -1830,6 +1894,9 @@ export const emailReports = {
 
   sendNow: (token: string) =>
     request<{ success: boolean }>('/email-reports/send', { method: 'POST', token }),
+
+  sendTest: (token: string) =>
+    request<{ success: boolean }>('/email-reports/test', { method: 'POST', token }),
 };
 
 // ============================================
@@ -1847,12 +1914,18 @@ export interface LmsIntegration {
   createdAt: string;
 }
 
+// Alias for backwards compatibility
+export type LmsConnection = LmsIntegration;
+
 export interface LmsCourse {
   id: string;
   externalId: string;
   name: string;
   shortName?: string;
   description?: string;
+  instructor?: string;
+  pendingAssignments?: number;
+  url?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -1863,6 +1936,22 @@ export const lms = {
 
   deleteIntegration: (token: string, id: string) =>
     request<{ success: boolean }>(`/lms/integrations/${id}`, { method: 'DELETE', token }),
+
+  // Generic methods
+  getCourses: (token: string) =>
+    request<LmsCourse[]>('/lms/courses', { token }),
+
+  connect: (token: string, data: { platform: string; instanceUrl?: string; moodleToken?: string; apiToken?: string }) =>
+    request<LmsIntegration>(`/lms/${data.platform.toLowerCase()}/connect`, { method: 'POST', body: data, token }),
+
+  getAuthUrl: (token: string, platform: string) =>
+    request<{ url: string }>(`/lms/${platform.toLowerCase()}/auth-url`, { token }),
+
+  syncCourses: (token: string) =>
+    request<{ success: boolean }>('/lms/sync', { method: 'POST', token }),
+
+  importAssignments: (token: string, courseId: string) =>
+    request<{ success: boolean; imported: number }>(`/lms/courses/${courseId}/import-assignments`, { method: 'POST', token }),
 
   // Moodle
   connectMoodle: (token: string, data: { instanceUrl: string; moodleToken: string }) =>
@@ -1892,8 +1981,12 @@ export interface ExternalIntegration {
   accountName?: string;
   accountEmail?: string;
   isActive: boolean;
+  lastSyncAt?: string;
   createdAt: string;
 }
+
+// Alias for backwards compatibility
+export type Integration = ExternalIntegration;
 
 export const integrations = {
   list: (token: string) =>
@@ -1901,6 +1994,16 @@ export const integrations = {
 
   delete: (token: string, id: string) =>
     request<{ success: boolean }>(`/integrations/${id}`, { method: 'DELETE', token }),
+
+  // Generic connect/disconnect/sync
+  connect: (token: string, type: string) =>
+    request<string>(`/integrations/${type.toLowerCase().replace('_', '-')}/auth-url`, { token }).then(res => (res as any).url || res),
+
+  disconnect: (token: string, id: string) =>
+    request<{ success: boolean }>(`/integrations/${id}`, { method: 'DELETE', token }),
+
+  sync: (token: string, id: string) =>
+    request<{ success: boolean }>(`/integrations/${id}/sync`, { method: 'POST', token }),
 
   // Notion
   getNotionAuthUrl: (token: string) =>
@@ -1945,6 +2048,31 @@ export interface CalendarIntegration {
   createdAt: string;
 }
 
+export interface CalendarSyncConfig {
+  id: string;
+  provider: 'GOOGLE' | 'OUTLOOK' | 'APPLE';
+  accountEmail?: string;
+  connected: boolean;
+  enabled: boolean;
+  syncDirection: 'IMPORT' | 'EXPORT' | 'BOTH';
+  selectedCalendarId?: string;
+  syncTasks: boolean;
+  syncStudySessions: boolean;
+  syncExams: boolean;
+  syncEvents: boolean;
+  reminderMinutes?: number;
+  lastSyncAt?: string;
+  createdAt: string;
+}
+
+export interface ExternalCalendar {
+  id: string;
+  name: string;
+  color?: string;
+  isPrimary: boolean;
+  accessRole?: string;
+}
+
 export const calendarSync = {
   getIntegrations: (token: string) =>
     request<CalendarIntegration[]>('/calendar-sync/integrations', { token }),
@@ -1963,6 +2091,25 @@ export const calendarSync = {
 
   exportIcal: (token: string) =>
     request<Blob>('/calendar-sync/export/ical', { token }),
+
+  // Settings page methods
+  getConfig: (token: string) =>
+    request<CalendarSyncConfig | null>('/calendar-sync/config', { token }),
+
+  getCalendars: (token: string) =>
+    request<ExternalCalendar[]>('/calendar-sync/calendars', { token }),
+
+  connect: (token: string) =>
+    request<string>('/calendar-sync/connect', { method: 'POST', token }),
+
+  disconnect: (token: string) =>
+    request<{ success: boolean }>('/calendar-sync/disconnect', { method: 'POST', token }),
+
+  sync: (token: string) =>
+    request<{ success: boolean; synced: number }>('/calendar-sync/sync', { method: 'POST', token }),
+
+  updateConfig: (token: string, data: Partial<CalendarSyncConfig>) =>
+    request<CalendarSyncConfig>('/calendar-sync/config', { method: 'PATCH', body: data, token }),
 };
 
 // ============================================

@@ -142,7 +142,7 @@ export default function TutoringPage() {
       case 'COMPLETED':
         return <Badge variant="secondary"><CheckCircle className="h-3 w-3 mr-1" />Completada</Badge>;
       case 'CANCELLED':
-        return <Badge variant="error"><XCircle className="h-3 w-3 mr-1" />Cancelada</Badge>;
+        return <Badge variant="danger"><XCircle className="h-3 w-3 mr-1" />Cancelada</Badge>;
       default:
         return <Badge variant="warning"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>;
     }

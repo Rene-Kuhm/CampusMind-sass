@@ -40,7 +40,7 @@ export default function EmailReportsPage() {
   // Form state
   const [formData, setFormData] = useState({
     enabled: true,
-    frequency: 'WEEKLY' as 'DAILY' | 'WEEKLY' | 'MONTHLY',
+    frequency: 'WEEKLY' as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
     dayOfWeek: 1, // Monday
     timeOfDay: '09:00',
     includeStudyStats: true,
@@ -64,12 +64,12 @@ export default function EmailReportsPage() {
           frequency: data.frequency,
           dayOfWeek: data.dayOfWeek || 1,
           timeOfDay: data.timeOfDay || '09:00',
-          includeStudyStats: data.includeStudyStats,
-          includeTaskSummary: data.includeTaskSummary,
-          includeGoalProgress: data.includeGoalProgress,
-          includeUpcomingDeadlines: data.includeUpcomingDeadlines,
-          includeAchievements: data.includeAchievements,
-          includeRecommendations: data.includeRecommendations,
+          includeStudyStats: data.includeStudyStats ?? true,
+          includeTaskSummary: data.includeTaskSummary ?? true,
+          includeGoalProgress: data.includeGoalProgress ?? true,
+          includeUpcomingDeadlines: data.includeUpcomingDeadlines ?? true,
+          includeAchievements: data.includeAchievements ?? true,
+          includeRecommendations: data.includeRecommendations ?? true,
         });
       }
     } catch (error) {

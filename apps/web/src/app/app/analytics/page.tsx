@@ -266,7 +266,7 @@ export default function AnalyticsPage() {
                           );
 
                           return { elements: acc.elements, angle: endAngle };
-                        }, { elements: [] as JSX.Element[], angle: 0 }).elements}
+                        }, { elements: [] as React.ReactNode[], angle: 0 }).elements}
                       </svg>
                     </div>
 
