@@ -38,6 +38,7 @@ const SESSION_PRESETS = [
   { type: 'POMODORO' as StudySessionType, label: 'Pomodoro', duration: 25, break: 5, icon: Timer, color: 'from-red-500 to-orange-500' },
   { type: 'DEEP_WORK' as StudySessionType, label: 'Deep Work', duration: 90, break: 20, icon: Brain, color: 'from-purple-500 to-indigo-500' },
   { type: 'EXAM_MODE' as StudySessionType, label: 'Modo Examen', duration: 60, break: 10, icon: Zap, color: 'from-amber-500 to-yellow-500' },
+  { type: 'CUSTOM' as StudySessionType, label: 'Personalizado', duration: 0, break: 5, icon: Settings, color: 'from-slate-500 to-gray-600' },
 ];
 
 export default function TimerPage() {
@@ -57,6 +58,8 @@ export default function TimerPage() {
   const [selectedPreset, setSelectedPreset] = useState(SESSION_PRESETS[0]);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [customDuration, setCustomDuration] = useState(25);
+  const [customBreak, setCustomBreak] = useState(5);
+  const [isCustomMode, setIsCustomMode] = useState(false);
 
   // Stats & History
   const [stats, setStats] = useState<SessionStats | null>(null);
@@ -119,7 +122,8 @@ export default function TimerPage() {
         // Study session finished, start break
         playNotification();
         setIsBreak(true);
-        setTimeLeft(selectedPreset.break * 60);
+        const breakDuration = isCustomMode ? customBreak : selectedPreset.break;
+        setTimeLeft(breakDuration * 60);
       } else if (isBreak) {
         // Break finished
         playNotification();
@@ -131,7 +135,7 @@ export default function TimerPage() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isRunning, timeLeft, isBreak, activeSession, selectedPreset.break]);
+  }, [isRunning, timeLeft, isBreak, activeSession, selectedPreset.break, isCustomMode, customBreak]);
 
   const playNotification = () => {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -148,12 +152,17 @@ export default function TimerPage() {
   // Start session
   const handleStart = async () => {
     if (!token) return;
+    if (customDuration < 1) {
+      alert('La duración debe ser al menos 1 minuto');
+      return;
+    }
     try {
+      const breakDuration = isCustomMode ? customBreak : selectedPreset.break;
       const session = await studySessions.start(token, {
         subjectId: selectedSubject || undefined,
         type: selectedPreset.type,
         targetMinutes: customDuration,
-        breakMinutes: selectedPreset.break,
+        breakMinutes: breakDuration,
       });
       setActiveSession(session);
       setTimeLeft(customDuration * 60);
@@ -325,28 +334,140 @@ export default function TimerPage() {
             <div className="flex flex-col items-center">
               {/* Presets */}
               {!activeSession && (
-                <div className="flex gap-4 mb-8">
-                  {SESSION_PRESETS.map(preset => (
-                    <button
-                      key={preset.type}
-                      onClick={() => {
-                        setSelectedPreset(preset);
-                        setCustomDuration(preset.duration);
-                      }}
-                      className={cn(
-                        "p-4 rounded-2xl border-2 transition-all",
-                        selectedPreset.type === preset.type
-                          ? "border-red-500 bg-red-50"
-                          : "border-secondary-200 hover:border-secondary-300"
-                      )}
-                    >
-                      <div className={cn("w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", preset.color)}>
-                        <preset.icon className="h-6 w-6 text-white" />
+                <div className="w-full max-w-2xl mb-8">
+                  <div className="flex flex-wrap justify-center gap-4 mb-6">
+                    {SESSION_PRESETS.map(preset => (
+                      <button
+                        key={preset.type}
+                        onClick={() => {
+                          setSelectedPreset(preset);
+                          if (preset.type === 'CUSTOM') {
+                            setIsCustomMode(true);
+                            if (customDuration === 0 || customDuration === 25 || customDuration === 90 || customDuration === 60) {
+                              setCustomDuration(30);
+                            }
+                          } else {
+                            setIsCustomMode(false);
+                            setCustomDuration(preset.duration);
+                            setCustomBreak(preset.break);
+                          }
+                        }}
+                        className={cn(
+                          "p-4 rounded-2xl border-2 transition-all",
+                          selectedPreset.type === preset.type
+                            ? "border-red-500 bg-red-50"
+                            : "border-secondary-200 hover:border-secondary-300"
+                        )}
+                      >
+                        <div className={cn("w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-2", preset.color)}>
+                          <preset.icon className="h-6 w-6 text-white" />
+                        </div>
+                        <p className="font-medium text-secondary-900">{preset.label}</p>
+                        <p className="text-sm text-secondary-500">
+                          {preset.type === 'CUSTOM' ? 'Tú eliges' : `${preset.duration} min`}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom Time Inputs */}
+                  {isCustomMode && (
+                    <div className="bg-secondary-50 rounded-2xl p-6 border border-secondary-200">
+                      <h3 className="text-lg font-semibold text-secondary-900 mb-4 text-center">
+                        Configura tu tiempo
+                      </h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700 mb-2">
+                            Duración de estudio
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setCustomDuration(prev => Math.max(1, prev - 5))}
+                              className="w-10 h-10 rounded-lg bg-secondary-200 hover:bg-secondary-300 flex items-center justify-center font-bold text-secondary-700 transition-colors"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="480"
+                              value={customDuration}
+                              onChange={(e) => setCustomDuration(Math.max(1, Math.min(480, parseInt(e.target.value) || 1)))}
+                              className="w-20 h-10 text-center text-xl font-bold border border-secondary-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            />
+                            <button
+                              onClick={() => setCustomDuration(prev => Math.min(480, prev + 5))}
+                              className="w-10 h-10 rounded-lg bg-secondary-200 hover:bg-secondary-300 flex items-center justify-center font-bold text-secondary-700 transition-colors"
+                            >
+                              +
+                            </button>
+                            <span className="text-secondary-500 font-medium">min</span>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            {[15, 30, 45, 60, 90, 120].map(min => (
+                              <button
+                                key={min}
+                                onClick={() => setCustomDuration(min)}
+                                className={cn(
+                                  "px-2 py-1 text-xs rounded-lg transition-colors",
+                                  customDuration === min
+                                    ? "bg-red-500 text-white"
+                                    : "bg-secondary-200 text-secondary-600 hover:bg-secondary-300"
+                                )}
+                              >
+                                {min}m
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700 mb-2">
+                            Descanso
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setCustomBreak(prev => Math.max(1, prev - 1))}
+                              className="w-10 h-10 rounded-lg bg-secondary-200 hover:bg-secondary-300 flex items-center justify-center font-bold text-secondary-700 transition-colors"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="60"
+                              value={customBreak}
+                              onChange={(e) => setCustomBreak(Math.max(1, Math.min(60, parseInt(e.target.value) || 1)))}
+                              className="w-20 h-10 text-center text-xl font-bold border border-secondary-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            />
+                            <button
+                              onClick={() => setCustomBreak(prev => Math.min(60, prev + 1))}
+                              className="w-10 h-10 rounded-lg bg-secondary-200 hover:bg-secondary-300 flex items-center justify-center font-bold text-secondary-700 transition-colors"
+                            >
+                              +
+                            </button>
+                            <span className="text-secondary-500 font-medium">min</span>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            {[5, 10, 15, 20, 30].map(min => (
+                              <button
+                                key={min}
+                                onClick={() => setCustomBreak(min)}
+                                className={cn(
+                                  "px-2 py-1 text-xs rounded-lg transition-colors",
+                                  customBreak === min
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-secondary-200 text-secondary-600 hover:bg-secondary-300"
+                                )}
+                              >
+                                {min}m
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <p className="font-medium text-secondary-900">{preset.label}</p>
-                      <p className="text-sm text-secondary-500">{preset.duration} min</p>
-                    </button>
-                  ))}
+                    </div>
+                  )}
                 </div>
               )}
 
