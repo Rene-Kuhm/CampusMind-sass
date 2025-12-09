@@ -192,6 +192,10 @@ export default function TimerPage() {
       setIsBreak(false);
     } catch (error) {
       console.error('[Timer] Error starting session:', error);
+      // If there's already an active session, reload data to sync state
+      if (isSessionInvalidError(error)) {
+        loadData();
+      }
     }
   };
 
@@ -204,11 +208,15 @@ export default function TimerPage() {
     setIsEndModalOpen(false);
   };
 
-  // Check if error is "session not found"
-  const isSessionNotFoundError = (error: unknown): boolean => {
+  // Check if error means session is no longer valid
+  const isSessionInvalidError = (error: unknown): boolean => {
     if (error && typeof error === 'object' && 'message' in error) {
       const message = (error as { message: string }).message.toLowerCase();
-      return message.includes('no encontrada') || message.includes('not found');
+      return message.includes('no encontrada') ||
+             message.includes('not found') ||
+             message.includes('ya fue finalizada') ||
+             message.includes('already finished') ||
+             message.includes('ya tienes una sesión activa');
     }
     return false;
   };
@@ -225,7 +233,7 @@ export default function TimerPage() {
       setIsRunning(false);
     } catch (error) {
       console.error('Error pausing:', error);
-      if (isSessionNotFoundError(error)) {
+      if (isSessionInvalidError(error)) {
         resetSessionState();
         loadData();
       }
@@ -244,7 +252,7 @@ export default function TimerPage() {
       setIsRunning(true);
     } catch (error) {
       console.error('Error resuming:', error);
-      if (isSessionNotFoundError(error)) {
+      if (isSessionInvalidError(error)) {
         resetSessionState();
         loadData();
       }
@@ -273,7 +281,7 @@ export default function TimerPage() {
       loadData();
     } catch (error) {
       console.error('Error ending session:', error);
-      if (isSessionNotFoundError(error)) {
+      if (isSessionInvalidError(error)) {
         resetSessionState();
         setFocusScore(80);
         setSessionNotes('');
@@ -297,7 +305,7 @@ export default function TimerPage() {
       loadData();
     } catch (error) {
       console.error('Error abandoning:', error);
-      if (isSessionNotFoundError(error)) {
+      if (isSessionInvalidError(error)) {
         resetSessionState();
         loadData();
       }
