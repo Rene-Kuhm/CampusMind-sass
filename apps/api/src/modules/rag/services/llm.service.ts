@@ -63,6 +63,18 @@ export class LlmService {
   }
 
   /**
+   * Genera texto usando el proveedor por defecto (alias para generateCompletion)
+   * Retorna solo el contenido de texto
+   */
+  async generateText(
+    prompt: string,
+    options?: LlmOptions,
+  ): Promise<string> {
+    const response = await this.generateCompletion(prompt, options);
+    return response.content;
+  }
+
+  /**
    * Genera una respuesta usando un proveedor específico
    */
   async generateWithProvider(
