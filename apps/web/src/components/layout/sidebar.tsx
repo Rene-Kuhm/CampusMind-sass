@@ -24,6 +24,7 @@ import {
   BarChart3,
   StickyNote,
   Users,
+  User,
   Trophy,
   Target,
   CheckSquare,
@@ -44,6 +45,9 @@ import {
   CalendarDays,
   BookMarked,
   HelpCircle,
+  Globe,
+  Flame,
+  Headphones,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -114,7 +118,7 @@ const navigation = [
   },
   {
     name: 'Temporizador',
-    href: '/app/timer',
+    href: '/app/pomodoro',
     icon: Timer,
     gradient: 'from-rose-500 to-orange-500',
   },
@@ -144,15 +148,9 @@ const navigation = [
     gradient: 'from-amber-500 to-yellow-500',
   },
   {
-    name: 'Grupos',
-    href: '/app/groups',
-    icon: Users,
-    gradient: 'from-blue-500 to-indigo-500',
-  },
-  {
     name: 'Social',
     href: '/app/social',
-    icon: Users,
+    icon: Globe,
     gradient: 'from-purple-500 to-pink-500',
   },
   {
@@ -164,7 +162,7 @@ const navigation = [
   {
     name: 'Retos Diarios',
     href: '/app/challenges',
-    icon: Target,
+    icon: Flame,
     gradient: 'from-rose-500 to-pink-500',
   },
   {
@@ -222,12 +220,6 @@ const navigation = [
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    name: 'Comunidad',
-    href: '/app/community',
-    icon: Users,
-    gradient: 'from-violet-500 to-purple-500',
-  },
-  {
     name: 'OCR Scanner',
     href: '/app/ocr',
     icon: ScanLine,
@@ -237,7 +229,7 @@ const navigation = [
   {
     name: 'Transcripción',
     href: '/app/transcription',
-    icon: Mic,
+    icon: Headphones,
     gradient: 'from-red-500 to-pink-500',
     badge: 'IA',
   },
@@ -284,7 +276,7 @@ const secondaryNavigation = [
   {
     name: 'Mi Perfil',
     href: '/app/profile',
-    icon: Users,
+    icon: User,
   },
   {
     name: 'Configuración',
