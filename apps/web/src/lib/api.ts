@@ -2677,6 +2677,312 @@ export const goals = {
 };
 
 // ============================================
+// TASKS ENDPOINTS
+// ============================================
+
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface Task {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate?: string;
+  completedAt?: string;
+  reminderAt?: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  subject?: { id: string; name: string; color?: string };
+}
+
+export interface TaskStats {
+  total: number;
+  completed: number;
+  pending: number;
+  overdue: number;
+  completionRate: number;
+}
+
+export const tasks = {
+  list: (token: string, filters?: { subjectId?: string; status?: TaskStatus; priority?: TaskPriority; dueBefore?: string; dueAfter?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.dueBefore) params.append('dueBefore', filters.dueBefore);
+    if (filters?.dueAfter) params.append('dueAfter', filters.dueAfter);
+    return request<Task[]>(`/tasks?${params.toString()}`, { token });
+  },
+
+  get: (token: string, id: string) =>
+    request<Task>(`/tasks/${id}`, { token }),
+
+  getUpcoming: (token: string, days?: number) =>
+    request<Task[]>(`/tasks/upcoming${days ? `?days=${days}` : ''}`, { token }),
+
+  getOverdue: (token: string) =>
+    request<Task[]>('/tasks/overdue', { token }),
+
+  getStats: (token: string) =>
+    request<TaskStats>('/tasks/stats', { token }),
+
+  create: (token: string, data: {
+    title: string;
+    description?: string;
+    subjectId?: string;
+    dueDate?: string;
+    priority?: TaskPriority;
+    reminderAt?: string;
+    tags?: string[];
+  }) => request<Task>('/tasks', { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: Partial<{
+    title: string;
+    description: string;
+    subjectId: string;
+    dueDate: string;
+    priority: TaskPriority;
+    status: TaskStatus;
+    reminderAt: string;
+    tags: string[];
+  }>) => request<Task>(`/tasks/${id}`, { method: 'PATCH', body: data, token }),
+
+  complete: (token: string, id: string) =>
+    request<Task>(`/tasks/${id}/complete`, { method: 'PATCH', token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/tasks/${id}`, { method: 'DELETE', token }),
+
+  bulkUpdateStatus: (token: string, ids: string[], status: TaskStatus) =>
+    request<{ updated: number }>('/tasks/bulk/status', { method: 'PATCH', body: { ids, status }, token }),
+
+  bulkDelete: (token: string, ids: string[]) =>
+    request<{ deleted: number }>('/tasks/bulk', { method: 'DELETE', body: { ids }, token }),
+};
+
+// ============================================
+// STUDY SESSIONS ENDPOINTS
+// ============================================
+
+export type StudySessionType = 'POMODORO' | 'DEEP_WORK' | 'EXAM_MODE' | 'CUSTOM';
+export type StudySessionStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+
+export interface StudySession {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  type: StudySessionType;
+  status: StudySessionStatus;
+  targetMinutes: number;
+  actualMinutes: number;
+  breakMinutes: number;
+  focusScore?: number;
+  notes?: string;
+  startedAt: string;
+  endedAt?: string;
+  pausedAt?: string;
+  subject?: { id: string; name: string; color?: string };
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  totalMinutes: number;
+  averageFocusScore: number;
+  completionRate: number;
+  mostProductiveHour: number;
+  longestStreak: number;
+}
+
+export interface DayStats {
+  sessions: number;
+  minutes: number;
+  focusScore: number;
+}
+
+export const studySessions = {
+  start: (token: string, data: {
+    subjectId?: string;
+    type?: StudySessionType;
+    targetMinutes?: number;
+    breakMinutes?: number;
+  }) => request<StudySession>('/study-sessions/start', { method: 'POST', body: data, token }),
+
+  end: (token: string, id: string, data?: { focusScore?: number; notes?: string }) =>
+    request<StudySession>(`/study-sessions/${id}/end`, { method: 'PATCH', body: data || {}, token }),
+
+  pause: (token: string, id: string) =>
+    request<StudySession>(`/study-sessions/${id}/pause`, { method: 'PATCH', token }),
+
+  resume: (token: string, id: string) =>
+    request<StudySession>(`/study-sessions/${id}/resume`, { method: 'PATCH', token }),
+
+  abandon: (token: string, id: string) =>
+    request<StudySession>(`/study-sessions/${id}/abandon`, { method: 'PATCH', token }),
+
+  getActive: (token: string) =>
+    request<StudySession | null>('/study-sessions/active', { token }),
+
+  getHistory: (token: string, filters?: { subjectId?: string; type?: StudySessionType; startDate?: string; endDate?: string; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    return request<StudySession[]>(`/study-sessions/history?${params.toString()}`, { token });
+  },
+
+  getStats: (token: string, filters?: { startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    return request<SessionStats>(`/study-sessions/stats?${params.toString()}`, { token });
+  },
+
+  getTodayStats: (token: string) =>
+    request<DayStats>('/study-sessions/stats/today', { token }),
+
+  getWeekStats: (token: string) =>
+    request<DayStats[]>('/study-sessions/stats/week', { token }),
+};
+
+// ============================================
+// ANALYTICS ENDPOINTS
+// ============================================
+
+export interface DashboardStats {
+  totalStudyTime: number;
+  weeklyStudyTime: number;
+  flashcardsReviewed: number;
+  quizzesTaken: number;
+  averageScore: number;
+  currentStreak: number;
+  longestStreak: number;
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+}
+
+export interface StudyTimeData {
+  date: string;
+  minutes: number;
+}
+
+export interface SubjectDistribution {
+  subjectId: string;
+  subjectName: string;
+  color: string;
+  minutes: number;
+  percentage: number;
+}
+
+export interface FlashcardAnalytics {
+  totalCards: number;
+  masteredCards: number;
+  learningCards: number;
+  newCards: number;
+  reviewsDue: number;
+  averageRetention: number;
+}
+
+export interface QuizAnalytics {
+  totalQuizzes: number;
+  averageScore: number;
+  bestScore: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  bySubject: { subjectId: string; subjectName: string; averageScore: number; count: number }[];
+}
+
+export interface ProgressPrediction {
+  currentProgress: number;
+  predictedProgress: number;
+  estimatedCompletionDate: string;
+  confidence: number;
+  recommendations: string[];
+}
+
+export const analytics = {
+  getDashboard: (token: string) =>
+    request<DashboardStats>('/analytics/dashboard', { token }),
+
+  getStudyTimeChart: (token: string, days?: number) =>
+    request<StudyTimeData[]>(`/analytics/study-time${days ? `?days=${days}` : ''}`, { token }),
+
+  getSubjectDistribution: (token: string) =>
+    request<SubjectDistribution[]>('/analytics/subject-distribution', { token }),
+
+  getFlashcardStats: (token: string) =>
+    request<FlashcardAnalytics>('/analytics/flashcards', { token }),
+
+  getQuizStats: (token: string) =>
+    request<QuizAnalytics>('/analytics/quizzes', { token }),
+
+  getProgressPrediction: (token: string, subjectId?: string) =>
+    request<ProgressPrediction>(`/analytics/prediction${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+};
+
+// ============================================
+// NOTIFICATIONS ENDPOINTS
+// ============================================
+
+export interface NotificationPreferences {
+  email: {
+    studyReminders: boolean;
+    weeklyDigest: boolean;
+    achievements: boolean;
+    streakWarnings: boolean;
+    marketing: boolean;
+  };
+  push: {
+    studyReminders: boolean;
+    achievements: boolean;
+    streakWarnings: boolean;
+    comments: boolean;
+    calendarEvents: boolean;
+  };
+}
+
+export interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export const notifications = {
+  getVapidKey: () =>
+    request<{ publicKey: string; enabled: boolean }>('/notifications/push/vapid-key', {}),
+
+  subscribePush: (token: string, subscription: PushSubscription) =>
+    request<{ success: boolean; message: string }>('/notifications/push/subscribe', { method: 'POST', body: subscription, token }),
+
+  unsubscribePush: (token: string, endpoint: string) =>
+    request<{ success: boolean; message: string }>('/notifications/push/unsubscribe', { method: 'POST', body: { endpoint }, token }),
+
+  getPushStatus: (token: string) =>
+    request<{ subscribed: boolean; enabled: boolean }>('/notifications/push/status', { token }),
+
+  sendTestPush: (token: string) =>
+    request<{ success: boolean; sent: number; message: string }>('/notifications/push/test', { method: 'POST', token }),
+
+  sendTestEmail: (token: string, template: 'welcome' | 'study-reminder' | 'achievement-unlocked' | 'weekly-summary') =>
+    request<{ success: boolean; message: string }>('/notifications/email/test', { method: 'POST', body: { template }, token }),
+
+  getPreferences: (token: string) =>
+    request<NotificationPreferences>('/notifications/preferences', { token }),
+
+  updatePreferences: (token: string, preferences: Partial<NotificationPreferences>) =>
+    request<{ success: boolean; message: string; preferences: NotificationPreferences }>('/notifications/preferences', { method: 'POST', body: preferences, token }),
+};
+
+// ============================================
 // SOCIAL/COMMUNITY ENDPOINTS
 // ============================================
 
@@ -2861,5 +3167,9 @@ export default {
   career,
   tools,
   goals,
+  tasks,
+  studySessions,
+  analytics,
+  notifications,
   social,
 };
