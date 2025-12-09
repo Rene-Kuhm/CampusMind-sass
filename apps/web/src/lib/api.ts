@@ -3240,6 +3240,108 @@ const mindmaps = {
     request<MindMap>(`/mindmaps/${id}/duplicate`, { method: 'POST', token }),
 };
 
+// ============================================
+// IMPORT/EXPORT API
+// ============================================
+
+export type ImportType = 'flashcards' | 'notes' | 'tasks' | 'mindmaps' | 'resources' | 'calendar';
+export type ImportFormat = 'csv' | 'json' | 'markdown' | 'anki' | 'quizlet' | 'notion' | 'ical';
+
+export interface FlashcardImportItem {
+  front: string;
+  back: string;
+  tags?: string[];
+  formula?: string;
+}
+
+export interface TaskImportItem {
+  title: string;
+  description?: string;
+  dueDate?: string;
+  priority?: string;
+}
+
+export interface ImportFlashcardsInput {
+  deckId?: string;
+  deckName?: string;
+  subjectId?: string;
+  cards: FlashcardImportItem[];
+}
+
+export interface ImportTasksInput {
+  subjectId?: string;
+  tasks: TaskImportItem[];
+}
+
+export interface ImportDataInput {
+  type: ImportType;
+  format: ImportFormat;
+  subjectId?: string;
+  deckId?: string;
+  content: string;
+  columnMapping?: Record<string, string>;
+}
+
+export interface ImportResult {
+  imported: number;
+  failed: number;
+  errors: string[];
+  createdIds?: string[];
+}
+
+export interface ExportDataInput {
+  type: ImportType;
+  format: 'csv' | 'json';
+  subjectId?: string;
+  deckId?: string;
+}
+
+export interface ParsedCsv {
+  headers: string[];
+  rows: Record<string, string>[];
+}
+
+export interface ImportTemplate {
+  headers: string[];
+  example: Record<string, string>[];
+}
+
+const importExport = {
+  parseCsv: (token: string, content: string, delimiter?: string, hasHeader?: boolean) =>
+    request<ParsedCsv>('/import/parse-csv', {
+      method: 'POST',
+      body: { content, delimiter, hasHeader },
+      token,
+    }),
+
+  importFlashcards: (token: string, data: ImportFlashcardsInput) =>
+    request<ImportResult>('/import/flashcards', { method: 'POST', body: data, token }),
+
+  importTasks: (token: string, data: ImportTasksInput) =>
+    request<ImportResult>('/import/tasks', { method: 'POST', body: data, token }),
+
+  importData: (token: string, data: ImportDataInput) =>
+    request<ImportResult>('/import/data', { method: 'POST', body: data, token }),
+
+  exportData: async (token: string, data: ExportDataInput): Promise<Blob> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/import/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error('Error exporting data');
+    }
+    return response.blob();
+  },
+
+  getTemplates: (token: string) =>
+    request<Record<string, ImportTemplate>>('/import/templates', { token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -3282,4 +3384,5 @@ export default {
   notifications,
   social,
   mindmaps,
+  importExport,
 };
