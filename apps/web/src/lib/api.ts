@@ -3656,6 +3656,13 @@ export interface UserAchievement {
   achievement: Achievement;
 }
 
+// Achievement with user progress (returned by getAllAchievements)
+export interface AchievementWithProgress extends Achievement {
+  progress: number;
+  isCompleted: boolean;
+  unlockedAt: string | null;
+}
+
 export interface LeaderboardEntry {
   userId: string;
   rank: number;
@@ -3679,7 +3686,7 @@ const gamificationApi = {
     request<GamificationProfile>('/gamification/profile', { token }),
 
   getAllAchievements: (token: string) =>
-    request<{ all: Achievement[]; unlocked: UserAchievement[] }>('/gamification/achievements', { token }),
+    request<AchievementWithProgress[]>('/gamification/achievements', { token }),
 
   getLeaderboard: (token: string, type: 'xp' | 'points' | 'streak' = 'points', limit: number = 50) =>
     request<LeaderboardEntry[]>(`/gamification/leaderboard?type=${type}&limit=${limit}`, { token }),

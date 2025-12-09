@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import api, { subjects as subjectsApi, Subject, rag, RagStats, GamificationProfile, UserAchievement, Achievement as ApiAchievement } from '@/lib/api';
+import api, { subjects as subjectsApi, Subject, rag, RagStats, GamificationProfile, AchievementWithProgress } from '@/lib/api';
 import {
   Card,
   CardContent,
@@ -91,7 +91,7 @@ export default function ProgressPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [ragStats, setRagStats] = useState<RagStats | null>(null);
   const [gamificationProfile, setGamificationProfile] = useState<GamificationProfile | null>(null);
-  const [apiAchievements, setApiAchievements] = useState<{ all: ApiAchievement[]; unlocked: UserAchievement[] } | null>(null);
+  const [apiAchievements, setApiAchievements] = useState<AchievementWithProgress[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<StudyStats>({
     totalFlashcardsStudied: 0,
@@ -538,17 +538,17 @@ export default function ProgressPage() {
                   </div>
                   {apiAchievements && (
                     <span className="text-sm text-secondary-500">
-                      {apiAchievements.unlocked.length}/{apiAchievements.all.length}
+                      {apiAchievements.filter(a => a.isCompleted).length}/{apiAchievements.length}
                     </span>
                   )}
                 </div>
 
                 <div className="space-y-4">
                   {/* Show API achievements if available */}
-                  {apiAchievements && apiAchievements.unlocked.length > 0 ? (
-                    apiAchievements.unlocked.slice(0, 5).map(ua => (
+                  {apiAchievements && apiAchievements.filter(a => a.isCompleted).length > 0 ? (
+                    apiAchievements.filter(a => a.isCompleted).slice(0, 5).map(achievement => (
                       <div
-                        key={ua.id}
+                        key={achievement.id}
                         className="flex items-center gap-4 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100"
                       >
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 text-white">
@@ -556,13 +556,13 @@ export default function ProgressPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-secondary-900">
-                            {ua.achievement.name}
+                            {achievement.name}
                           </p>
                           <p className="text-xs text-secondary-400 truncate">
-                            {ua.achievement.description}
+                            {achievement.description}
                           </p>
                           <p className="text-xs text-amber-600 mt-1">
-                            +{ua.achievement.xpReward} XP
+                            +{achievement.xpReward} XP
                           </p>
                         </div>
                         <CheckCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
