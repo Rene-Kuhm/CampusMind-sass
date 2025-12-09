@@ -282,6 +282,11 @@ const navigation = [
 
 const secondaryNavigation = [
   {
+    name: 'Mi Perfil',
+    href: '/app/profile',
+    icon: Users,
+  },
+  {
     name: 'Configuración',
     href: '/app/settings',
     icon: Settings,
