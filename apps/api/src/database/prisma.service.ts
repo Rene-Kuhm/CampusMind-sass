@@ -25,8 +25,11 @@ export class PrismaService
     });
 
     // Add middleware to handle connection errors and retry
+    // Neon serverless databases have "cold start" behavior - they suspend after inactivity
+    // and can take 3-10 seconds to wake up. We need longer delays and more retries.
     this.$use(async (params, next) => {
-      const maxRetries = 3;
+      const maxRetries = 5;
+      const baseDelay = 2000; // 2 seconds base delay for Neon cold start
       let lastError: Error | undefined;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -40,16 +43,19 @@ export class PrismaService
               (error.message.includes("Connection") ||
                 error.message.includes("connection") ||
                 error.message.includes("ECONNRESET") ||
-                error.message.includes("Closed")));
+                error.message.includes("Closed") ||
+                error.message.includes("timeout") ||
+                error.message.includes("Timeout")));
 
           if (isConnectionError && attempt < maxRetries) {
+            const delay = baseDelay * attempt; // 2s, 4s, 6s, 8s
             this.logger.warn(
-              `Database connection error (attempt ${attempt}/${maxRetries}), retrying...`,
+              `Database connection error (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms... (Neon cold start handling)`,
             );
             // Force reconnect
             await this.$disconnect().catch(() => {});
+            await new Promise((resolve) => setTimeout(resolve, delay));
             await this.$connect().catch(() => {});
-            await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
             continue;
           }
           throw error;

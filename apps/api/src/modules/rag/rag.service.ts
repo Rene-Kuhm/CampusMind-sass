@@ -10,6 +10,8 @@ import {
   RagResponse,
   HarvardSummary,
 } from "./interfaces/rag.interface";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
+import { UsageTypeEnum } from "../billing/constants/plans.constant";
 
 @Injectable()
 export class RagService {
@@ -22,16 +24,24 @@ export class RagService {
     private readonly vectorStore: VectorStoreService,
     private readonly llm: LlmService,
     private readonly cache: CacheService,
+    private readonly usageLimitsService: UsageLimitsService,
   ) {}
 
   /**
    * Ingesta un recurso: chunking + embeddings + almacenamiento
    */
-  async ingestResource(resourceId: string): Promise<{
+  async ingestResource(resourceId: string, userId: string): Promise<{
     chunksCreated: number;
     tokensUsed: number;
   }> {
     const startTime = Date.now();
+
+    // Verificar límite de documentos a indexar
+    await this.usageLimitsService.enforceUsageLimit(
+      userId,
+      UsageTypeEnum.DOCUMENTS_INDEXED,
+      "Has alcanzado el límite de documentos a indexar de tu plan. Mejora tu plan para indexar más.",
+    );
 
     // Obtener el recurso
     const resource = await this.prisma.resource.findUnique({
@@ -96,6 +106,12 @@ export class RagService {
 
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);
 
+    // Incrementar uso de documentos indexados
+    await this.usageLimitsService.incrementUsage(
+      userId,
+      UsageTypeEnum.DOCUMENTS_INDEXED,
+    );
+
     this.logger.log(
       `Ingested resource ${resourceId} in ${Date.now() - startTime}ms`,
     );
@@ -138,6 +154,13 @@ export class RagService {
       }
     }
 
+    // Verificar límite de consultas RAG (solo para consultas no cacheadas)
+    await this.usageLimitsService.enforceUsageLimit(
+      userId,
+      UsageTypeEnum.RAG_QUERIES,
+      "Has alcanzado el límite de consultas IA de tu plan. Mejora tu plan para realizar más consultas.",
+    );
+
     // Generar embedding de la consulta
     const queryEmbedding = await this.embedding.generateEmbedding(query);
 
@@ -175,6 +198,12 @@ export class RagService {
           responseTimeMs: Date.now() - startTime,
         },
       });
+
+      // Incrementar uso de consultas RAG
+      await this.usageLimitsService.incrementUsage(
+        userId,
+        UsageTypeEnum.RAG_QUERIES,
+      );
 
       return {
         answer: generalResponse.content,
@@ -234,6 +263,12 @@ export class RagService {
         responseTimeMs: Date.now() - startTime,
       },
     });
+
+    // Incrementar uso de consultas RAG
+    await this.usageLimitsService.incrementUsage(
+      userId,
+      UsageTypeEnum.RAG_QUERIES,
+    );
 
     return {
       answer: llmResponse.content,

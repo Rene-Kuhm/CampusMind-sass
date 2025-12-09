@@ -6,6 +6,8 @@ import {
   CreateDeckDto,
   UpdateDeckDto,
 } from "./dto/flashcard.dto";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
+import { UsageTypeEnum } from "../billing/constants/plans.constant";
 
 // Tipos extendidos para Prisma
 type PrismaWithFlashcards = PrismaService & {
@@ -69,7 +71,10 @@ export class FlashcardsService {
   private readonly logger = new Logger(FlashcardsService.name);
   private readonly prisma: PrismaWithFlashcards;
 
-  constructor(prisma: PrismaService) {
+  constructor(
+    prisma: PrismaService,
+    private readonly usageLimitsService: UsageLimitsService,
+  ) {
     this.prisma = prisma as PrismaWithFlashcards;
   }
 
@@ -198,6 +203,13 @@ export class FlashcardsService {
     userId: string,
     dto: CreateFlashcardDto,
   ): Promise<Flashcard> {
+    // Verificar límite de flashcards
+    await this.usageLimitsService.enforceUsageLimit(
+      userId,
+      UsageTypeEnum.FLASHCARDS,
+      "Has alcanzado el límite de flashcards de tu plan. Mejora tu plan para crear más.",
+    );
+
     // Verificar que el deck pertenece al usuario
     if (dto.deckId) {
       await this.getDeck(dto.deckId, userId);

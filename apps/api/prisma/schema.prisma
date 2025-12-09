@@ -37,6 +37,7 @@ model User {
   studyEvents    StudyEvent[]
   flashcardDecks FlashcardDeck[]
   subscription   Subscription?
+  quizzes        Quiz[]
 
   @@map("users")
 }
@@ -98,6 +99,7 @@ model Subject {
   queries        RagQuery[]
   studyEvents    StudyEvent[]
   flashcardDecks FlashcardDeck[]
+  quizzes        Quiz[]
 
   @@index([userId])
   @@map("subjects")
@@ -381,6 +383,8 @@ model Quiz {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject          Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   questions        QuizQuestion[]
   attempts         QuizAttempt[]
 
@@ -564,7 +568,9 @@ enum PaymentStatus {
 
 enum UsageType {
   RAG_QUERIES
+  DOCUMENTS_INDEXED
   FLASHCARDS
+  QUIZZES
   STORAGE_MB
   SUBJECTS
 }
