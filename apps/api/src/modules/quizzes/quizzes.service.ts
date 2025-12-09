@@ -14,6 +14,8 @@ import {
   DifficultyLevel,
 } from "./dto/quiz.dto";
 import { EssayEvaluationService } from "./essay-evaluation.service";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
+import { UsageTypeEnum } from "../billing/constants/plans.constant";
 
 // Tipos extendidos para Prisma
 type PrismaWithQuizzes = PrismaService & {
@@ -90,6 +92,7 @@ export class QuizzesService {
   constructor(
     prisma: PrismaService,
     private readonly essayEvaluationService: EssayEvaluationService,
+    private readonly usageLimitsService: UsageLimitsService,
   ) {
     this.prisma = prisma as PrismaWithQuizzes;
   }
@@ -100,6 +103,13 @@ export class QuizzesService {
    * Crear un nuevo quiz
    */
   async createQuiz(userId: string, dto: CreateQuizDto): Promise<Quiz> {
+    // Verificar límite de quizzes
+    await this.usageLimitsService.enforceUsageLimit(
+      userId,
+      UsageTypeEnum.QUIZZES,
+      "Has alcanzado el límite de quizzes de tu plan. Mejora tu plan para crear más.",
+    );
+
     // Validar materia si se proporciona
     if (dto.subjectId) {
       const subject = await this.prisma.subject.findFirst({
@@ -129,6 +139,9 @@ export class QuizzesService {
         await this.addQuestion(quiz.id, userId, dto.questions[i], i);
       }
     }
+
+    // Incrementar uso de quizzes
+    await this.usageLimitsService.incrementUsage(userId, UsageTypeEnum.QUIZZES);
 
     return { ...quiz, questionCount: dto.questions?.length || 0 } as Quiz;
   }

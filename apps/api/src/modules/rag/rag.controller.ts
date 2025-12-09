@@ -78,8 +78,11 @@ export class RagController {
   @Post("ingest/:resourceId")
   @ApiOperation({ summary: "Indexar un recurso para búsqueda semántica" })
   @ApiResponse({ status: 200, description: "Recurso indexado" })
-  async ingestResource(@Param("resourceId") resourceId: string) {
-    return this.ragService.ingestResource(resourceId);
+  async ingestResource(
+    @CurrentUser() user: User,
+    @Param("resourceId") resourceId: string,
+  ) {
+    return this.ragService.ingestResource(resourceId, user.id);
   }
 
   @Get("summary/:resourceId")

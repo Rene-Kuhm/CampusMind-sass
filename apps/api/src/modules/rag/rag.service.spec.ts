@@ -6,6 +6,8 @@ import { ChunkingService } from "./services/chunking.service";
 import { EmbeddingService } from "./services/embedding.service";
 import { VectorStoreService } from "./services/vector-store.service";
 import { LlmService } from "./services/llm.service";
+import { CacheService } from "./services/cache.service";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
 
 describe("RagService", () => {
   let service: RagService;
@@ -103,6 +105,21 @@ describe("RagService", () => {
             generateHarvardSummary: jest.fn(),
           },
         },
+        {
+          provide: CacheService,
+          useValue: {
+            getRagResponse: jest.fn().mockReturnValue(null),
+            setRagResponse: jest.fn(),
+            invalidateByResource: jest.fn(),
+          },
+        },
+        {
+          provide: UsageLimitsService,
+          useValue: {
+            enforceUsageLimit: jest.fn().mockResolvedValue(undefined),
+            incrementUsage: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -133,7 +150,7 @@ describe("RagService", () => {
         chunkCount: 2,
       });
 
-      const result = await service.ingestResource("res-123");
+      const result = await service.ingestResource("res-123", "user-123");
 
       expect(prisma.resource.findUnique).toHaveBeenCalledWith({
         where: { id: "res-123" },
@@ -148,7 +165,7 @@ describe("RagService", () => {
     it("should throw NotFoundException if resource not found", async () => {
       (prisma.resource.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.ingestResource("invalid-id")).rejects.toThrow(
+      await expect(service.ingestResource("invalid-id", "user-123")).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -159,7 +176,7 @@ describe("RagService", () => {
         description: "Short",
       });
 
-      const result = await service.ingestResource("res-123");
+      const result = await service.ingestResource("res-123", "user-123");
 
       expect(result.chunksCreated).toBe(0);
       expect(chunking.chunkText).not.toHaveBeenCalled();

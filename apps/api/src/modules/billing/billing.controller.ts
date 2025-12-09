@@ -24,6 +24,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { SubscriptionService } from "./services/subscription.service";
 import { WebhookService } from "./services/webhook.service";
+import { UsageLimitsService } from "./services/usage-limits.service";
 import {
   CreateCheckoutDto,
   CancelSubscriptionDto,
@@ -43,6 +44,7 @@ export class BillingController {
   constructor(
     private subscriptionService: SubscriptionService,
     private webhookService: WebhookService,
+    private usageLimitsService: UsageLimitsService,
   ) {}
 
   @Get("plans")
@@ -103,6 +105,15 @@ export class BillingController {
   @ApiResponse({ status: 200, type: UsageResponseDto })
   async getUsage(@CurrentUser() user: any): Promise<UsageResponseDto> {
     return this.subscriptionService.getUsage(user.id);
+  }
+
+  @Get("usage/stats")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get complete usage statistics with features" })
+  @ApiResponse({ status: 200, description: "Returns all usage stats and feature availability" })
+  async getUsageStats(@CurrentUser() user: any) {
+    return this.usageLimitsService.getAllUsageStats(user.id);
   }
 
   @Get("payments")

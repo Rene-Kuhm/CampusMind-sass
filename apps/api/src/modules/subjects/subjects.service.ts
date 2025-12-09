@@ -2,12 +2,24 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/database/prisma.service";
 import { CreateSubjectDto } from "./dto/create-subject.dto";
 import { UpdateSubjectDto } from "./dto/update-subject.dto";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
+import { UsageTypeEnum } from "../billing/constants/plans.constant";
 
 @Injectable()
 export class SubjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usageLimitsService: UsageLimitsService,
+  ) {}
 
   async create(userId: string, dto: CreateSubjectDto) {
+    // Verificar límite de materias
+    await this.usageLimitsService.enforceUsageLimit(
+      userId,
+      UsageTypeEnum.SUBJECTS,
+      "Has alcanzado el límite de materias activas de tu plan. Archiva materias existentes o mejora tu plan.",
+    );
+
     return this.prisma.subject.create({
       data: {
         ...dto,
