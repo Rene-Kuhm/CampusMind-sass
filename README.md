@@ -176,6 +176,52 @@ Transformar la manera en que los universitarios estudian, organizan su tiempo y 
 
 ## Architecture
 
+### System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CAMPUSMIND SYSTEM                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                                   ┌─────────────┐
+                                   │   Client    │
+                                   │  (Browser)  │
+                                   └──────┬──────┘
+                                          │
+                    ┌─────────────────────┼─────────────────────┐
+                    │                     │                     │
+                    ▼                     ▼                     ▼
+           ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
+           │   Vercel CDN   │    │  Next.js SSR   │    │   API Gateway  │
+           │  Static Assets │    │  (Frontend)    │    │   (NestJS)     │
+           └────────────────┘    └───────┬────────┘    └───────┬────────┘
+                                         │                     │
+                                         │              ┌──────┴──────┐
+                                         │              │             │
+                                         ▼              ▼             ▼
+                                 ┌──────────────┐ ┌──────────┐ ┌──────────────┐
+                                 │   Zustand    │ │  Guards  │ │   Modules    │
+                                 │   Stores     │ │  & Auth  │ │  (Services)  │
+                                 └──────────────┘ └──────────┘ └──────┬───────┘
+                                                                      │
+                         ┌────────────────────────────────────────────┼────────┐
+                         │                        │                   │        │
+                         ▼                        ▼                   ▼        ▼
+                  ┌─────────────┐          ┌─────────────┐     ┌──────────┐ ┌─────┐
+                  │   Prisma    │          │   OpenAI    │     │  Redis   │ │ S3  │
+                  │   (ORM)     │          │  Gemini     │     │  Cache   │ │     │
+                  └──────┬──────┘          │  Groq       │     └──────────┘ └─────┘
+                         │                 └─────────────┘
+                         ▼
+                  ┌─────────────┐
+                  │  PostgreSQL │
+                  │  + pgvector │
+                  │   (Neon)    │
+                  └─────────────┘
+```
+
+### Project Structure
+
 ```
 campusmind/
 ├── apps/
@@ -189,41 +235,223 @@ campusmind/
 │   │   │   │   ├── quizzes/    # Quizzes & Exams
 │   │   │   │   ├── calendar/   # Study Calendar
 │   │   │   │   ├── rag/        # AI/RAG Module
-│   │   │   │   ├── billing/    # Subscriptions
+│   │   │   │   ├── billing/    # Subscriptions & Limits
 │   │   │   │   ├── notifications/
 │   │   │   │   └── academic/   # Library & Search
+│   │   │   ├── common/         # Guards, Decorators, Pipes
 │   │   │   ├── database/       # Prisma Service
-│   │   │   ├── shared/         # Shared utilities
 │   │   │   └── main.ts
-│   │   └── prisma/
-│   │       └── schema.prisma   # Database Schema
+│   │   ├── prisma/
+│   │   │   └── schema.prisma   # Database Schema
+│   │   └── test/               # E2E Tests
 │   │
 │   └── web/                    # Next.js Frontend
 │       └── src/
 │           ├── app/
 │           │   ├── (auth)/     # Auth pages
 │           │   ├── app/        # Protected app pages
-│           │   │   ├── dashboard/
-│           │   │   ├── subjects/
-│           │   │   ├── flashcards/
-│           │   │   ├── quiz/
-│           │   │   ├── calendar/
-│           │   │   ├── library/
-│           │   │   ├── copilot/
-│           │   │   ├── billing/
-│           │   │   └── settings/
 │           │   └── (marketing)/ # Landing pages
 │           ├── components/
 │           │   ├── ui/         # Base UI components
 │           │   ├── features/   # Feature components
-│           │   ├── layout/     # Layout components
-│           │   └── auth/       # Auth components
-│           ├── lib/            # Utilities
+│           │   └── layout/     # Layout components
+│           ├── lib/            # Utilities & API client
 │           └── stores/         # Zustand stores
 │
-├── packages/                   # Shared packages (future)
-├── docs/                       # Documentation
-└── .github/                    # GitHub Actions
+├── e2e/                        # Playwright E2E Tests
+├── .github/workflows/          # CI/CD Pipeline
+└── docker-compose.yml          # Local Development
+```
+
+### Plan-Based Usage Limits System
+
+El sistema implementa limites de uso basados en el plan de suscripcion del usuario:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         USAGE LIMITS ARCHITECTURE                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
+    │    FREE     │        │     PRO     │        │   PREMIUM   │
+    ├─────────────┤        ├─────────────┤        ├─────────────┤
+    │ 3 Materias  │        │ 10 Materias │        │ Ilimitado   │
+    │ 20 Recursos │        │ 100 Recursos│        │ Ilimitado   │
+    │ 50 Queries  │        │ 500 Queries │        │ Ilimitado   │
+    │ 5 Docs/mes  │        │ 50 Docs/mes │        │ Ilimitado   │
+    │ 100 Flash   │        │ 1000 Flash  │        │ Ilimitado   │
+    │ 10 Quizzes  │        │ 100 Quizzes │        │ Ilimitado   │
+    └──────┬──────┘        └──────┬──────┘        └──────┬──────┘
+           │                      │                      │
+           └──────────────────────┼──────────────────────┘
+                                  │
+                                  ▼
+                    ┌─────────────────────────────┐
+                    │     UsageLimitsService      │
+                    ├─────────────────────────────┤
+                    │ • getUserPlan()             │
+                    │ • enforceUsageLimit()       │
+                    │ • getCurrentUsage()         │
+                    │ • incrementUsage()          │
+                    │ • checkFeatureAccess()      │
+                    └──────────────┬──────────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           │                       │                       │
+           ▼                       ▼                       ▼
+    ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
+    │  Subjects   │        │     RAG     │        │ Flashcards  │
+    │  Service    │        │   Service   │        │   Service   │
+    └─────────────┘        └─────────────┘        └─────────────┘
+
+Flujo de verificacion:
+1. Usuario hace request → Controller
+2. Controller llama a Service
+3. Service llama a UsageLimitsService.enforceUsageLimit()
+4. UsageLimitsService consulta plan del usuario (Subscription table)
+5. Compara uso actual vs limite del plan
+6. Si excede: lanza ForbiddenException
+7. Si OK: continua operacion e incrementa contador
+```
+
+### Billing & Subscription Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SUBSCRIPTION LIFECYCLE                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Usuario                    Frontend                 Backend              Payment Provider
+     │                          │                        │                        │
+     │  Selecciona Plan PRO     │                        │                        │
+     ├─────────────────────────>│                        │                        │
+     │                          │  POST /billing/checkout│                        │
+     │                          ├───────────────────────>│                        │
+     │                          │                        │  Create Preference     │
+     │                          │                        ├───────────────────────>│
+     │                          │                        │<───────────────────────┤
+     │                          │  { checkoutUrl }       │                        │
+     │                          │<───────────────────────┤                        │
+     │  Redirect to Checkout    │                        │                        │
+     │<─────────────────────────┤                        │                        │
+     │                          │                        │                        │
+     │  ════════════════════════════════════════════════════════════════════════ │
+     │                          PAGO EXITOSO                                      │
+     │  ════════════════════════════════════════════════════════════════════════ │
+     │                          │                        │                        │
+     │                          │                        │  Webhook: payment.success
+     │                          │                        │<───────────────────────┤
+     │                          │                        │                        │
+     │                          │                        │  ┌──────────────────┐  │
+     │                          │                        │  │ Update User:     │  │
+     │                          │                        │  │ plan = PRO       │  │
+     │                          │                        │  │ status = ACTIVE  │  │
+     │                          │                        │  └──────────────────┘  │
+     │                          │                        │                        │
+     │  Redirect Success        │                        │                        │
+     │<─────────────────────────┤                        │                        │
+     │                          │                        │                        │
+     │  GET /billing/subscription                        │                        │
+     ├─────────────────────────────────────────────────->│                        │
+     │                          │                        │                        │
+     │  { plan: 'PRO', status: 'ACTIVE', limits: {...} } │                        │
+     │<──────────────────────────────────────────────────┤                        │
+```
+
+### RAG (Retrieval-Augmented Generation) Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              RAG PIPELINE                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                          INDEXING (Ingestion)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Document ──► ChunkingService ──► EmbeddingService ──► VectorStoreService   │
+│     │              │                    │                     │              │
+│     │              ▼                    ▼                     ▼              │
+│     │        ┌──────────┐        ┌──────────┐          ┌──────────┐         │
+│     │        │ Chunks   │        │ Vectors  │          │ pgvector │         │
+│     │        │ 512 tok  │        │ 1536 dim │          │  Store   │         │
+│     │        └──────────┘        └──────────┘          └──────────┘         │
+│     │                                                                        │
+│     └──────── Resource.isIndexed = true ────────────────────────────────────│
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                            QUERYING
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Query ──► EmbeddingService ──► VectorStoreService ──► LlmService           │
+│    │             │                     │                    │                │
+│    │             ▼                     ▼                    ▼                │
+│    │       ┌──────────┐         ┌───────────┐        ┌───────────┐          │
+│    │       │  Query   │         │ Top-K     │        │  GPT-4    │          │
+│    │       │ Embedding│         │ Similar   │        │  Gemini   │          │
+│    │       └──────────┘         │ Chunks    │        │  Groq     │          │
+│    │                            └───────────┘        └─────┬─────┘          │
+│    │                                                       │                 │
+│    └─────────────────── Response + Citations ◄─────────────┘                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### CI/CD Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          GITHUB ACTIONS CI/CD                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Push/PR to main
+       │
+       ▼
+  ┌─────────┐    ┌─────────────┐    ┌─────────┐
+  │  Lint   │───>│  TypeCheck  │───>│  Build  │
+  └─────────┘    └─────────────┘    └────┬────┘
+                                         │
+                    ┌────────────────────┼────────────────────┐
+                    │                    │                    │
+                    ▼                    ▼                    ▼
+             ┌───────────┐        ┌───────────┐        ┌───────────┐
+             │   Test    │        │  E2E Test │        │  Security │
+             │  (Jest)   │        │(Playwright)│       │   Audit   │
+             └───────────┘        └───────────┘        └───────────┘
+                    │                    │                    │
+                    └────────────────────┼────────────────────┘
+                                         │
+                                         ▼
+                                 ┌───────────────┐
+                                 │    Deploy     │
+                                 │ (On Success)  │
+                                 └───────────────┘
+```
+
+### Security Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          SECURITY LAYERS                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Request ──► Rate Limiting ──► JWT Validation ──► 2FA Check ──► Guards
+     │              │                 │                │            │
+     │              ▼                 ▼                ▼            ▼
+     │        ┌──────────┐      ┌──────────┐    ┌──────────┐  ┌──────────┐
+     │        │ Throttle │      │  Passport │    │   TOTP   │  │ Resource │
+     │        │ Guard    │      │    JWT    │    │  Verify  │  │  Owner   │
+     │        │ 100/min  │      │           │    │          │  │  Check   │
+     │        └──────────┘      └──────────┘    └──────────┘  └──────────┘
+     │
+     └──────────────────────────────────────────────────────────────────────►
+                                                                   Controller
+
+  Additional Security:
+  • Password hashing: bcrypt (12 rounds)
+  • Webhook signature verification (HMAC)
+  • CORS configuration
+  • Helmet.js security headers
+  • Input validation (class-validator)
+  • SQL injection prevention (Prisma)
 ```
 
 ### Database Schema
@@ -247,6 +475,55 @@ campusmind/
 │ flashcards[]    │     │ questions[]     │     │ content         │
 │ progress        │     │ attempts[]      │     │ embedding       │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │
+        │                       │
+        ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐
+│  Subscription   │     │  CalendarEvent  │
+├─────────────────┤     ├─────────────────┤
+│ plan (FREE/PRO/ │     │ title           │
+│       PREMIUM)  │     │ type            │
+│ status          │     │ startDate       │
+│ provider        │     │ recurrence      │
+│ externalId      │     │ reminders       │
+└─────────────────┘     └─────────────────┘
+```
+
+### Module Dependencies
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          MODULE DEPENDENCY GRAPH                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                              ┌──────────────┐
+                              │   AppModule  │
+                              └──────┬───────┘
+                                     │
+         ┌───────────────────────────┼───────────────────────────┐
+         │                           │                           │
+         ▼                           ▼                           ▼
+  ┌─────────────┐            ┌─────────────┐            ┌─────────────┐
+  │ AuthModule  │            │BillingModule│            │  RagModule  │
+  └──────┬──────┘            └──────┬──────┘            └──────┬──────┘
+         │                          │                          │
+         │                          ▼                          │
+         │                 ┌────────────────┐                  │
+         │                 │UsageLimitsServ │◄─────────────────┤
+         │                 └────────┬───────┘                  │
+         │                          │                          │
+         ▼                          ▼                          ▼
+  ┌─────────────┐            ┌─────────────┐            ┌─────────────┐
+  │SubjectsModule│◄──────────│ResourcesModule│◄─────────│FlashcardsModule│
+  └─────────────┘            └─────────────┘            └─────────────┘
+         │                          │                          │
+         └──────────────────────────┼──────────────────────────┘
+                                    │
+                                    ▼
+                            ┌─────────────┐
+                            │DatabaseModule│
+                            │  (Prisma)   │
+                            └─────────────┘
 ```
 
 ---
