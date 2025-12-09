@@ -48,6 +48,7 @@ import { WellnessModule } from "./modules/wellness/wellness.module";
 import { CareerModule } from "./modules/career/career.module";
 import { ToolsModule } from "./modules/tools/tools.module";
 import { SocialModule } from "./modules/social/social.module";
+import { MindMapsModule } from "./modules/mindmaps/mindmaps.module";
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { SocialModule } from "./modules/social/social.module";
     CareerModule,
     ToolsModule,
     SocialModule,
+    MindMapsModule,
   ],
   controllers: [HealthController],
 })
