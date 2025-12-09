@@ -68,8 +68,8 @@ export default function AnalyticsPage() {
         analytics.getProgressPrediction(token),
       ]);
       setDashboardStats(dashboard);
-      setStudyTimeData(studyTime);
-      setSubjectDistribution(subjects);
+      setStudyTimeData(Array.isArray(studyTime) ? studyTime : []);
+      setSubjectDistribution(Array.isArray(subjects) ? subjects : []);
       setFlashcardStats(flashcards);
       setQuizStats(quizzes);
       setPrediction(pred);

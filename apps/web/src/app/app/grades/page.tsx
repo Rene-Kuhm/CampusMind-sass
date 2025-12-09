@@ -77,8 +77,8 @@ export default function GradesPage() {
         grades.listCategories(token, selectedSubject.id),
         grades.getStats(token, selectedSubject.id),
       ]);
-      setGradesList(gradesData);
-      setCategories(categoriesData);
+      setGradesList(Array.isArray(gradesData) ? gradesData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setStats(statsData);
     } catch (error) {
       console.error('Error loading grades:', error);

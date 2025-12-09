@@ -76,9 +76,9 @@ export default function GoalsPage() {
         goals.getActive(token),
         goals.getSuggestions(token).catch(() => []),
       ]);
-      setGoalsList(allGoals);
-      setActiveGoals(active);
-      setSuggestions(suggs);
+      setGoalsList(Array.isArray(allGoals) ? allGoals : []);
+      setActiveGoals(Array.isArray(active) ? active : []);
+      setSuggestions(Array.isArray(suggs) ? suggs : []);
     } catch (error) {
       console.error('Error loading:', error);
     } finally {

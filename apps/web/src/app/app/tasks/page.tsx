@@ -76,9 +76,9 @@ export default function TasksPage() {
         tasks.getOverdue(token),
         tasks.getStats(token),
       ]);
-      setTasksList(all);
-      setUpcomingTasks(upcoming);
-      setOverdueTasks(overdue);
+      setTasksList(Array.isArray(all) ? all : []);
+      setUpcomingTasks(Array.isArray(upcoming) ? upcoming : []);
+      setOverdueTasks(Array.isArray(overdue) ? overdue : []);
       setStats(taskStats);
     } catch (error) {
       console.error('Error loading:', error);

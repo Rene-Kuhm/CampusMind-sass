@@ -59,8 +59,8 @@ export default function ToolsPage() {
         tools.getFormulaSheets(token),
         tools.getCodeSnippets(token),
       ]);
-      setFormulaSheets(sheets);
-      setCodeSnippets(snippets);
+      setFormulaSheets(Array.isArray(sheets) ? sheets : []);
+      setCodeSnippets(Array.isArray(snippets) ? snippets : []);
     } catch (error) {
       console.error('Error loading:', error);
     } finally {

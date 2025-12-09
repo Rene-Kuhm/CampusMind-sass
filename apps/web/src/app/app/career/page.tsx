@@ -56,12 +56,12 @@ export default function CareerPage() {
     try {
       const [cvData, jobsData, appsData] = await Promise.all([
         career.getCV(token).catch(() => null),
-        career.getJobs(token),
-        career.getApplications(token),
+        career.getJobs(token).catch(() => []),
+        career.getApplications(token).catch(() => []),
       ]);
       setCv(cvData);
-      setJobs(jobsData);
-      setApplications(appsData);
+      setJobs(Array.isArray(jobsData) ? jobsData : []);
+      setApplications(Array.isArray(appsData) ? appsData : []);
     } catch (error) {
       console.error('Error loading:', error);
     } finally {

@@ -67,7 +67,7 @@ export default function LeaderboardPage() {
         api.gamificationApi.getProfile(token),
         api.gamificationApi.getUserRank(token),
       ]);
-      setLeaderboard(leaderboardData);
+      setLeaderboard(Array.isArray(leaderboardData) ? leaderboardData : []);
       setProfile(profileData);
       setUserRank(rankData);
     } catch (error) {

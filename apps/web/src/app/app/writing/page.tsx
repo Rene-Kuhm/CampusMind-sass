@@ -61,8 +61,8 @@ export default function WritingPage() {
         writing.list(token),
         writing.getTemplates(token).catch(() => []),
       ]);
-      setDocuments(docs);
-      setTemplates(temps);
+      setDocuments(Array.isArray(docs) ? docs : []);
+      setTemplates(Array.isArray(temps) ? temps : []);
     } catch (error) {
       console.error('Error loading:', error);
     } finally {
