@@ -65,9 +65,10 @@ export default function RecordingsPage() {
     setIsLoading(true);
     try {
       const data = await recordings.list(token);
-      setRecordingsList(data);
+      setRecordingsList(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading recordings:', error);
+      setRecordingsList([]);
     } finally {
       setIsLoading(false);
     }
