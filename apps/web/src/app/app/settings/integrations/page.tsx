@@ -176,7 +176,7 @@ export default function IntegrationsPage() {
   };
 
   const getIntegrationByType = (type: string) => {
-    return userIntegrations.find(i => i.type === type);
+    return userIntegrations.find(i => i.provider === type);
   };
 
   return (
@@ -345,7 +345,7 @@ export default function IntegrationsPage() {
       <Modal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        title={`Configuración de ${selectedIntegration ? INTEGRATION_CONFIGS[selectedIntegration.type as IntegrationType]?.name : ''}`}
+        title={`Configuración de ${selectedIntegration ? INTEGRATION_CONFIGS[selectedIntegration.provider as IntegrationType]?.name : ''}`}
         variant="glass"
         size="md"
       >
@@ -357,7 +357,7 @@ export default function IntegrationsPage() {
                 <div>
                   <p className="font-medium text-secondary-900">Conectado</p>
                   <p className="text-sm text-secondary-500">
-                    Conectado el {new Date(selectedIntegration.connectedAt).toLocaleDateString()}
+                    Conectado el {new Date(selectedIntegration.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>

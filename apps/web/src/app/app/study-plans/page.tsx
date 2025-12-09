@@ -193,7 +193,7 @@ export default function StudyPlansPage() {
                   <h1 className="text-2xl font-bold text-secondary-900">{selectedPlan.topic}</h1>
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusBadge(selectedPlan.status)}
-                    <Badge variant="secondary">{getLearningStyleLabel(selectedPlan.learningStyle)}</Badge>
+                    <Badge variant="secondary">{getLearningStyleLabel(selectedPlan.learningStyle || 'VISUAL')}</Badge>
                     <span className="text-sm text-secondary-500">
                       {selectedPlan.dailyHours}h/día
                     </span>
@@ -424,7 +424,7 @@ export default function StudyPlansPage() {
                       </div>
                       <h3 className="font-semibold text-secondary-900 mb-1">{plan.topic}</h3>
                       <p className="text-sm text-secondary-500 mb-3">
-                        {plan.dailyHours}h/día • {getLearningStyleLabel(plan.learningStyle)}
+                        {plan.dailyHours}h/día • {getLearningStyleLabel(plan.learningStyle || 'VISUAL')}
                       </p>
 
                       {/* Progress */}

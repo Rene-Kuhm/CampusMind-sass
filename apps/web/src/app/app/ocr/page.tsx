@@ -155,7 +155,7 @@ export default function OcrPage() {
       case 'PROCESSING':
         return <Badge variant="warning"><Clock className="h-3 w-3 mr-1" />Procesando</Badge>;
       case 'FAILED':
-        return <Badge variant="error"><AlertCircle className="h-3 w-3 mr-1" />Error</Badge>;
+        return <Badge variant="danger"><AlertCircle className="h-3 w-3 mr-1" />Error</Badge>;
       default:
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pendiente</Badge>;
     }
