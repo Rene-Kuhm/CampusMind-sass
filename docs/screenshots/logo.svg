@@ -1,0 +1,47 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f472b6"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="56" fill="url(#gradient1)"/>
+
+  <!-- Brain outline -->
+  <g fill="white">
+    <!-- Left hemisphere -->
+    <path d="M35 50 Q30 35 40 28 Q50 22 58 30 Q55 40 50 45 Q45 50 40 55 Q35 60 35 50" opacity="0.9"/>
+    <!-- Right hemisphere -->
+    <path d="M85 50 Q90 35 80 28 Q70 22 62 30 Q65 40 70 45 Q75 50 80 55 Q85 60 85 50" opacity="0.9"/>
+    <!-- Brain stem -->
+    <path d="M55 55 Q60 65 65 55 Q68 60 65 70 Q60 78 55 70 Q52 60 55 55" opacity="0.8"/>
+    <!-- Connections -->
+    <circle cx="45" cy="38" r="3"/>
+    <circle cx="75" cy="38" r="3"/>
+    <circle cx="60" cy="45" r="3"/>
+    <circle cx="50" cy="52" r="2"/>
+    <circle cx="70" cy="52" r="2"/>
+  </g>
+
+  <!-- Graduation cap -->
+  <g fill="url(#gradient2)">
+    <polygon points="60,18 30,35 60,52 90,35" opacity="0.95"/>
+    <rect x="58" y="35" width="4" height="15"/>
+    <rect x="75" y="40" width="2" height="18"/>
+    <circle cx="76" cy="60" r="4"/>
+  </g>
+
+  <!-- Sparkles -->
+  <g fill="white" opacity="0.8">
+    <circle cx="25" cy="70" r="2"/>
+    <circle cx="95" cy="70" r="2"/>
+    <circle cx="20" cy="50" r="1.5"/>
+    <circle cx="100" cy="50" r="1.5"/>
+  </g>
+</svg>
