@@ -90,11 +90,11 @@ export default function TimerPage() {
       setWeekStats(Array.isArray(week) ? week : []);
       setHistory(Array.isArray(hist) ? hist : []);
 
-      if (active && active.status === 'ACTIVE') {
+      if (active && (active.status === 'IN_PROGRESS' || active.status === 'PAUSED')) {
         const elapsed = Math.floor((Date.now() - new Date(active.startedAt).getTime()) / 1000);
         const remaining = Math.max(0, active.targetMinutes * 60 - elapsed);
         setTimeLeft(remaining);
-        setIsRunning(true);
+        setIsRunning(active.status === 'IN_PROGRESS');
       }
     } catch (error) {
       console.error('Error loading:', error);
