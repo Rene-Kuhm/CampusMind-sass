@@ -41,6 +41,14 @@ import { EmailReportsModule } from "./modules/email-reports/email-reports.module
 import { LmsModule } from "./modules/lms/lms.module";
 import { IntegrationsModule } from "./modules/integrations/integrations.module";
 
+// New feature modules - FASE 5: Student Enhancement
+import { RecordingsModule } from "./modules/recordings/recordings.module";
+import { WritingModule } from "./modules/writing/writing.module";
+import { WellnessModule } from "./modules/wellness/wellness.module";
+import { CareerModule } from "./modules/career/career.module";
+import { ToolsModule } from "./modules/tools/tools.module";
+import { SocialModule } from "./modules/social/social.module";
+
 @Module({
   imports: [
     // Configuration
@@ -100,6 +108,14 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module";
     // FASE 4: External Integrations
     LmsModule,
     IntegrationsModule,
+
+    // FASE 5: Student Enhancement
+    RecordingsModule,
+    WritingModule,
+    WellnessModule,
+    CareerModule,
+    ToolsModule,
+    SocialModule,
   ],
   controllers: [HealthController],
 })
