@@ -3131,6 +3131,115 @@ export const social = {
     request<void>(`/social/shared-decks/${sharedDeckId}/rate`, { method: 'POST', body: { rating, comment }, token }),
 };
 
+// ============================================
+// MIND MAPS API
+// ============================================
+
+export interface MindMapNode {
+  id: string;
+  label: string;
+  x?: number;
+  y?: number;
+  color?: string;
+  shape?: string;
+  parentId?: string;
+}
+
+export interface MindMapEdge {
+  source: string;
+  target: string;
+  label?: string;
+}
+
+export interface MindMapData {
+  nodes: MindMapNode[];
+  edges: MindMapEdge[];
+  rootId?: string;
+  layout?: string;
+}
+
+export interface MindMap {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  data: MindMapData;
+  thumbnail?: string;
+  isPublic: boolean;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  subject?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
+}
+
+export interface CreateMindMapInput {
+  title: string;
+  description?: string;
+  subjectId?: string;
+  data: MindMapData;
+  tags?: string[];
+  isPublic?: boolean;
+}
+
+export interface UpdateMindMapInput {
+  title?: string;
+  description?: string;
+  subjectId?: string;
+  data?: MindMapData;
+  tags?: string[];
+  isPublic?: boolean;
+  thumbnail?: string;
+}
+
+export interface MindMapStats {
+  total: number;
+  public: number;
+  private: number;
+  bySubject: { subjectId: string; subjectName: string; count: number }[];
+}
+
+const mindmaps = {
+  getAll: (token: string, options?: { subjectId?: string; search?: string }) => {
+    const params = new URLSearchParams();
+    if (options?.subjectId) params.append('subjectId', options.subjectId);
+    if (options?.search) params.append('search', options.search);
+    const query = params.toString();
+    return request<MindMap[]>(`/mindmaps${query ? `?${query}` : ''}`, { token });
+  },
+
+  getPublic: (token: string, options?: { search?: string; limit?: number; offset?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.search) params.append('search', options.search);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    const query = params.toString();
+    return request<MindMap[]>(`/mindmaps/public${query ? `?${query}` : ''}`, { token });
+  },
+
+  getStats: (token: string) =>
+    request<MindMapStats>('/mindmaps/stats', { token }),
+
+  getOne: (token: string, id: string) =>
+    request<MindMap>(`/mindmaps/${id}`, { token }),
+
+  create: (token: string, data: CreateMindMapInput) =>
+    request<MindMap>('/mindmaps', { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: UpdateMindMapInput) =>
+    request<MindMap>(`/mindmaps/${id}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/mindmaps/${id}`, { method: 'DELETE', token }),
+
+  duplicate: (token: string, id: string) =>
+    request<MindMap>(`/mindmaps/${id}/duplicate`, { method: 'POST', token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -3172,4 +3281,5 @@ export default {
   analytics,
   notifications,
   social,
+  mindmaps,
 };

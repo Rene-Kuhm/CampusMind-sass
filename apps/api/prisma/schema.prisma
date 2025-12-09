@@ -120,6 +120,9 @@ model User {
   sharedDecks       SharedFlashcardDeck[]
   deckRatings       DeckRating[]
 
+  // Mind Maps
+  mindMaps          MindMap[]
+
   @@map("users")
 }
 
@@ -205,6 +208,9 @@ model Subject {
   // Tools
   formulaSheets  FormulaSheet[]
   codeSnippets   CodeSnippet[]
+
+  // Mind Maps
+  mindMaps       MindMap[]
 
   @@index([userId])
   @@map("subjects")
@@ -3023,6 +3029,33 @@ model DeckRating {
   @@unique([sharedDeckId, userId])
   @@index([sharedDeckId])
   @@map("deck_ratings")
+}
+
+// ============================================
+// MIND MAPS
+// ============================================
+
+model MindMap {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  data        Json     // Stores nodes, edges, and layout
+  thumbnail   String?  // Base64 or URL of thumbnail
+  isPublic    Boolean  @default(false) @map("is_public")
+  tags        String[] @default([])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("mind_maps")
 }
 
 enum MatchStatus {
