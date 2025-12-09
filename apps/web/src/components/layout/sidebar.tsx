@@ -37,6 +37,13 @@ import {
   TrendingUp,
   FileText,
   Upload,
+  Award,
+  MessageCircle,
+  ScanLine,
+  Video,
+  CalendarDays,
+  BookMarked,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -201,6 +208,75 @@ const navigation = [
     href: '/app/notifications',
     icon: Bell,
     gradient: 'from-orange-500 to-amber-500',
+  },
+  {
+    name: 'Logros',
+    href: '/app/achievements',
+    icon: Award,
+    gradient: 'from-amber-500 to-yellow-500',
+  },
+  {
+    name: 'Foros',
+    href: '/app/forums',
+    icon: MessageCircle,
+    gradient: 'from-blue-500 to-cyan-500',
+  },
+  {
+    name: 'Comunidad',
+    href: '/app/community',
+    icon: Users,
+    gradient: 'from-violet-500 to-purple-500',
+  },
+  {
+    name: 'OCR Scanner',
+    href: '/app/ocr',
+    icon: ScanLine,
+    gradient: 'from-teal-500 to-cyan-500',
+    badge: 'IA',
+  },
+  {
+    name: 'Transcripción',
+    href: '/app/transcription',
+    icon: Mic,
+    gradient: 'from-red-500 to-pink-500',
+    badge: 'IA',
+  },
+  {
+    name: 'Resumen Video',
+    href: '/app/video-summary',
+    icon: Video,
+    gradient: 'from-purple-500 to-indigo-500',
+    badge: 'IA',
+  },
+  {
+    name: 'Plan de Estudio',
+    href: '/app/study-plans',
+    icon: CalendarDays,
+    gradient: 'from-emerald-500 to-green-500',
+  },
+  {
+    name: 'LMS',
+    href: '/app/lms',
+    icon: GraduationCap,
+    gradient: 'from-blue-600 to-indigo-600',
+  },
+  {
+    name: 'Bibliografía',
+    href: '/app/bibliography',
+    icon: BookMarked,
+    gradient: 'from-amber-600 to-orange-600',
+  },
+  {
+    name: 'Tutorías',
+    href: '/app/tutoring',
+    icon: HelpCircle,
+    gradient: 'from-green-500 to-teal-500',
+  },
+  {
+    name: 'Importar Datos',
+    href: '/app/import',
+    icon: Upload,
+    gradient: 'from-gray-500 to-slate-600',
   },
 ];
 

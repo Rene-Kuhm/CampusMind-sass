@@ -3722,8 +3722,7 @@ export default {
   social,
   mindmaps,
   importExport,
-  calendarSyncApi,
-  emailReportsApi,
+  // Gamification APIs
   gamificationApi,
   groupsApi,
 };
