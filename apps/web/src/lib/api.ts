@@ -3243,26 +3243,33 @@ export const social = {
     request<StudyBuddyPreferences>('/social/buddies/preferences', { token }),
 
   updateBuddyPreferences: (token: string, data: Partial<StudyBuddyPreferences>) =>
-    request<StudyBuddyPreferences>('/social/buddies/preferences', { method: 'PATCH', body: data, token }),
+    request<StudyBuddyPreferences>('/social/buddies/preferences', { method: 'POST', body: data, token }),
 
-  findBuddyMatches: (token: string) =>
-    request<StudyBuddyMatch[]>('/social/buddies/matches', { token }),
+  findBuddyMatches: async (token: string): Promise<StudyBuddyMatch[]> => {
+    const response = await request<{ matches: StudyBuddyMatch[]; total: number }>('/social/buddies/matches', { token });
+    return response.matches || [];
+  },
 
-  respondToMatch: (token: string, matchId: string, action: 'accept' | 'reject' | 'block') =>
-    request<StudyBuddyMatch>(`/social/buddies/matches/${matchId}/${action}`, { method: 'POST', token }),
+  respondToMatch: (token: string, matchId: string, action: 'accept' | 'reject' | 'block') => {
+    const statusMap = { accept: 'ACCEPTED', reject: 'REJECTED', block: 'BLOCKED' };
+    return request<StudyBuddyMatch>(`/social/buddies/matches/${matchId}`, { method: 'PATCH', body: { status: statusMap[action] }, token });
+  },
 
   // Marketplace
-  getMarketplaceListings: (token: string, filters?: { type?: string; minPrice?: number; maxPrice?: number; search?: string }) => {
+  getMarketplaceListings: async (token: string, filters?: { type?: string; minPrice?: number; maxPrice?: number; search?: string }): Promise<MarketplaceListing[]> => {
     const params = new URLSearchParams();
     if (filters?.type) params.append('type', filters.type);
     if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
     if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
     if (filters?.search) params.append('search', filters.search);
-    return request<MarketplaceListing[]>(`/social/marketplace?${params.toString()}`, { token });
+    const response = await request<{ listings: MarketplaceListing[]; total: number }>(`/social/marketplace?${params.toString()}`, { token });
+    return response.listings || [];
   },
 
-  getMyListings: (token: string) =>
-    request<MarketplaceListing[]>('/social/marketplace/mine', { token }),
+  getMyListings: async (token: string): Promise<MarketplaceListing[]> => {
+    const response = await request<{ listings: MarketplaceListing[]; total: number }>('/social/marketplace/my-listings', { token });
+    return response.listings || [];
+  },
 
   getListing: (token: string, id: string) =>
     request<MarketplaceListing>(`/social/marketplace/${id}`, { token }),
@@ -3280,8 +3287,10 @@ export const social = {
     request<{ id: string; content: string; createdAt: string }>(`/social/marketplace/${listingId}/message`, { method: 'POST', body: { content }, token }),
 
   // Shared Flashcard Decks
-  getSharedDecks: (token: string, subject?: string) =>
-    request<SharedFlashcardDeck[]>(`/social/shared-decks${subject ? `?subject=${subject}` : ''}`, { token }),
+  getSharedDecks: async (token: string, subject?: string): Promise<SharedFlashcardDeck[]> => {
+    const response = await request<{ decks: SharedFlashcardDeck[]; total: number }>(`/social/shared-decks${subject ? `?subject=${subject}` : ''}`, { token });
+    return response.decks || [];
+  },
 
   shareDeck: (token: string, deckId: string, data: { title: string; description?: string; tags?: string[]; subject?: string }) =>
     request<SharedFlashcardDeck>(`/social/decks/${deckId}/share`, { method: 'POST', body: data, token }),
