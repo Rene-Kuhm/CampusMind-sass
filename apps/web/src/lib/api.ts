@@ -2577,6 +2577,106 @@ export const tools = {
 };
 
 // ============================================
+// GOALS ENDPOINTS
+// ============================================
+
+export type GoalType = 'STUDY_HOURS' | 'FLASHCARDS_REVIEW' | 'QUIZZES_COMPLETE' | 'PAGES_READ' | 'POMODOROS' | 'TASKS_COMPLETE' | 'CUSTOM';
+export type GoalUnit = 'HOURS' | 'MINUTES' | 'COUNT' | 'PAGES' | 'PERCENTAGE';
+export type GoalPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'SEMESTER' | 'CUSTOM';
+export type GoalStatus = 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELLED';
+
+export interface GoalProgress {
+  id: string;
+  goalId: string;
+  value: number;
+  notes?: string;
+  date: string;
+}
+
+export interface StudyGoal {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  type: GoalType;
+  targetValue: number;
+  currentValue: number;
+  unit: GoalUnit;
+  periodType: GoalPeriod;
+  startDate: string;
+  endDate: string;
+  status: GoalStatus;
+  reminderEnabled: boolean;
+  reminderTime?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  subject?: { id: string; name: string; color?: string };
+  progress?: GoalProgress[];
+}
+
+export interface GoalSuggestion {
+  type: GoalType;
+  title: string;
+  description: string;
+  targetValue: number;
+  unit: GoalUnit;
+  periodType: GoalPeriod;
+  reason: string;
+}
+
+export const goals = {
+  list: (token: string, filters?: { status?: GoalStatus; type?: GoalType; subjectId?: string; periodType?: GoalPeriod }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters?.periodType) params.append('periodType', filters.periodType);
+    return request<StudyGoal[]>(`/goals?${params.toString()}`, { token });
+  },
+
+  get: (token: string, id: string) =>
+    request<StudyGoal>(`/goals/${id}`, { token }),
+
+  getActive: (token: string) =>
+    request<StudyGoal[]>('/goals/active', { token }),
+
+  getSuggestions: (token: string) =>
+    request<GoalSuggestion[]>('/goals/suggestions', { token }),
+
+  create: (token: string, data: {
+    title: string;
+    description?: string;
+    type: GoalType;
+    targetValue: number;
+    unit: GoalUnit;
+    subjectId?: string;
+    periodType?: GoalPeriod;
+    startDate: string;
+    endDate: string;
+    reminderEnabled?: boolean;
+    reminderTime?: string;
+  }) => request<StudyGoal>('/goals', { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: Partial<{
+    title: string;
+    description: string;
+    targetValue: number;
+    currentValue: number;
+    status: GoalStatus;
+    reminderEnabled: boolean;
+    reminderTime: string;
+  }>) => request<StudyGoal>(`/goals/${id}`, { method: 'PATCH', body: data, token }),
+
+  addProgress: (token: string, id: string, data: { value: number; notes?: string }) =>
+    request<StudyGoal>(`/goals/${id}/progress`, { method: 'POST', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/goals/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
 // SOCIAL/COMMUNITY ENDPOINTS
 // ============================================
 
@@ -2760,5 +2860,6 @@ export default {
   wellness,
   career,
   tools,
+  goals,
   social,
 };
