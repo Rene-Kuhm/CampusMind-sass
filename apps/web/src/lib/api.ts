@@ -1965,6 +1965,766 @@ export const calendarSync = {
     request<Blob>('/calendar-sync/export/ical', { token }),
 };
 
+// ============================================
+// GRADES ENDPOINTS
+// ============================================
+
+export interface Grade {
+  id: string;
+  subjectId: string;
+  categoryId?: string;
+  name: string;
+  score: number;
+  maxScore: number;
+  weight: number;
+  date: string;
+  notes?: string;
+  category?: GradeCategory;
+}
+
+export interface GradeCategory {
+  id: string;
+  subjectId: string;
+  name: string;
+  weight: number;
+  color?: string;
+}
+
+export interface GradeStats {
+  subjectId: string;
+  average: number;
+  weightedAverage: number;
+  totalGrades: number;
+  highestGrade: { id: string; name: string; score: number; maxScore: number } | null;
+  lowestGrade: { id: string; name: string; score: number; maxScore: number } | null;
+  byCategory: { categoryId: string | null; categoryName: string; average: number; count: number }[];
+}
+
+export const grades = {
+  list: (token: string, subjectId: string) =>
+    request<Grade[]>(`/grades/subject/${subjectId}`, { token }),
+
+  create: (token: string, subjectId: string, data: { name: string; score: number; maxScore?: number; weight?: number; date?: string; notes?: string; categoryId?: string }) =>
+    request<Grade>(`/grades/subject/${subjectId}`, { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: Partial<Grade>) =>
+    request<Grade>(`/grades/${id}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/grades/${id}`, { method: 'DELETE', token }),
+
+  getStats: (token: string, subjectId: string) =>
+    request<GradeStats>(`/grades/subject/${subjectId}/stats`, { token }),
+
+  getOverallStats: (token: string) =>
+    request<{ overallAverage: number; totalSubjects: number; totalGrades: number; bySubject: { subjectId: string; subjectName: string; average: number; totalGrades: number }[] }>('/grades/stats', { token }),
+
+  // Categories
+  listCategories: (token: string, subjectId: string) =>
+    request<GradeCategory[]>(`/grades/subject/${subjectId}/categories`, { token }),
+
+  createCategory: (token: string, subjectId: string, data: { name: string; weight?: number; color?: string }) =>
+    request<GradeCategory>(`/grades/subject/${subjectId}/categories`, { method: 'POST', body: data, token }),
+
+  deleteCategory: (token: string, id: string) =>
+    request<void>(`/grades/categories/${id}`, { method: 'DELETE', token }),
+};
+
+// ============================================
+// RECORDINGS ENDPOINTS
+// ============================================
+
+export interface AudioRecording {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  duration: number;
+  recordedAt: string;
+  location?: string;
+  professorName?: string;
+  transcriptionId?: string;
+  isProcessed: boolean;
+  isFavorite: boolean;
+  tags: string[];
+  bookmarks: RecordingBookmark[];
+  notes: RecordingNote[];
+}
+
+export interface RecordingBookmark {
+  id: string;
+  recordingId: string;
+  timestamp: number;
+  label: string;
+  color?: string;
+}
+
+export interface RecordingNote {
+  id: string;
+  recordingId: string;
+  timestamp?: number;
+  content: string;
+}
+
+export const recordings = {
+  list: (token: string, subjectId?: string) =>
+    request<AudioRecording[]>(`/recordings${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<AudioRecording>(`/recordings/${id}`, { token }),
+
+  create: (token: string, data: { title: string; fileUrl: string; fileName: string; fileSize: number; mimeType: string; duration: number; subjectId?: string; description?: string; location?: string; professorName?: string; tags?: string[] }) =>
+    request<AudioRecording>('/recordings', { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: Partial<AudioRecording>) =>
+    request<AudioRecording>(`/recordings/${id}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/recordings/${id}`, { method: 'DELETE', token }),
+
+  toggleFavorite: (token: string, id: string) =>
+    request<AudioRecording>(`/recordings/${id}/favorite`, { method: 'POST', token }),
+
+  // Bookmarks
+  addBookmark: (token: string, recordingId: string, data: { timestamp: number; label: string; color?: string }) =>
+    request<RecordingBookmark>(`/recordings/${recordingId}/bookmarks`, { method: 'POST', body: data, token }),
+
+  deleteBookmark: (token: string, recordingId: string, bookmarkId: string) =>
+    request<void>(`/recordings/${recordingId}/bookmarks/${bookmarkId}`, { method: 'DELETE', token }),
+
+  // Notes
+  addNote: (token: string, recordingId: string, data: { content: string; timestamp?: number }) =>
+    request<RecordingNote>(`/recordings/${recordingId}/notes`, { method: 'POST', body: data, token }),
+
+  updateNote: (token: string, recordingId: string, noteId: string, data: { content: string }) =>
+    request<RecordingNote>(`/recordings/${recordingId}/notes/${noteId}`, { method: 'PATCH', body: data, token }),
+
+  deleteNote: (token: string, recordingId: string, noteId: string) =>
+    request<void>(`/recordings/${recordingId}/notes/${noteId}`, { method: 'DELETE', token }),
+
+  // Transcription
+  transcribe: (token: string, id: string) =>
+    request<{ transcriptionId: string }>(`/recordings/${id}/transcribe`, { method: 'POST', token }),
+};
+
+// ============================================
+// WRITING ASSISTANT ENDPOINTS
+// ============================================
+
+export interface WritingDocument {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  content: string;
+  type: 'ESSAY' | 'REPORT' | 'THESIS' | 'SUMMARY' | 'REVIEW' | 'LAB_REPORT' | 'RESEARCH_PAPER' | 'PRESENTATION' | 'OTHER';
+  templateId?: string;
+  wordCount: number;
+  targetWords?: number;
+  language: string;
+  status: 'DRAFT' | 'IN_PROGRESS' | 'REVIEW' | 'FINAL' | 'SUBMITTED';
+  grammarScore?: number;
+  styleScore?: number;
+  plagiarismScore?: number;
+  suggestions?: { type: string; message: string; position?: { start: number; end: number } }[];
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WritingTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  type: WritingDocument['type'];
+  content: string;
+  structure?: { section: string; description: string }[];
+  isSystem: boolean;
+}
+
+export const writing = {
+  list: (token: string, subjectId?: string) =>
+    request<WritingDocument[]>(`/writing${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  get: (token: string, id: string) =>
+    request<WritingDocument>(`/writing/${id}`, { token }),
+
+  create: (token: string, data: { title: string; content?: string; type?: WritingDocument['type']; subjectId?: string; templateId?: string; targetWords?: number }) =>
+    request<WritingDocument>('/writing', { method: 'POST', body: data, token }),
+
+  update: (token: string, id: string, data: Partial<WritingDocument>) =>
+    request<WritingDocument>(`/writing/${id}`, { method: 'PATCH', body: data, token }),
+
+  delete: (token: string, id: string) =>
+    request<void>(`/writing/${id}`, { method: 'DELETE', token }),
+
+  // Templates
+  getTemplates: (token: string) =>
+    request<WritingTemplate[]>('/writing/templates', { token }),
+
+  // AI Analysis
+  analyze: (token: string, id: string) =>
+    request<{ grammarScore: number; styleScore: number; suggestions: WritingDocument['suggestions'] }>(`/writing/${id}/analyze`, { method: 'POST', token }),
+
+  improve: (token: string, id: string, prompt?: string) =>
+    request<{ improvedContent: string; changes: string[] }>(`/writing/${id}/improve`, { method: 'POST', body: { prompt }, token }),
+
+  checkPlagiarism: (token: string, id: string) =>
+    request<{ plagiarismScore: number; matches: { source: string; similarity: number; excerpt: string }[] }>(`/writing/${id}/plagiarism-check`, { method: 'POST', token }),
+
+  // Version History
+  getHistory: (token: string, id: string) =>
+    request<{ id: string; content: string; version: number; wordCount: number; createdAt: string }[]>(`/writing/${id}/history`, { token }),
+
+  restoreVersion: (token: string, id: string, version: number) =>
+    request<WritingDocument>(`/writing/${id}/restore/${version}`, { method: 'POST', token }),
+};
+
+// ============================================
+// WELLNESS ENDPOINTS
+// ============================================
+
+export interface WellnessLog {
+  id: string;
+  userId: string;
+  date: string;
+  sleepHours?: number;
+  sleepQuality?: number;
+  moodScore?: number;
+  stressLevel?: number;
+  energyLevel?: number;
+  exerciseMinutes?: number;
+  meditationMinutes?: number;
+  breaksCount?: number;
+  notes?: string;
+  gratitude: string[];
+}
+
+export interface BreakReminder {
+  id: string;
+  userId: string;
+  isEnabled: boolean;
+  intervalMinutes: number;
+  breakMinutes: number;
+  startTime: string;
+  endTime: string;
+  activeDays: number[];
+  soundEnabled: boolean;
+  notificationEnabled: boolean;
+}
+
+export interface WellnessTip {
+  id: string;
+  title: string;
+  content: string;
+  category: 'STRESS' | 'SLEEP' | 'EXERCISE' | 'MINDFULNESS' | 'NUTRITION' | 'SOCIAL' | 'STUDY_HABITS' | 'MOTIVATION';
+  icon?: string;
+}
+
+export const wellness = {
+  // Daily Logs
+  getLogs: (token: string, startDate?: string, endDate?: string) =>
+    request<WellnessLog[]>(`/wellness/logs${startDate ? `?startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`, { token }),
+
+  getLog: (token: string, date: string) =>
+    request<WellnessLog>(`/wellness/logs/${date}`, { token }),
+
+  createLog: (token: string, data: Partial<WellnessLog>) =>
+    request<WellnessLog>('/wellness/logs', { method: 'POST', body: data, token }),
+
+  updateLog: (token: string, date: string, data: Partial<WellnessLog>) =>
+    request<WellnessLog>(`/wellness/logs/${date}`, { method: 'PATCH', body: data, token }),
+
+  // Break Reminders
+  getBreakReminder: (token: string) =>
+    request<BreakReminder>('/wellness/break-reminder', { token }),
+
+  updateBreakReminder: (token: string, data: Partial<BreakReminder>) =>
+    request<BreakReminder>('/wellness/break-reminder', { method: 'PATCH', body: data, token }),
+
+  // Tips
+  getTips: (token: string, category?: WellnessTip['category']) =>
+    request<WellnessTip[]>(`/wellness/tips${category ? `?category=${category}` : ''}`, { token }),
+
+  getDailyTip: (token: string) =>
+    request<WellnessTip>('/wellness/tips/daily', { token }),
+
+  // Stats
+  getStats: (token: string, period?: 'week' | 'month' | 'year') =>
+    request<{ averageSleep: number; averageMood: number; averageStress: number; streak: number; totalExerciseMinutes: number; totalMeditationMinutes: number }>(`/wellness/stats${period ? `?period=${period}` : ''}`, { token }),
+};
+
+// ============================================
+// CAREER ENDPOINTS
+// ============================================
+
+export interface UserCV {
+  id: string;
+  userId: string;
+  fullName: string;
+  title?: string;
+  summary?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedIn?: string;
+  github?: string;
+  portfolio?: string;
+  photoUrl?: string;
+  education: CVEducation[];
+  experience: CVExperience[];
+  skills: CVSkill[];
+  projects: CVProject[];
+  certifications: CVCertification[];
+  languages: CVLanguage[];
+}
+
+export interface CVEducation {
+  id: string;
+  institution: string;
+  degree: string;
+  field?: string;
+  startDate: string;
+  endDate?: string;
+  isCurrent: boolean;
+  gpa?: number;
+  description?: string;
+}
+
+export interface CVExperience {
+  id: string;
+  company: string;
+  position: string;
+  location?: string;
+  startDate: string;
+  endDate?: string;
+  isCurrent: boolean;
+  description?: string;
+  highlights: string[];
+}
+
+export interface CVSkill {
+  id: string;
+  name: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT';
+  category?: string;
+}
+
+export interface CVProject {
+  id: string;
+  name: string;
+  description?: string;
+  url?: string;
+  technologies: string[];
+  startDate?: string;
+  endDate?: string;
+  highlights: string[];
+}
+
+export interface CVCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+  url?: string;
+}
+
+export interface CVLanguage {
+  id: string;
+  name: string;
+  level: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED' | 'FLUENT' | 'NATIVE';
+}
+
+export interface JobPosting {
+  id: string;
+  title: string;
+  company: string;
+  location?: string;
+  isRemote: boolean;
+  type: 'FULL_TIME' | 'PART_TIME' | 'INTERNSHIP' | 'FREELANCE' | 'CONTRACT';
+  description: string;
+  requirements: string[];
+  benefits: string[];
+  salaryMin?: number;
+  salaryMax?: number;
+  currency: string;
+  career?: string;
+  minYear?: number;
+  skills: string[];
+  applyUrl?: string;
+  createdAt: string;
+}
+
+export interface JobApplication {
+  id: string;
+  userId: string;
+  jobId: string;
+  status: 'SAVED' | 'APPLIED' | 'SCREENING' | 'INTERVIEWING' | 'OFFER' | 'REJECTED' | 'ACCEPTED' | 'WITHDRAWN';
+  coverLetter?: string;
+  notes?: string;
+  appliedAt: string;
+  job: JobPosting;
+  interviews: Interview[];
+}
+
+export interface Interview {
+  id: string;
+  applicationId: string;
+  type: 'PHONE' | 'VIDEO' | 'IN_PERSON' | 'TECHNICAL' | 'HR' | 'FINAL';
+  scheduledAt: string;
+  duration?: number;
+  location?: string;
+  notes?: string;
+  questions: string[];
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  feedback?: string;
+  rating?: number;
+}
+
+export const career = {
+  // CV
+  getCV: (token: string) =>
+    request<UserCV>('/career/cv', { token }),
+
+  createCV: (token: string, data: Partial<UserCV>) =>
+    request<UserCV>('/career/cv', { method: 'POST', body: data, token }),
+
+  updateCV: (token: string, data: Partial<UserCV>) =>
+    request<UserCV>('/career/cv', { method: 'PATCH', body: data, token }),
+
+  exportCV: (token: string, format: 'pdf' | 'docx') =>
+    request<Blob>(`/career/cv/export?format=${format}`, { token }),
+
+  // CV Sections
+  addEducation: (token: string, data: Omit<CVEducation, 'id'>) =>
+    request<CVEducation>('/career/cv/education', { method: 'POST', body: data, token }),
+
+  updateEducation: (token: string, id: string, data: Partial<CVEducation>) =>
+    request<CVEducation>(`/career/cv/education/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteEducation: (token: string, id: string) =>
+    request<void>(`/career/cv/education/${id}`, { method: 'DELETE', token }),
+
+  addExperience: (token: string, data: Omit<CVExperience, 'id'>) =>
+    request<CVExperience>('/career/cv/experience', { method: 'POST', body: data, token }),
+
+  updateExperience: (token: string, id: string, data: Partial<CVExperience>) =>
+    request<CVExperience>(`/career/cv/experience/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteExperience: (token: string, id: string) =>
+    request<void>(`/career/cv/experience/${id}`, { method: 'DELETE', token }),
+
+  addSkill: (token: string, data: Omit<CVSkill, 'id'>) =>
+    request<CVSkill>('/career/cv/skills', { method: 'POST', body: data, token }),
+
+  deleteSkill: (token: string, id: string) =>
+    request<void>(`/career/cv/skills/${id}`, { method: 'DELETE', token }),
+
+  addProject: (token: string, data: Omit<CVProject, 'id'>) =>
+    request<CVProject>('/career/cv/projects', { method: 'POST', body: data, token }),
+
+  updateProject: (token: string, id: string, data: Partial<CVProject>) =>
+    request<CVProject>(`/career/cv/projects/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteProject: (token: string, id: string) =>
+    request<void>(`/career/cv/projects/${id}`, { method: 'DELETE', token }),
+
+  // Jobs
+  getJobs: (token: string, filters?: { career?: string; type?: string; remote?: boolean; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.career) params.append('career', filters.career);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.remote) params.append('remote', 'true');
+    if (filters?.search) params.append('search', filters.search);
+    return request<JobPosting[]>(`/career/jobs?${params.toString()}`, { token });
+  },
+
+  getJob: (token: string, id: string) =>
+    request<JobPosting>(`/career/jobs/${id}`, { token }),
+
+  // Applications
+  getApplications: (token: string, status?: JobApplication['status']) =>
+    request<JobApplication[]>(`/career/applications${status ? `?status=${status}` : ''}`, { token }),
+
+  applyToJob: (token: string, jobId: string, data: { coverLetter?: string }) =>
+    request<JobApplication>(`/career/jobs/${jobId}/apply`, { method: 'POST', body: data, token }),
+
+  updateApplication: (token: string, id: string, data: Partial<JobApplication>) =>
+    request<JobApplication>(`/career/applications/${id}`, { method: 'PATCH', body: data, token }),
+
+  withdrawApplication: (token: string, id: string) =>
+    request<void>(`/career/applications/${id}/withdraw`, { method: 'POST', token }),
+
+  // Interviews
+  getInterviews: (token: string) =>
+    request<Interview[]>('/career/interviews', { token }),
+
+  addInterview: (token: string, applicationId: string, data: Omit<Interview, 'id' | 'applicationId' | 'status'>) =>
+    request<Interview>(`/career/applications/${applicationId}/interviews`, { method: 'POST', body: data, token }),
+
+  updateInterview: (token: string, id: string, data: Partial<Interview>) =>
+    request<Interview>(`/career/interviews/${id}`, { method: 'PATCH', body: data, token }),
+
+  getInterviewPrep: (token: string, id: string) =>
+    request<{ questions: string[]; tips: string[]; companyInfo: string }>(`/career/interviews/${id}/prep`, { token }),
+};
+
+// ============================================
+// TOOLS ENDPOINTS
+// ============================================
+
+export interface FormulaSheet {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  category?: string;
+  isPublic: boolean;
+  formulas: Formula[];
+  createdAt: string;
+}
+
+export interface Formula {
+  id: string;
+  sheetId: string;
+  name: string;
+  latex: string;
+  description?: string;
+  variables?: Record<string, string>;
+  example?: string;
+  tags: string[];
+}
+
+export interface CodeSnippet {
+  id: string;
+  userId: string;
+  subjectId?: string;
+  title: string;
+  description?: string;
+  code: string;
+  language: string;
+  tags: string[];
+  isPublic: boolean;
+  isExecutable: boolean;
+  lastOutput?: string;
+  createdAt: string;
+}
+
+export const tools = {
+  // Formula Sheets
+  getFormulaSheets: (token: string, subjectId?: string) =>
+    request<FormulaSheet[]>(`/tools/formula-sheets${subjectId ? `?subjectId=${subjectId}` : ''}`, { token }),
+
+  getFormulaSheet: (token: string, id: string) =>
+    request<FormulaSheet>(`/tools/formula-sheets/${id}`, { token }),
+
+  createFormulaSheet: (token: string, data: { title: string; description?: string; category?: string; subjectId?: string; isPublic?: boolean }) =>
+    request<FormulaSheet>('/tools/formula-sheets', { method: 'POST', body: data, token }),
+
+  updateFormulaSheet: (token: string, id: string, data: Partial<FormulaSheet>) =>
+    request<FormulaSheet>(`/tools/formula-sheets/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteFormulaSheet: (token: string, id: string) =>
+    request<void>(`/tools/formula-sheets/${id}`, { method: 'DELETE', token }),
+
+  // Formulas
+  addFormula: (token: string, sheetId: string, data: Omit<Formula, 'id' | 'sheetId'>) =>
+    request<Formula>(`/tools/formula-sheets/${sheetId}/formulas`, { method: 'POST', body: data, token }),
+
+  updateFormula: (token: string, sheetId: string, formulaId: string, data: Partial<Formula>) =>
+    request<Formula>(`/tools/formula-sheets/${sheetId}/formulas/${formulaId}`, { method: 'PATCH', body: data, token }),
+
+  deleteFormula: (token: string, sheetId: string, formulaId: string) =>
+    request<void>(`/tools/formula-sheets/${sheetId}/formulas/${formulaId}`, { method: 'DELETE', token }),
+
+  // Code Snippets
+  getCodeSnippets: (token: string, language?: string, subjectId?: string) => {
+    const params = new URLSearchParams();
+    if (language) params.append('language', language);
+    if (subjectId) params.append('subjectId', subjectId);
+    return request<CodeSnippet[]>(`/tools/code-snippets?${params.toString()}`, { token });
+  },
+
+  getCodeSnippet: (token: string, id: string) =>
+    request<CodeSnippet>(`/tools/code-snippets/${id}`, { token }),
+
+  createCodeSnippet: (token: string, data: { title: string; code: string; language: string; description?: string; subjectId?: string; tags?: string[]; isPublic?: boolean }) =>
+    request<CodeSnippet>('/tools/code-snippets', { method: 'POST', body: data, token }),
+
+  updateCodeSnippet: (token: string, id: string, data: Partial<CodeSnippet>) =>
+    request<CodeSnippet>(`/tools/code-snippets/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteCodeSnippet: (token: string, id: string) =>
+    request<void>(`/tools/code-snippets/${id}`, { method: 'DELETE', token }),
+
+  executeCodeSnippet: (token: string, id: string) =>
+    request<{ output: string; error?: string; executionTime: number }>(`/tools/code-snippets/${id}/execute`, { method: 'POST', token }),
+
+  // Public/Community
+  getPublicFormulaSheets: (token: string, category?: string) =>
+    request<FormulaSheet[]>(`/tools/public/formula-sheets${category ? `?category=${category}` : ''}`, { token }),
+
+  getPublicCodeSnippets: (token: string, language?: string) =>
+    request<CodeSnippet[]>(`/tools/public/code-snippets${language ? `?language=${language}` : ''}`, { token }),
+};
+
+// ============================================
+// SOCIAL/COMMUNITY ENDPOINTS
+// ============================================
+
+export interface ProfessorReview {
+  id: string;
+  userId: string;
+  professorId: string;
+  overallRating: number;
+  difficultyRating: number;
+  clarityRating: number;
+  helpfulnessRating: number;
+  courseName?: string;
+  grade?: string;
+  wouldTakeAgain: boolean;
+  comment?: string;
+  tags: string[];
+  isAnonymous: boolean;
+  createdAt: string;
+  professor?: { id: string; name: string; email?: string };
+}
+
+export interface StudyBuddyMatch {
+  id: string;
+  userId1: string;
+  userId2: string;
+  commonSubjects: string[];
+  matchScore: number;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'BLOCKED';
+  initiatedBy: string;
+  user?: { id: string; profile: { firstName: string; lastName: string; university?: string; career?: string } };
+}
+
+export interface StudyBuddyPreferences {
+  id: string;
+  userId: string;
+  isSearching: boolean;
+  subjects: string[];
+  studyStyle: 'FORMAL' | 'PRACTICAL' | 'BALANCED';
+  sameUniversity: boolean;
+  sameCareer: boolean;
+  sameYear: boolean;
+}
+
+export interface MarketplaceListing {
+  id: string;
+  sellerId: string;
+  title: string;
+  description?: string;
+  type: 'BOOK' | 'NOTES' | 'CALCULATOR' | 'EQUIPMENT' | 'TUTORING_SERVICE' | 'OTHER';
+  condition: 'NEW' | 'LIKE_NEW' | 'GOOD' | 'FAIR' | 'POOR';
+  price: number;
+  currency: string;
+  isNegotiable: boolean;
+  category?: string;
+  isbn?: string;
+  author?: string;
+  edition?: string;
+  images: string[];
+  location?: string;
+  isDelivery: boolean;
+  isPickup: boolean;
+  status: 'DRAFT' | 'ACTIVE' | 'SOLD' | 'RESERVED' | 'EXPIRED' | 'DELETED';
+  viewCount: number;
+  createdAt: string;
+  seller?: { id: string; profile: { firstName: string; lastName: string } };
+}
+
+export interface SharedFlashcardDeck {
+  id: string;
+  deckId: string;
+  userId: string;
+  title: string;
+  description?: string;
+  tags: string[];
+  subject?: string;
+  university?: string;
+  downloadCount: number;
+  rating: number;
+  ratingCount: number;
+  createdAt: string;
+}
+
+export const social = {
+  // Professor Reviews
+  getProfessorReviews: (token: string, professorId: string) =>
+    request<ProfessorReview[]>(`/social/professors/${professorId}/reviews`, { token }),
+
+  createProfessorReview: (token: string, professorId: string, data: Omit<ProfessorReview, 'id' | 'userId' | 'professorId' | 'createdAt' | 'professor'>) =>
+    request<ProfessorReview>(`/social/professors/${professorId}/reviews`, { method: 'POST', body: data, token }),
+
+  getProfessorStats: (token: string, professorId: string) =>
+    request<{ averageRating: number; averageDifficulty: number; totalReviews: number; wouldTakeAgainPercent: number; topTags: string[] }>(`/social/professors/${professorId}/stats`, { token }),
+
+  // Study Buddy
+  getBuddyPreferences: (token: string) =>
+    request<StudyBuddyPreferences>('/social/buddies/preferences', { token }),
+
+  updateBuddyPreferences: (token: string, data: Partial<StudyBuddyPreferences>) =>
+    request<StudyBuddyPreferences>('/social/buddies/preferences', { method: 'PATCH', body: data, token }),
+
+  findBuddyMatches: (token: string) =>
+    request<StudyBuddyMatch[]>('/social/buddies/matches', { token }),
+
+  respondToMatch: (token: string, matchId: string, action: 'accept' | 'reject' | 'block') =>
+    request<StudyBuddyMatch>(`/social/buddies/matches/${matchId}/${action}`, { method: 'POST', token }),
+
+  // Marketplace
+  getMarketplaceListings: (token: string, filters?: { type?: string; minPrice?: number; maxPrice?: number; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
+    if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+    if (filters?.search) params.append('search', filters.search);
+    return request<MarketplaceListing[]>(`/social/marketplace?${params.toString()}`, { token });
+  },
+
+  getMyListings: (token: string) =>
+    request<MarketplaceListing[]>('/social/marketplace/mine', { token }),
+
+  getListing: (token: string, id: string) =>
+    request<MarketplaceListing>(`/social/marketplace/${id}`, { token }),
+
+  createListing: (token: string, data: Omit<MarketplaceListing, 'id' | 'sellerId' | 'viewCount' | 'createdAt' | 'seller'>) =>
+    request<MarketplaceListing>('/social/marketplace', { method: 'POST', body: data, token }),
+
+  updateListing: (token: string, id: string, data: Partial<MarketplaceListing>) =>
+    request<MarketplaceListing>(`/social/marketplace/${id}`, { method: 'PATCH', body: data, token }),
+
+  deleteListing: (token: string, id: string) =>
+    request<void>(`/social/marketplace/${id}`, { method: 'DELETE', token }),
+
+  sendMessage: (token: string, listingId: string, content: string) =>
+    request<{ id: string; content: string; createdAt: string }>(`/social/marketplace/${listingId}/message`, { method: 'POST', body: { content }, token }),
+
+  // Shared Flashcard Decks
+  getSharedDecks: (token: string, subject?: string) =>
+    request<SharedFlashcardDeck[]>(`/social/shared-decks${subject ? `?subject=${subject}` : ''}`, { token }),
+
+  shareDeck: (token: string, deckId: string, data: { title: string; description?: string; tags?: string[]; subject?: string }) =>
+    request<SharedFlashcardDeck>(`/social/decks/${deckId}/share`, { method: 'POST', body: data, token }),
+
+  downloadSharedDeck: (token: string, sharedDeckId: string) =>
+    request<{ deckId: string }>(`/social/shared-decks/${sharedDeckId}/download`, { method: 'POST', token }),
+
+  rateDeck: (token: string, sharedDeckId: string, rating: number, comment?: string) =>
+    request<void>(`/social/shared-decks/${sharedDeckId}/rate`, { method: 'POST', body: { rating, comment }, token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -1994,4 +2754,11 @@ export default {
   lms,
   integrations,
   calendarSync,
+  grades,
+  recordings,
+  writing,
+  wellness,
+  career,
+  tools,
+  social,
 };
