@@ -3342,6 +3342,343 @@ const importExport = {
     request<Record<string, ImportTemplate>>('/import/templates', { token }),
 };
 
+// ============================================
+// CALENDAR SYNC API
+// ============================================
+
+export type CalendarProvider = 'GOOGLE' | 'OUTLOOK' | 'APPLE';
+export type SyncDirection = 'IMPORT' | 'EXPORT' | 'BOTH';
+
+export interface CalendarIntegration {
+  id: string;
+  userId: string;
+  provider: CalendarProvider;
+  syncEnabled: boolean;
+  syncDirection: SyncDirection;
+  lastSyncAt?: string;
+  createdAt: string;
+}
+
+const calendarSyncApi = {
+  getIntegrations: (token: string) =>
+    request<CalendarIntegration[]>('/calendar-sync/integrations', { token }),
+
+  getGoogleAuthUrl: (token: string) =>
+    request<{ url: string }>('/calendar-sync/google/auth-url', { token }),
+
+  syncCalendar: (token: string, provider: CalendarProvider) =>
+    request<{ synced: number }>(`/calendar-sync/sync/${provider}`, { method: 'POST', token }),
+
+  updateIntegration: (token: string, integrationId: string, data: { syncEnabled?: boolean; syncDirection?: SyncDirection }) =>
+    request<CalendarIntegration>(`/calendar-sync/${integrationId}`, { method: 'PATCH', body: data, token }),
+
+  deleteIntegration: (token: string, integrationId: string) =>
+    request<void>(`/calendar-sync/${integrationId}`, { method: 'DELETE', token }),
+
+  exportIcal: async (token: string): Promise<Blob> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/calendar-sync/export/ical`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Error exporting calendar');
+    return response.blob();
+  },
+};
+
+// ============================================
+// EMAIL REPORTS API
+// ============================================
+
+export type ReportFrequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+
+export interface EmailReportConfig {
+  id: string;
+  userId: string;
+  isEnabled: boolean;
+  frequency: ReportFrequency;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  timeOfDay: string;
+  timezone: string;
+  includeStudyTime: boolean;
+  includeFlashcards: boolean;
+  includeQuizzes: boolean;
+  includeTasks: boolean;
+  includeGoals: boolean;
+  includeUpcoming: boolean;
+  lastSentAt?: string;
+}
+
+export interface ReportPreview {
+  subject: string;
+  html: string;
+  stats: {
+    studyTime: number;
+    flashcardsReviewed: number;
+    quizzesTaken: number;
+    tasksCompleted: number;
+    goalsProgress: number;
+  };
+}
+
+const emailReportsApi = {
+  getConfig: (token: string) =>
+    request<EmailReportConfig>('/email-reports/config', { token }),
+
+  updateConfig: (token: string, data: Partial<Omit<EmailReportConfig, 'id' | 'userId' | 'lastSentAt'>>) =>
+    request<EmailReportConfig>('/email-reports/config', { method: 'PATCH', body: data, token }),
+
+  previewReport: (token: string) =>
+    request<ReportPreview>('/email-reports/preview', { token }),
+
+  sendReport: (token: string) =>
+    request<{ sent: boolean }>('/email-reports/send', { method: 'POST', token }),
+};
+
+// ============================================
+// GAMIFICATION API
+// ============================================
+
+export interface GamificationProfile {
+  userId: string;
+  totalXP: number;
+  currentLevel: number;
+  xpToNextLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  totalPoints: number;
+  rank?: number;
+  achievements: UserAchievement[];
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  category: string;
+  requirement: string;
+  requirementValue: number;
+}
+
+export interface UserAchievement {
+  id: string;
+  achievementId: string;
+  unlockedAt: string;
+  achievement: Achievement;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  rank: number;
+  value: number;
+  user: {
+    profile?: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
+
+export interface UserRank {
+  rank: number;
+  total: number;
+  percentile: number;
+}
+
+const gamificationApi = {
+  getProfile: (token: string) =>
+    request<GamificationProfile>('/gamification/profile', { token }),
+
+  getAllAchievements: (token: string) =>
+    request<{ all: Achievement[]; unlocked: UserAchievement[] }>('/gamification/achievements', { token }),
+
+  getLeaderboard: (token: string, type: 'xp' | 'points' | 'streak' = 'points', limit: number = 50) =>
+    request<LeaderboardEntry[]>(`/gamification/leaderboard?type=${type}&limit=${limit}`, { token }),
+
+  getUserRank: (token: string) =>
+    request<UserRank>('/gamification/rank', { token }),
+
+  updateStreak: (token: string) =>
+    request<{ streak: number }>('/gamification/streak/update', { method: 'POST', token }),
+
+  checkAchievements: (token: string) =>
+    request<{ newAchievements: UserAchievement[] }>('/gamification/check-achievements', { method: 'POST', token }),
+};
+
+// ============================================
+// GROUPS API
+// ============================================
+
+export type GroupRole = 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
+export type PostType = 'DISCUSSION' | 'QUESTION' | 'ANNOUNCEMENT' | 'RESOURCE' | 'POLL';
+
+export interface StudyGroup {
+  id: string;
+  name: string;
+  description?: string;
+  avatar?: string;
+  isPublic: boolean;
+  inviteCode: string;
+  subjectName?: string;
+  university?: string;
+  career?: string;
+  maxMembers: number;
+  memberCount: number;
+  createdAt: string;
+  members?: GroupMember[];
+}
+
+export interface GroupMember {
+  id: string;
+  userId: string;
+  groupId: string;
+  role: GroupRole;
+  joinedAt: string;
+  user: {
+    id: string;
+    email: string;
+    profile?: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
+
+export interface GroupPost {
+  id: string;
+  groupId: string;
+  userId: string;
+  title?: string;
+  content: string;
+  type: PostType;
+  isPinned: boolean;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  user: {
+    profile?: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+  isLiked?: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  parentId?: string;
+  createdAt: string;
+  user: {
+    profile?: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
+
+export interface GroupChallenge {
+  id: string;
+  groupId: string;
+  title: string;
+  description?: string;
+  type: string;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  endDate: string;
+  xpReward: number;
+  participantsCount: number;
+  isActive: boolean;
+}
+
+export interface CreateGroupInput {
+  name: string;
+  description?: string;
+  avatar?: string;
+  isPublic?: boolean;
+  subjectName?: string;
+  university?: string;
+  career?: string;
+  maxMembers?: number;
+}
+
+export interface CreatePostInput {
+  title?: string;
+  content: string;
+  type?: PostType;
+}
+
+export interface CreateChallengeInput {
+  title: string;
+  description?: string;
+  type: string;
+  targetValue: number;
+  unit: string;
+  startDate: string;
+  endDate: string;
+  xpReward?: number;
+}
+
+const groupsApi = {
+  create: (token: string, data: CreateGroupInput) =>
+    request<StudyGroup>('/groups', { method: 'POST', body: data, token }),
+
+  getAll: (token: string, query?: { search?: string; university?: string; career?: string; publicOnly?: boolean }) => {
+    const params = new URLSearchParams();
+    if (query?.search) params.append('search', query.search);
+    if (query?.university) params.append('university', query.university);
+    if (query?.career) params.append('career', query.career);
+    if (query?.publicOnly) params.append('publicOnly', 'true');
+    const qs = params.toString();
+    return request<StudyGroup[]>(`/groups${qs ? `?${qs}` : ''}`, { token });
+  },
+
+  getMyGroups: (token: string) =>
+    request<StudyGroup[]>('/groups/my', { token }),
+
+  getOne: (token: string, id: string) =>
+    request<StudyGroup>(`/groups/${id}`, { token }),
+
+  joinByCode: (token: string, code: string) =>
+    request<StudyGroup>(`/groups/join/${code}`, { method: 'POST', token }),
+
+  leave: (token: string, id: string) =>
+    request<void>(`/groups/${id}/leave`, { method: 'POST', token }),
+
+  updateMemberRole: (token: string, groupId: string, memberId: string, role: GroupRole) =>
+    request<GroupMember>(`/groups/${groupId}/members/${memberId}/role`, { method: 'PATCH', body: { role }, token }),
+
+  kickMember: (token: string, groupId: string, memberId: string) =>
+    request<void>(`/groups/${groupId}/members/${memberId}`, { method: 'DELETE', token }),
+
+  // Posts
+  createPost: (token: string, groupId: string, data: CreatePostInput) =>
+    request<GroupPost>(`/groups/${groupId}/posts`, { method: 'POST', body: data, token }),
+
+  getPosts: (token: string, groupId: string, page: number = 1) =>
+    request<{ posts: GroupPost[]; total: number; pages: number }>(`/groups/${groupId}/posts?page=${page}`, { token }),
+
+  toggleLike: (token: string, postId: string) =>
+    request<{ liked: boolean; likesCount: number }>(`/groups/posts/${postId}/like`, { method: 'POST', token }),
+
+  addComment: (token: string, postId: string, data: { content: string; parentId?: string }) =>
+    request<PostComment>(`/groups/posts/${postId}/comments`, { method: 'POST', body: data, token }),
+
+  // Challenges
+  createChallenge: (token: string, groupId: string, data: CreateChallengeInput) =>
+    request<GroupChallenge>(`/groups/${groupId}/challenges`, { method: 'POST', body: data, token }),
+
+  joinChallenge: (token: string, challengeId: string) =>
+    request<{ joined: boolean }>(`/groups/challenges/${challengeId}/join`, { method: 'POST', token }),
+
+  getChallengeLeaderboard: (token: string, challengeId: string) =>
+    request<LeaderboardEntry[]>(`/groups/challenges/${challengeId}/leaderboard`, { token }),
+};
+
 // Export everything
 export { ApiError };
 export default {
@@ -3385,4 +3722,8 @@ export default {
   social,
   mindmaps,
   importExport,
+  calendarSyncApi,
+  emailReportsApi,
+  gamificationApi,
+  groupsApi,
 };
