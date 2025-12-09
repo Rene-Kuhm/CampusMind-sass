@@ -17,11 +17,16 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { CalendarService } from "./calendar.service";
+import { ScheduleService } from "./schedule.service";
 import {
   CreateStudyEventDto,
   UpdateStudyEventDto,
   StudyEventType,
 } from "./dto/create-study-event.dto";
+import {
+  CreateClassScheduleDto,
+  CreateProfessorDto,
+} from "./dto/create-schedule.dto";
 import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 
@@ -36,7 +41,10 @@ interface User {
 @UseGuards(JwtAuthGuard)
 @Controller("calendar")
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    private readonly scheduleService: ScheduleService,
+  ) {}
 
   @Post("events")
   @ApiOperation({ summary: "Crear evento de estudio" })
@@ -152,5 +160,98 @@ export class CalendarController {
   })
   suggestStudyPlan(@CurrentUser() user: User, @Param("examId") examId: string) {
     return this.calendarService.generateStudySuggestions(user.id, examId);
+  }
+
+  // ============================================
+  // CLASS SCHEDULE ENDPOINTS
+  // ============================================
+
+  @Post("schedule/subject/:subjectId")
+  @ApiOperation({ summary: "Crear horario de clase para una materia" })
+  @ApiResponse({ status: 201, description: "Horario creado" })
+  createSchedule(
+    @CurrentUser() user: User,
+    @Param("subjectId") subjectId: string,
+    @Body() dto: CreateClassScheduleDto,
+  ) {
+    return this.scheduleService.createSchedule(subjectId, user.id, dto);
+  }
+
+  @Get("schedule")
+  @ApiOperation({ summary: "Obtener horario semanal completo" })
+  @ApiResponse({ status: 200, description: "Horario semanal" })
+  getWeeklySchedule(@CurrentUser() user: User) {
+    return this.scheduleService.getWeeklySchedule(user.id);
+  }
+
+  @Get("schedule/today")
+  @ApiOperation({ summary: "Obtener clases de hoy" })
+  @ApiResponse({ status: 200, description: "Clases de hoy" })
+  getTodaySchedule(@CurrentUser() user: User) {
+    return this.scheduleService.getTodaySchedule(user.id);
+  }
+
+  @Get("schedule/subject/:subjectId")
+  @ApiOperation({ summary: "Obtener horarios de una materia" })
+  @ApiResponse({ status: 200, description: "Horarios de la materia" })
+  getSubjectSchedule(
+    @CurrentUser() user: User,
+    @Param("subjectId") subjectId: string,
+  ) {
+    return this.scheduleService.findSchedulesBySubject(subjectId, user.id);
+  }
+
+  @Patch("schedule/:id")
+  @ApiOperation({ summary: "Actualizar horario de clase" })
+  @ApiResponse({ status: 200, description: "Horario actualizado" })
+  updateSchedule(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: Partial<CreateClassScheduleDto>,
+  ) {
+    return this.scheduleService.updateSchedule(id, user.id, dto);
+  }
+
+  @Delete("schedule/:id")
+  @ApiOperation({ summary: "Eliminar horario de clase" })
+  @ApiResponse({ status: 200, description: "Horario eliminado" })
+  deleteSchedule(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.scheduleService.deleteSchedule(id, user.id);
+  }
+
+  // ============================================
+  // PROFESSOR ENDPOINTS
+  // ============================================
+
+  @Post("professors")
+  @ApiOperation({ summary: "Crear profesor" })
+  @ApiResponse({ status: 201, description: "Profesor creado" })
+  createProfessor(@CurrentUser() user: User, @Body() dto: CreateProfessorDto) {
+    return this.scheduleService.createProfessor(user.id, dto);
+  }
+
+  @Get("professors")
+  @ApiOperation({ summary: "Listar profesores" })
+  @ApiResponse({ status: 200, description: "Lista de profesores" })
+  getProfessors(@CurrentUser() user: User) {
+    return this.scheduleService.findAllProfessors(user.id);
+  }
+
+  @Patch("professors/:id")
+  @ApiOperation({ summary: "Actualizar profesor" })
+  @ApiResponse({ status: 200, description: "Profesor actualizado" })
+  updateProfessor(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: Partial<CreateProfessorDto>,
+  ) {
+    return this.scheduleService.updateProfessor(id, user.id, dto);
+  }
+
+  @Delete("professors/:id")
+  @ApiOperation({ summary: "Eliminar profesor" })
+  @ApiResponse({ status: 200, description: "Profesor eliminado" })
+  deleteProfessor(@CurrentUser() user: User, @Param("id") id: string) {
+    return this.scheduleService.deleteProfessor(id, user.id);
   }
 }

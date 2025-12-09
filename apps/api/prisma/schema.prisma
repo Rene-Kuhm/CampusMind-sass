@@ -38,6 +38,58 @@ model User {
   flashcardDecks FlashcardDeck[]
   subscription   Subscription?
   quizzes        Quiz[]
+  tasks          Task[]
+  professors     Professor[]
+  studySessions  StudySession[]
+
+  // Goals & Analytics
+  studyGoals     StudyGoal[]
+
+  // Gamification
+  userXP         UserXP?
+  achievements   UserAchievement[]
+
+  // Study Groups
+  groupMemberships  StudyGroupMember[]
+  groupPosts        GroupPost[]
+  postComments      PostComment[]
+  postLikes         PostLike[]
+  groupResources    GroupResource[]
+  groupEvents       GroupEvent[]
+  groupChallenges   GroupChallenge[]
+  challengeParticipations ChallengeParticipant[]
+
+  // Tutoring
+  tutorProfile      TutorProfile?
+  tutoringSessions  TutoringSession[] // As student
+  tutorReviews      TutorReview[]
+
+  // Forums
+  forumThreads      ForumThread[]
+  forumReplies      ForumReply[]
+  threadVotes       ThreadVote[]
+  replyVotes        ReplyVote[]
+
+  // Bibliography
+  bibliographies    Bibliography[]
+
+  // Study Plans
+  studyPlans        StudyPlan[]
+
+  // Transcriptions & OCR
+  transcriptions    Transcription[]
+  ocrDocuments      OcrDocument[]
+
+  // Video Summaries
+  videoSummaries    VideoSummary[]
+
+  // Integrations
+  calendarIntegrations CalendarIntegration[]
+  lmsIntegrations      LmsIntegration[]
+  externalIntegrations ExternalIntegration[]
+
+  // Email Reports
+  emailReportConfig EmailReportConfig?
 
   @@map("users")
 }
@@ -100,6 +152,20 @@ model Subject {
   studyEvents    StudyEvent[]
   flashcardDecks FlashcardDeck[]
   quizzes        Quiz[]
+  grades         Grade[]
+  gradeCategories GradeCategory[]
+  tasks          Task[]
+  classSchedules ClassSchedule[]
+  studySessions  StudySession[]
+
+  // New relations
+  studyGoals     StudyGoal[]
+  bibliographies Bibliography[]
+  studyPlans     StudyPlan[]
+  transcriptions Transcription[]
+  ocrDocuments   OcrDocument[]
+  videoSummaries VideoSummary[]
+  lmsCourses     LmsCourse[]
 
   @@index([userId])
   @@map("subjects")
@@ -573,4 +639,1479 @@ enum UsageType {
   QUIZZES
   STORAGE_MB
   SUBJECTS
+  TASKS
+  STUDY_SESSIONS
+}
+
+// ============================================
+// GRADES (CALIFICACIONES)
+// ============================================
+
+model Grade {
+  id          String   @id @default(cuid())
+  subjectId   String   @map("subject_id")
+  categoryId  String?  @map("category_id")
+
+  name        String   // Nombre del examen/trabajo
+  score       Float    // Nota obtenida
+  maxScore    Float    @default(10) @map("max_score")
+  weight      Float    @default(1) // Peso/ponderación
+  date        DateTime @default(now())
+  notes       String?  // Observaciones
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subject     Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  category    GradeCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([subjectId])
+  @@map("grades")
+}
+
+model GradeCategory {
+  id          String   @id @default(cuid())
+  subjectId   String   @map("subject_id")
+
+  name        String   // ej: "Parciales", "TPs", "Final"
+  weight      Float    @default(1) // Peso en la nota final
+  color       String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grades      Grade[]
+
+  @@index([subjectId])
+  @@map("grade_categories")
+}
+
+// ============================================
+// TASKS (TAREAS Y ENTREGAS)
+// ============================================
+
+model Task {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date")
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus @default(PENDING)
+
+  // Recordatorios
+  reminderAt  DateTime? @map("reminder_at")
+
+  // Etiquetas
+  tags        String[]  @default([])
+
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  attachments TaskAttachment[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileType  String   @map("file_type")
+  fileSize  Int      @map("file_size") // bytes
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// CLASS SCHEDULE (HORARIO SEMANAL)
+// ============================================
+
+model ClassSchedule {
+  id          String   @id @default(cuid())
+  subjectId   String   @map("subject_id")
+
+  dayOfWeek   Int      @map("day_of_week") // 0=Domingo, 1=Lunes, etc.
+  startTime   String   @map("start_time") // "08:00"
+  endTime     String   @map("end_time")   // "10:00"
+
+  classroom   String?  // Aula/Sala
+  building    String?  // Edificio
+
+  type        ClassType @default(THEORY)
+  professorId String?  @map("professor_id")
+
+  // Fechas de vigencia (semestre)
+  validFrom   DateTime? @map("valid_from")
+  validUntil  DateTime? @map("valid_until")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  professor   Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+
+  @@index([subjectId])
+  @@index([dayOfWeek])
+  @@map("class_schedules")
+}
+
+model Professor {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  name        String
+  email       String?
+  office      String?  // Ubicación oficina
+  officeHours String?  @map("office_hours") // Horario de consultas
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes     ClassSchedule[]
+
+  @@index([userId])
+  @@map("professors")
+}
+
+enum ClassType {
+  THEORY     // Teórica
+  PRACTICE   // Práctica
+  LAB        // Laboratorio
+  SEMINAR    // Seminario
+  TUTORING   // Consulta
+}
+
+// ============================================
+// STUDY SESSIONS (SESIONES DE ESTUDIO)
+// ============================================
+
+model StudySession {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  // Configuración de la sesión
+  type        StudySessionType @default(POMODORO)
+  targetMinutes Int    @default(25) @map("target_minutes")
+  breakMinutes  Int    @default(5) @map("break_minutes")
+
+  // Resultados
+  startedAt   DateTime @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  actualMinutes Int?   @map("actual_minutes")
+
+  // Métricas
+  focusScore  Int?     @map("focus_score") // 1-100
+  notes       String?
+
+  // Estado
+  status      SessionStatus @default(IN_PROGRESS)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([startedAt])
+  @@map("study_sessions")
+}
+
+enum StudySessionType {
+  POMODORO     // 25 min trabajo, 5 min descanso
+  DEEP_WORK    // 90 min trabajo, 20 min descanso
+  EXAM_MODE    // Sesión intensiva sin pausas
+  CUSTOM       // Configuración personalizada
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  ABANDONED
+}
+
+// ============================================
+// STUDY GOALS (METAS Y OBJETIVOS)
+// ============================================
+
+model StudyGoal {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  type        GoalType
+  targetValue Int      @map("target_value") // Valor objetivo
+  currentValue Int     @default(0) @map("current_value")
+  unit        GoalUnit // Unidad de medida
+
+  // Período
+  periodType  GoalPeriod @default(WEEKLY) @map("period_type")
+  startDate   DateTime   @map("start_date")
+  endDate     DateTime   @map("end_date")
+
+  // Estado
+  status      GoalStatus @default(ACTIVE)
+  completedAt DateTime?  @map("completed_at")
+
+  // Recordatorios
+  reminderEnabled Boolean @default(true) @map("reminder_enabled")
+  reminderTime    String? @map("reminder_time") // "09:00"
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  progress    GoalProgress[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([status])
+  @@map("study_goals")
+}
+
+model GoalProgress {
+  id        String   @id @default(cuid())
+  goalId    String   @map("goal_id")
+
+  value     Int      // Valor registrado
+  date      DateTime @default(now())
+  notes     String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  goal      StudyGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@index([date])
+  @@map("goal_progress")
+}
+
+enum GoalType {
+  STUDY_HOURS       // Horas de estudio
+  FLASHCARDS_REVIEW // Tarjetas revisadas
+  QUIZZES_COMPLETE  // Quizzes completados
+  PAGES_READ        // Páginas leídas
+  POMODOROS         // Sesiones pomodoro
+  TASKS_COMPLETE    // Tareas completadas
+  CUSTOM            // Personalizado
+}
+
+enum GoalUnit {
+  HOURS
+  MINUTES
+  COUNT
+  PAGES
+  PERCENTAGE
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SEMESTER
+  CUSTOM
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  PAUSED
+  CANCELLED
+}
+
+// ============================================
+// ANALYTICS & STATISTICS
+// ============================================
+
+model UserAnalytics {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime @db.Date
+
+  // Tiempo de estudio
+  totalStudyMinutes   Int @default(0) @map("total_study_minutes")
+  pomodorosCompleted  Int @default(0) @map("pomodoros_completed")
+
+  // Flashcards
+  flashcardsReviewed  Int @default(0) @map("flashcards_reviewed")
+  flashcardsCorrect   Int @default(0) @map("flashcards_correct")
+
+  // Quizzes
+  quizzesCompleted    Int @default(0) @map("quizzes_completed")
+  quizAvgScore        Float? @map("quiz_avg_score")
+
+  // Tareas
+  tasksCompleted      Int @default(0) @map("tasks_completed")
+  tasksCreated        Int @default(0) @map("tasks_created")
+
+  // Recursos
+  resourcesAdded      Int @default(0) @map("resources_added")
+  pagesRead           Int @default(0) @map("pages_read")
+
+  // IA
+  aiQueriesMade       Int @default(0) @map("ai_queries_made")
+
+  // Racha
+  currentStreak       Int @default(0) @map("current_streak")
+  longestStreak       Int @default(0) @map("longest_streak")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("user_analytics")
+}
+
+// ============================================
+// GAMIFICATION & ACHIEVEMENTS
+// ============================================
+
+model Achievement {
+  id          String   @id @default(cuid())
+
+  name        String   @unique
+  title       String   // Display title
+  description String
+  icon        String   // Icon name or URL
+  category    AchievementCategory
+
+  // Requisitos
+  requirement     String   // JSON con la condición
+  targetValue     Int      @map("target_value")
+  xpReward        Int      @default(0) @map("xp_reward")
+  pointsReward    Int      @default(0) @map("points_reward")
+
+  // Rareza
+  rarity      AchievementRarity @default(COMMON)
+
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+  progress      Int      @default(0)
+  isCompleted   Boolean  @default(false) @map("is_completed")
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+model UserXP {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+
+  totalXP     Int      @default(0) @map("total_xp")
+  level       Int      @default(1)
+  points      Int      @default(0) // Puntos para leaderboard
+
+  // Estadísticas acumuladas
+  totalStudyHours     Int @default(0) @map("total_study_hours")
+  totalFlashcards     Int @default(0) @map("total_flashcards")
+  totalQuizzes        Int @default(0) @map("total_quizzes")
+  perfectQuizzes      Int @default(0) @map("perfect_quizzes")
+  currentStreak       Int @default(0) @map("current_streak")
+  longestStreak       Int @default(0) @map("longest_streak")
+  lastActivityDate    DateTime? @map("last_activity_date")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([totalXP])
+  @@index([points])
+  @@map("user_xp")
+}
+
+model XPTransaction {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  amount      Int
+  type        XPTransactionType
+  description String
+  metadata    Json?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("xp_transactions")
+}
+
+enum AchievementCategory {
+  STUDY_TIME
+  FLASHCARDS
+  QUIZZES
+  STREAK
+  SOCIAL
+  SPECIAL
+}
+
+enum AchievementRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum XPTransactionType {
+  STUDY_SESSION
+  FLASHCARD_REVIEW
+  QUIZ_COMPLETE
+  QUIZ_PERFECT
+  GOAL_COMPLETE
+  ACHIEVEMENT
+  STREAK_BONUS
+  DAILY_LOGIN
+  HELP_OTHERS
+}
+
+// ============================================
+// STUDY GROUPS (GRUPOS DE ESTUDIO)
+// ============================================
+
+model StudyGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  avatar      String?  // URL de imagen
+  code        String   @unique // Código para unirse
+  isPublic    Boolean  @default(false) @map("is_public")
+
+  // Materia relacionada (opcional)
+  subjectName String?  @map("subject_name")
+  university  String?
+  career      String?
+
+  // Configuración
+  maxMembers  Int      @default(50) @map("max_members")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members     StudyGroupMember[]
+  posts       GroupPost[]
+  resources   GroupResource[]
+  events      GroupEvent[]
+  challenges  GroupChallenge[]
+
+  @@index([code])
+  @@index([isPublic])
+  @@map("study_groups")
+}
+
+model StudyGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+
+  role      GroupRole @default(MEMBER)
+  joinedAt  DateTime  @default(now()) @map("joined_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("study_group_members")
+}
+
+model GroupPost {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  authorId  String   @map("author_id")
+
+  title     String?
+  content   String
+  type      PostType @default(DISCUSSION)
+  isPinned  Boolean  @default(false) @map("is_pinned")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  group     StudyGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  PostComment[]
+  likes     PostLike[]
+
+  @@index([groupId])
+  @@index([authorId])
+  @@map("group_posts")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  parentId  String?  @map("parent_id") // Para respuestas anidadas
+
+  content   String
+  isAnswer  Boolean  @default(false) @map("is_answer") // Marcado como respuesta correcta
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post      GroupPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   PostComment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("post_comments")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      GroupPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model GroupResource {
+  id          String   @id @default(cuid())
+  groupId     String   @map("group_id")
+  uploaderId  String   @map("uploader_id")
+
+  title       String
+  description String?
+  fileUrl     String?  @map("file_url")
+  externalUrl String?  @map("external_url")
+  type        ResourceType
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  uploader    User       @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("group_resources")
+}
+
+model GroupEvent {
+  id          String   @id @default(cuid())
+  groupId     String   @map("group_id")
+  creatorId   String   @map("creator_id")
+
+  title       String
+  description String?
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
+  location    String?  // Físico o link de meet
+  isOnline    Boolean  @default(false) @map("is_online")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator     User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([startTime])
+  @@map("group_events")
+}
+
+model GroupChallenge {
+  id          String   @id @default(cuid())
+  groupId     String   @map("group_id")
+  creatorId   String   @map("creator_id")
+
+  title       String
+  description String?
+  type        ChallengeType
+  targetValue Int      @map("target_value")
+  unit        GoalUnit
+
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+
+  xpReward    Int      @default(0) @map("xp_reward")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator     User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  participants ChallengeParticipant[]
+
+  @@index([groupId])
+  @@map("group_challenges")
+}
+
+model ChallengeParticipant {
+  id          String   @id @default(cuid())
+  challengeId String   @map("challenge_id")
+  userId      String   @map("user_id")
+
+  progress    Int      @default(0)
+  isCompleted Boolean  @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  rank        Int?
+
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  challenge   GroupChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+  @@map("challenge_participants")
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum PostType {
+  DISCUSSION
+  QUESTION
+  ANNOUNCEMENT
+  RESOURCE
+  POLL
+}
+
+enum ChallengeType {
+  STUDY_HOURS
+  FLASHCARDS
+  QUIZZES
+  STREAK
+  CUSTOM
+}
+
+// ============================================
+// TUTORING SYSTEM (TUTORÍAS)
+// ============================================
+
+model TutorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+
+  bio         String?
+  expertise   String[] @default([]) // Materias que puede enseñar
+  university  String?
+  career      String?
+  year        Int?     // Año de cursada
+
+  // Tarifas
+  hourlyRate  Float?   @map("hourly_rate")
+  currency    String   @default("ARS")
+  isFree      Boolean  @default(false) @map("is_free")
+
+  // Disponibilidad
+  availability Json?   // Horarios disponibles
+
+  // Estadísticas
+  rating      Float    @default(0)
+  totalSessions Int    @default(0) @map("total_sessions")
+  totalHours  Float    @default(0) @map("total_hours")
+
+  // Estado
+  isVerified  Boolean  @default(false) @map("is_verified")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions    TutoringSession[]
+  reviews     TutorReview[]
+
+  @@index([isActive])
+  @@index([rating])
+  @@map("tutor_profiles")
+}
+
+model TutoringSession {
+  id          String   @id @default(cuid())
+  tutorId     String   @map("tutor_id")
+  studentId   String   @map("student_id")
+
+  subject     String   // Materia de la tutoría
+  topic       String?  // Tema específico
+  description String?
+
+  scheduledAt DateTime @map("scheduled_at")
+  duration    Int      // Minutos
+  status      TutoringStatus @default(PENDING)
+
+  // Ubicación
+  isOnline    Boolean  @default(true) @map("is_online")
+  meetingUrl  String?  @map("meeting_url")
+  location    String?
+
+  // Notas
+  tutorNotes  String?  @map("tutor_notes")
+  studentNotes String? @map("student_notes")
+
+  completedAt DateTime? @map("completed_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  cancelReason String?  @map("cancel_reason")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  student     User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+  @@index([studentId])
+  @@index([scheduledAt])
+  @@map("tutoring_sessions")
+}
+
+model TutorReview {
+  id          String   @id @default(cuid())
+  tutorId     String   @map("tutor_id")
+  studentId   String   @map("student_id")
+
+  rating      Int      // 1-5
+  comment     String?
+  isAnonymous Boolean  @default(false) @map("is_anonymous")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  student     User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([tutorId, studentId])
+  @@index([tutorId])
+  @@map("tutor_reviews")
+}
+
+enum TutoringStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================
+// FORUMS & COMMUNITY
+// ============================================
+
+model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  threads     ForumThread[]
+
+  @@map("forum_categories")
+}
+
+model ForumThread {
+  id          String   @id @default(cuid())
+  categoryId  String   @map("category_id")
+  authorId    String   @map("author_id")
+
+  title       String
+  content     String
+  tags        String[] @default([])
+
+  isPinned    Boolean  @default(false) @map("is_pinned")
+  isLocked    Boolean  @default(false) @map("is_locked")
+  isSolved    Boolean  @default(false) @map("is_solved")
+
+  viewCount   Int      @default(0) @map("view_count")
+  replyCount  Int      @default(0) @map("reply_count")
+
+  lastReplyAt DateTime? @map("last_reply_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  category    ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies     ForumReply[]
+  votes       ThreadVote[]
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("forum_threads")
+}
+
+model ForumReply {
+  id          String   @id @default(cuid())
+  threadId    String   @map("thread_id")
+  authorId    String   @map("author_id")
+  parentId    String?  @map("parent_id")
+
+  content     String
+  isAccepted  Boolean  @default(false) @map("is_accepted") // Respuesta aceptada
+  voteScore   Int      @default(0) @map("vote_score")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  thread      ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent      ForumReply?  @relation("ReplyReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     ForumReply[] @relation("ReplyReplies")
+  votes       ReplyVote[]
+
+  @@index([threadId])
+  @@index([authorId])
+  @@map("forum_replies")
+}
+
+model ThreadVote {
+  id        String   @id @default(cuid())
+  threadId  String   @map("thread_id")
+  userId    String   @map("user_id")
+  value     Int      // 1 o -1
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@map("thread_votes")
+}
+
+model ReplyVote {
+  id        String   @id @default(cuid())
+  replyId   String   @map("reply_id")
+  userId    String   @map("user_id")
+  value     Int      // 1 o -1
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reply     ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([replyId, userId])
+  @@map("reply_votes")
+}
+
+// ============================================
+// BIBLIOGRAPHY & CITATIONS
+// ============================================
+
+model Bibliography {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  name        String   // Nombre de la bibliografía/proyecto
+  description String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  citations   Citation[]
+
+  @@index([userId])
+  @@map("bibliographies")
+}
+
+model Citation {
+  id              String   @id @default(cuid())
+  bibliographyId  String   @map("bibliography_id")
+
+  // Tipo de fuente
+  type            CitationType
+
+  // Campos comunes
+  title           String
+  authors         String[] @default([])
+  year            Int?
+  url             String?
+  accessDate      DateTime? @map("access_date")
+
+  // Para libros
+  publisher       String?
+  edition         String?
+  isbn            String?
+  pages           String?
+
+  // Para artículos/papers
+  journal         String?
+  volume          String?
+  issue           String?
+  doi             String?
+
+  // Para páginas web
+  siteName        String?  @map("site_name")
+
+  // Notas
+  notes           String?
+  tags            String[] @default([])
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  bibliography    Bibliography @relation(fields: [bibliographyId], references: [id], onDelete: Cascade)
+
+  @@index([bibliographyId])
+  @@map("citations")
+}
+
+enum CitationType {
+  BOOK
+  ARTICLE
+  JOURNAL
+  WEBSITE
+  THESIS
+  CONFERENCE
+  REPORT
+  VIDEO
+  PODCAST
+  OTHER
+}
+
+// ============================================
+// STUDY PLANS (PLANES DE ESTUDIO IA)
+// ============================================
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+  examDate    DateTime? @map("exam_date")
+  difficulty  DifficultyLevel @default(MEDIUM)
+
+  // Configuración
+  hoursPerDay     Float @default(2) @map("hours_per_day")
+  daysPerWeek     Int   @default(5) @map("days_per_week")
+  includeBreaks   Boolean @default(true) @map("include_breaks")
+  preferredTimes  String[] @default([]) @map("preferred_times") // "morning", "afternoon", "evening"
+
+  // Estado
+  status      PlanStatus @default(ACTIVE)
+  progress    Float      @default(0) // Porcentaje completado
+
+  // Generado por IA
+  aiGenerated Boolean @default(false) @map("ai_generated")
+  aiModel     String? @map("ai_model")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  items       StudyPlanItem[]
+
+  @@index([userId])
+  @@map("study_plans")
+}
+
+model StudyPlanItem {
+  id          String   @id @default(cuid())
+  planId      String   @map("plan_id")
+
+  title       String
+  description String?
+  type        PlanItemType
+
+  // Programación
+  scheduledDate DateTime @map("scheduled_date")
+  duration      Int      // Minutos
+  order         Int      @default(0)
+
+  // Recursos relacionados
+  resourceIds   String[] @default([]) @map("resource_ids")
+
+  // Estado
+  isCompleted   Boolean  @default(false) @map("is_completed")
+  completedAt   DateTime? @map("completed_at")
+  notes         String?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  plan          StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@index([scheduledDate])
+  @@map("study_plan_items")
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum PlanItemType {
+  READING
+  VIDEO
+  PRACTICE
+  REVIEW
+  FLASHCARDS
+  QUIZ
+  SUMMARY
+  BREAK
+  EXAM_PREP
+}
+
+// ============================================
+// TRANSCRIPTIONS (TRANSCRIPCIONES DE CLASES)
+// ============================================
+
+model Transcription {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  description String?
+
+  // Audio/Video source
+  sourceType  TranscriptionSource @map("source_type")
+  sourceUrl   String?  @map("source_url") // URL del archivo o video
+  fileName    String?  @map("file_name")
+  duration    Int?     // Segundos
+
+  // Transcripción
+  content     String?  // Texto transcrito completo
+  language    String   @default("es")
+
+  // Procesamiento
+  status      TranscriptionStatus @default(PENDING)
+  processedAt DateTime? @map("processed_at")
+  error       String?
+
+  // AI enhancements
+  summary     String?  // Resumen generado
+  keyPoints   String[] @default([]) @map("key_points")
+  topics      String[] @default([])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  segments    TranscriptionSegment[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("transcriptions")
+}
+
+model TranscriptionSegment {
+  id              String   @id @default(cuid())
+  transcriptionId String   @map("transcription_id")
+
+  startTime       Float    @map("start_time") // Segundos
+  endTime         Float    @map("end_time")
+  text            String
+  speaker         String?  // Identificador del hablante
+  confidence      Float?   // Confianza de la transcripción
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  transcription   Transcription @relation(fields: [transcriptionId], references: [id], onDelete: Cascade)
+
+  @@index([transcriptionId])
+  @@map("transcription_segments")
+}
+
+enum TranscriptionSource {
+  UPLOAD      // Archivo subido
+  YOUTUBE     // Video de YouTube
+  RECORDING   // Grabación en vivo
+  URL         // URL externa
+}
+
+enum TranscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// OCR (RECONOCIMIENTO DE TEXTO)
+// ============================================
+
+model OcrDocument {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  fileName    String   @map("file_name")
+  fileUrl     String   @map("file_url")
+  fileType    String   @map("file_type") // image/png, image/jpeg, application/pdf
+  fileSize    Int      @map("file_size") // bytes
+
+  // Resultado OCR
+  extractedText String? @map("extracted_text")
+  confidence    Float?  // Confianza promedio
+  language      String  @default("es")
+
+  // Procesamiento
+  status        OcrStatus @default(PENDING)
+  processedAt   DateTime? @map("processed_at")
+  error         String?
+
+  // AI enhancements
+  formattedText String?  @map("formatted_text") // Texto formateado/corregido
+  summary       String?
+  hasFormulas   Boolean  @default(false) @map("has_formulas")
+  formulas      String[] @default([]) // Fórmulas detectadas en LaTeX
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("ocr_documents")
+}
+
+enum OcrStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// CALENDAR SYNC (SINCRONIZACIÓN EXTERNA)
+// ============================================
+
+model CalendarIntegration {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  provider    CalendarProvider
+  accessToken String   @map("access_token")
+  refreshToken String? @map("refresh_token")
+  expiresAt   DateTime? @map("expires_at")
+
+  // Calendarios sincronizados
+  calendarId  String?  @map("calendar_id") // ID del calendario en el provider
+  calendarName String? @map("calendar_name")
+
+  // Configuración de sync
+  syncEnabled Boolean  @default(true) @map("sync_enabled")
+  lastSyncAt  DateTime? @map("last_sync_at")
+  syncDirection SyncDirection @default(BOTH) @map("sync_direction")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mappings    EventMapping[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("calendar_integrations")
+}
+
+model EventMapping {
+  id              String   @id @default(cuid())
+  integrationId   String   @map("integration_id")
+  localEventId    String   @map("local_event_id")
+  externalEventId String   @map("external_event_id")
+
+  lastSyncAt      DateTime @map("last_sync_at")
+  syncStatus      String   @default("synced") @map("sync_status")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  integration     CalendarIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, localEventId])
+  @@unique([integrationId, externalEventId])
+  @@map("event_mappings")
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+  APPLE
+}
+
+enum SyncDirection {
+  IMPORT    // Solo importar del externo
+  EXPORT    // Solo exportar a externo
+  BOTH      // Bidireccional
+}
+
+// ============================================
+// LMS INTEGRATION (INTEGRACIÓN CON PLATAFORMAS)
+// ============================================
+
+model LmsIntegration {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  provider    LmsProvider
+  instanceUrl String?  @map("instance_url") // URL de la instancia (para Moodle)
+  accessToken String   @map("access_token")
+  refreshToken String? @map("refresh_token")
+  expiresAt   DateTime? @map("expires_at")
+
+  // Usuario en LMS
+  lmsUserId   String?  @map("lms_user_id")
+  lmsUsername String?  @map("lms_username")
+
+  // Estado
+  isActive    Boolean  @default(true) @map("is_active")
+  lastSyncAt  DateTime? @map("last_sync_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses     LmsCourse[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("lms_integrations")
+}
+
+model LmsCourse {
+  id              String   @id @default(cuid())
+  integrationId   String   @map("integration_id")
+  subjectId       String?  @map("subject_id") // Materia local vinculada
+
+  lmsCourseId     String   @map("lms_course_id")
+  name            String
+  shortName       String?  @map("short_name")
+  category        String?
+
+  // Sincronización
+  syncTasks       Boolean  @default(true) @map("sync_tasks")
+  syncGrades      Boolean  @default(true) @map("sync_grades")
+  syncResources   Boolean  @default(false) @map("sync_resources")
+
+  lastSyncAt      DateTime? @map("last_sync_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  integration     LmsIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  subject         Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@unique([integrationId, lmsCourseId])
+  @@index([integrationId])
+  @@map("lms_courses")
+}
+
+enum LmsProvider {
+  MOODLE
+  CANVAS
+  GOOGLE_CLASSROOM
+  BLACKBOARD
+}
+
+// ============================================
+// EMAIL REPORTS (REPORTES POR EMAIL)
+// ============================================
+
+model EmailReportConfig {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+
+  // Configuración
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  frequency   ReportFrequency @default(WEEKLY)
+  dayOfWeek   Int?     @map("day_of_week") // 0-6 para semanal
+  dayOfMonth  Int?     @map("day_of_month") // 1-31 para mensual
+  timeOfDay   String   @default("09:00") @map("time_of_day")
+  timezone    String   @default("America/Argentina/Buenos_Aires")
+
+  // Contenido del reporte
+  includeStudyTime    Boolean @default(true) @map("include_study_time")
+  includeFlashcards   Boolean @default(true) @map("include_flashcards")
+  includeQuizzes      Boolean @default(true) @map("include_quizzes")
+  includeTasks        Boolean @default(true) @map("include_tasks")
+  includeGoals        Boolean @default(true) @map("include_goals")
+  includeUpcoming     Boolean @default(true) @map("include_upcoming")
+
+  lastSentAt  DateTime? @map("last_sent_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_report_configs")
+}
+
+enum ReportFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+// ============================================
+// VIDEO SUMMARIES (RESÚMENES DE VIDEO)
+// ============================================
+
+model VideoSummary {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectId   String?  @map("subject_id")
+
+  title       String
+  videoUrl    String   @map("video_url")
+  videoId     String?  @map("video_id") // YouTube video ID
+  platform    VideoPlatform @default(YOUTUBE)
+  duration    Int?     // Segundos
+
+  // Contenido extraído
+  transcript  String?
+  summary     String?
+  keyPoints   String[] @default([]) @map("key_points")
+  timestamps  Json?    // Array de { time, topic }
+  topics      String[] @default([])
+
+  // Estado
+  status      VideoSummaryStatus @default(PENDING)
+  processedAt DateTime? @map("processed_at")
+  error       String?
+
+  // Generación
+  aiModel     String?  @map("ai_model")
+  language    String   @default("es")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([videoId])
+  @@map("video_summaries")
+}
+
+enum VideoPlatform {
+  YOUTUBE
+  VIMEO
+  DRIVE
+  OTHER
+}
+
+enum VideoSummaryStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// EXTERNAL INTEGRATIONS (NOTION, DRIVE, ETC)
+// ============================================
+
+model ExternalIntegration {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  provider    IntegrationProvider
+  accessToken String   @map("access_token")
+  refreshToken String? @map("refresh_token")
+  expiresAt   DateTime? @map("expires_at")
+
+  // Metadatos del provider
+  accountId   String?  @map("account_id")
+  accountName String?  @map("account_name")
+  accountEmail String? @map("account_email")
+
+  // Configuración
+  isActive    Boolean  @default(true) @map("is_active")
+  settings    Json?    // Configuración específica del provider
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("external_integrations")
+}
+
+enum IntegrationProvider {
+  NOTION
+  GOOGLE_DRIVE
+  ONEDRIVE
+  DROPBOX
+  ZOTERO
+  MENDELEY
+  DISCORD
+  SPOTIFY
 }
