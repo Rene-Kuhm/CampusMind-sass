@@ -57,7 +57,6 @@ jobs:
 
       - name: Run TypeScript type check
         run: pnpm typecheck
-        continue-on-error: true
 
   build:
     name: Build
@@ -84,11 +83,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter api db:generate
 
-      # TODO: Remove continue-on-error when React 19 + Next.js 16 SSG issue is fixed
       # See: https://github.com/vercel/next.js/issues - prerendering _global-error with client providers
       - name: Build web app
         run: pnpm --filter web build
-        continue-on-error: true
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -124,7 +121,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test --if-present
-        continue-on-error: true
         env:
           CI: true
 
@@ -155,7 +151,6 @@ jobs:
 
       - name: Run E2E tests
         run: npx playwright test --project=chromium
-        continue-on-error: true
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000
@@ -193,4 +188,3 @@ jobs:
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true
