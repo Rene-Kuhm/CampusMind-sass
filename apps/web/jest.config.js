@@ -12,7 +12,9 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
+  // Jest's default testMatch sweeps all of __tests__, which pulls in type
+  // declaration files; those hold no tests and fail as empty suites.
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '\\.d\\.ts$'],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
