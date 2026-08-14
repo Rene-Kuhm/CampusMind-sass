@@ -52,9 +52,10 @@ describe('ResetPasswordPage', () => {
       // First shows loading
       expect(screen.getByText('Validando enlace...')).toBeInTheDocument();
 
-      // Then shows form
+      // Then shows form. Match the heading specifically: the form's password
+      // label carries the same text, so getByText finds two nodes.
       await waitFor(() => {
-        expect(screen.getByText('Nueva contraseña')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Nueva contraseña' })).toBeInTheDocument();
       });
 
       expect(screen.getByLabelText('Nueva contraseña')).toBeInTheDocument();

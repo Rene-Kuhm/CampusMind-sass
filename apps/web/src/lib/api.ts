@@ -1290,17 +1290,6 @@ export interface ProfileStats {
   joinedAt: string;
 }
 
-export interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  xpReward: number;
-  unlockedAt?: string;
-  progress?: number;
-  maxProgress?: number;
-}
-
 export interface NotificationSettings {
   emailStudyReminders: boolean;
   emailWeeklySummary: boolean;
@@ -2932,7 +2921,9 @@ export const tasks = {
 // ============================================
 
 export type StudySessionType = 'POMODORO' | 'DEEP_WORK' | 'EXAM_MODE' | 'CUSTOM';
-export type StudySessionStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+// Mirrors the SessionStatus enum in apps/api/prisma/schema.prisma. The API
+// returns IN_PROGRESS, never ACTIVE.
+export type StudySessionStatus = 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
 
 export interface StudySession {
   id: string;

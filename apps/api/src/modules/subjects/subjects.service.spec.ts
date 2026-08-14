@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { NotFoundException } from "@nestjs/common";
 import { SubjectsService } from "./subjects.service";
 import { PrismaService } from "@/database/prisma.service";
+import { UsageLimitsService } from "../billing/services/usage-limits.service";
 
 describe("SubjectsService", () => {
   let service: SubjectsService;
@@ -39,6 +40,10 @@ describe("SubjectsService", () => {
           useValue: {
             subject: mockPrismaSubject,
           },
+        },
+        {
+          provide: UsageLimitsService,
+          useValue: { enforceUsageLimit: jest.fn() },
         },
       ],
     }).compile();

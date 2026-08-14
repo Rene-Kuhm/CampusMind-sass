@@ -3,7 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@/database/prisma.service";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { SimilarChunk, ChunkMetadata } from "../interfaces/rag.interface";
-import { v4 as uuidv4 } from "uuid";
+// node:crypto instead of the uuid package: uuid@13 is ESM-only, which Jest
+// cannot parse without transforming node_modules, and randomUUID is built in.
+import { randomUUID } from "node:crypto";
 
 /**
  * Servicio de almacenamiento vectorial
@@ -293,7 +295,7 @@ export class VectorStoreService implements OnModuleInit {
       throw new Error("Qdrant client not initialized");
     }
 
-    const pointId = uuidv4();
+    const pointId = randomUUID();
 
     await this.qdrantClient.upsert(this.qdrantCollectionName, {
       wait: true,
@@ -334,7 +336,7 @@ export class VectorStoreService implements OnModuleInit {
     }
 
     const points = chunks.map((chunk) => ({
-      id: uuidv4(),
+      id: randomUUID(),
       vector: chunk.embedding,
       payload: {
         resourceId: chunk.resourceId,
@@ -389,10 +391,12 @@ export class VectorStoreService implements OnModuleInit {
       });
     }
 
-    const searchResult = await this.qdrantClient.search(
+    // `search` was removed in @qdrant/js-client-rest 1.19; `query` is its
+    // replacement and returns the hits under `points`.
+    const { points: searchResult } = await this.qdrantClient.query(
       this.qdrantCollectionName,
       {
-        vector: queryEmbedding,
+        query: queryEmbedding,
         limit: topK,
         score_threshold: minScore,
         filter: filter.must.length > 0 ? filter : undefined,

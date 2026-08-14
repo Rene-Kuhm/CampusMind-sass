@@ -3,6 +3,13 @@ import { AcademicService } from "./academic.service";
 import { OpenAlexProvider } from "./providers/openalex.provider";
 import { SemanticScholarProvider } from "./providers/semantic-scholar.provider";
 import { CrossrefProvider } from "./providers/crossref.provider";
+import { YouTubeProvider } from "./providers/youtube.provider";
+import { GoogleBooksProvider } from "./providers/google-books.provider";
+import { ArchiveOrgProvider } from "./providers/archive-org.provider";
+import { LibGenProvider } from "./providers/libgen.provider";
+import { WebSearchProvider } from "./providers/web-search.provider";
+import { MedicalBooksProvider } from "./providers/medical-books.provider";
+import { PrismaService } from "@/database/prisma.service";
 import {
   SearchQuery,
   SearchResult,
@@ -49,11 +56,18 @@ describe("AcademicService", () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AcademicService,
+        // Each search mock resolves to an empty result by default. Tests that
+        // care override it; the ones that reach these providers indirectly
+        // (getRecommendations -> searchMultiple) would otherwise get undefined.
         {
           provide: OpenAlexProvider,
           useValue: {
             name: "openalex",
-            search: jest.fn(),
+            search: jest.fn().mockResolvedValue({
+              source: "openalex",
+              total: 0,
+              items: [],
+            }),
             getById: jest.fn(),
           },
         },
@@ -61,7 +75,11 @@ describe("AcademicService", () => {
           provide: SemanticScholarProvider,
           useValue: {
             name: "semantic_scholar",
-            search: jest.fn(),
+            search: jest.fn().mockResolvedValue({
+              source: "semantic_scholar",
+              total: 0,
+              items: [],
+            }),
             getById: jest.fn(),
           },
         },
@@ -69,8 +87,52 @@ describe("AcademicService", () => {
           provide: CrossrefProvider,
           useValue: {
             name: "crossref",
-            search: jest.fn(),
+            search: jest.fn().mockResolvedValue({
+              source: "crossref",
+              total: 0,
+              items: [],
+            }),
             getById: jest.fn(),
+          },
+        },
+        // The service takes ten collaborators; the suite only exercises the
+        // three above, but Nest still has to resolve the rest.
+        ...[
+          [YouTubeProvider, "youtube"],
+          [GoogleBooksProvider, "google_books"],
+          [ArchiveOrgProvider, "archive_org"],
+          [LibGenProvider, "libgen"],
+          [WebSearchProvider, "web_search"],
+          [MedicalBooksProvider, "medical_books"],
+        ].map(([provider, name]) => ({
+          provide: provider as never,
+          useValue: {
+            name,
+            // searchMultiple reads .source/.total/.items off every result, so
+            // an unstubbed provider has to resolve to an empty result, not
+            // undefined.
+            search: jest.fn().mockResolvedValue({
+              source: name,
+              total: 0,
+              items: [],
+            }),
+            getById: jest.fn().mockResolvedValue(null),
+          },
+        })),
+        {
+          provide: PrismaService,
+          useValue: {
+            resource: {
+              findMany: jest.fn(),
+              findFirst: jest.fn(),
+              create: jest.fn(),
+              update: jest.fn(),
+              delete: jest.fn(),
+            },
+            subject: {
+              findMany: jest.fn(),
+              findFirst: jest.fn(),
+            },
           },
         },
       ],
@@ -249,7 +311,10 @@ describe("AcademicService", () => {
           {
             ...mockResource,
             externalId: "OA1",
+            // url has to go too: the key is doi || url || source:externalId,
+            // and mockResource carries a url both items would share.
             doi: undefined,
+            url: undefined,
             source: "openalex",
           },
         ],
@@ -265,6 +330,7 @@ describe("AcademicService", () => {
             ...mockResource,
             externalId: "CR1",
             doi: undefined,
+            url: undefined,
             source: "crossref",
           },
         ],
@@ -371,7 +437,16 @@ describe("AcademicService", () => {
     it("should return recommendations based on topics", async () => {
       openAlex.search.mockResolvedValue({
         ...mockSearchResult,
-        items: [mockResource, { ...mockResource, externalId: "W2" }],
+        // Distinct DOIs: results are deduplicated by DOI, so reusing
+        // mockResource's would collapse these two into one.
+        items: [
+          mockResource,
+          {
+            ...mockResource,
+            externalId: "W2",
+            doi: "https://doi.org/10.1234/test-2",
+          },
+        ],
       });
 
       const result = await service.getRecommendations(["AI", "ML"]);
