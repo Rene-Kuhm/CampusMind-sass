@@ -154,8 +154,20 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # KNOWN BROKEN — the only job still allowed to fail, deliberately.
+      # This suite has never passed. Two independent reasons:
+      #   1. Its selectors describe a UI that does not exist. It looks for a
+      #      heading "Iniciar sesión" on /login, where the heading is
+      #      "Bienvenido de vuelta" and "Iniciar sesión" is the submit button.
+      #   2. The auth specs need a real backend: this workflow starts no API,
+      #      declares no postgres/redis services, and TEST_USER_* are empty.
+      # Fixing the selectors alone would not make it pass. Rewriting the suite
+      # and provisioning the services is its own piece of work; until then the
+      # report is uploaded below so the failures stay visible instead of
+      # blocking every pull request.
       - name: Run E2E tests
         run: npx playwright test --project=chromium
+        continue-on-error: true
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000
