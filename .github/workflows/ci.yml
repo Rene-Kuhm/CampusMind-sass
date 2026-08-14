@@ -55,9 +55,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The API's types come from the generated Prisma client, so without this
+      # every Prisma model resolves to a missing export and typecheck fails.
+      - name: Generate Prisma Client
+        run: pnpm --filter api db:generate
+
       - name: Run TypeScript type check
         run: pnpm typecheck
-        continue-on-error: true
 
   build:
     name: Build
@@ -84,11 +88,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter api db:generate
 
-      # TODO: Remove continue-on-error when React 19 + Next.js 16 SSG issue is fixed
       # See: https://github.com/vercel/next.js/issues - prerendering _global-error with client providers
       - name: Build web app
         run: pnpm --filter web build
-        continue-on-error: true
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -124,7 +126,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test --if-present
-        continue-on-error: true
         env:
           CI: true
 
@@ -153,6 +154,17 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # KNOWN BROKEN — the only job still allowed to fail, deliberately.
+      # This suite has never passed. Two independent reasons:
+      #   1. Its selectors describe a UI that does not exist. It looks for a
+      #      heading "Iniciar sesión" on /login, where the heading is
+      #      "Bienvenido de vuelta" and "Iniciar sesión" is the submit button.
+      #   2. The auth specs need a real backend: this workflow starts no API,
+      #      declares no postgres/redis services, and TEST_USER_* are empty.
+      # Fixing the selectors alone would not make it pass. Rewriting the suite
+      # and provisioning the services is its own piece of work; until then the
+      # report is uploaded below so the failures stay visible instead of
+      # blocking every pull request.
       - name: Run E2E tests
         run: npx playwright test --project=chromium
         continue-on-error: true
@@ -191,6 +203,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Scoped to production dependencies. The runtime tree is clean at this
+      # level; the three high findings that remain in the full tree are all
+      # transitive under @nestjs/cli (glob, picomatch, tmp), a devDependency
+      # that never reaches the deployed app. Blocking on those would only
+      # teach us to ignore this job. Drop --prod once they are patched
+      # upstream.
       - name: Run security audit
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
+        run: pnpm audit --audit-level=high --prod

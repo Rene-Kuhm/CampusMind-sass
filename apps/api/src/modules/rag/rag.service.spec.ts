@@ -103,6 +103,7 @@ describe("RagService", () => {
           useValue: {
             generateWithContext: jest.fn(),
             generateHarvardSummary: jest.fn(),
+            generateGeneralAnswer: jest.fn(),
           },
         },
         {
@@ -224,17 +225,25 @@ describe("RagService", () => {
       expect(result.citations[0].resourceId).toBe("res-123");
     });
 
-    it("should return no-results message when no similar chunks found", async () => {
+    it("falls back to the LLM's general knowledge when no similar chunks found", async () => {
       embedding.generateEmbedding.mockResolvedValue({
         embedding: [0.1, 0.2],
         tokenCount: 5,
       });
       vectorStore.searchSimilar.mockResolvedValue([]);
+      llm.generateGeneralAnswer.mockResolvedValue({
+        content: "General knowledge answer",
+        tokensUsed: 12,
+        finishReason: "stop",
+      });
 
       const result = await service.queryRAG("user-123", "Random query");
 
-      expect(result.answer).toContain("No encontré información");
+      expect(llm.generateGeneralAnswer).toHaveBeenCalled();
+      expect(result.answer).toBe("General knowledge answer");
+      expect(result.source).toBe("general");
       expect(result.citations).toHaveLength(0);
+      // The context-aware path is only for local chunks.
       expect(llm.generateWithContext).not.toHaveBeenCalled();
     });
   });

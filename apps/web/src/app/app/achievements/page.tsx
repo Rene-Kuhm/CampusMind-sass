@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import api, { Achievement as ApiAchievement, UserAchievement, GamificationProfile } from '@/lib/api';
+import api, { AchievementWithProgress, GamificationProfile } from '@/lib/api';
 import {
   Trophy,
   Star,
@@ -58,7 +58,9 @@ export default function AchievementsPage() {
     inProgress: [],
     totalXpEarned: 0,
   });
-  const [apiAchievements, setApiAchievements] = useState<{ all: ApiAchievement[]; unlocked: UserAchievement[] } | null>(null);
+  // getAllAchievements returns a flat list where each entry carries its own
+  // progress; there is no { all, unlocked } envelope.
+  const [apiAchievements, setApiAchievements] = useState<AchievementWithProgress[] | null>(null);
   const [gamificationProfile, setGamificationProfile] = useState<GamificationProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -95,8 +97,9 @@ export default function AchievementsPage() {
   const rarities = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary'] as const;
 
   // Use API data if available, otherwise fallback to local
-  const unlockedIds = apiAchievements
-    ? new Set(apiAchievements.unlocked.map(a => a.achievementId))
+  const apiUnlocked = apiAchievements?.filter(a => a.isCompleted) ?? null;
+  const unlockedIds = apiUnlocked
+    ? new Set(apiUnlocked.map(a => a.id))
     : new Set(userAchievements.unlocked.map(a => a.id));
   const inProgressMap = new Map(userAchievements.inProgress.map(a => [a.id, a]));
 
@@ -107,14 +110,14 @@ export default function AchievementsPage() {
   });
 
   // Use API counts if available
-  const totalAchievements = apiAchievements ? apiAchievements.all.length : ALL_ACHIEVEMENTS.length;
-  const unlockedCount = apiAchievements ? apiAchievements.unlocked.length : userAchievements.unlocked.length;
+  const totalAchievements = apiAchievements ? apiAchievements.length : ALL_ACHIEVEMENTS.length;
+  const unlockedCount = apiUnlocked ? apiUnlocked.length : userAchievements.unlocked.length;
   const completionPercentage = totalAchievements > 0 ? Math.round((unlockedCount / totalAchievements) * 100) : 0;
 
   // Use API XP data if available
   const totalXpEarned = gamificationProfile?.totalXP || userAchievements.totalXpEarned;
   const totalPossibleXp = apiAchievements
-    ? apiAchievements.all.reduce((sum, a) => sum + a.xpReward, 0)
+    ? apiAchievements.reduce((sum, a) => sum + a.xpReward, 0)
     : ALL_ACHIEVEMENTS.reduce((sum, a) => sum + a.xpReward, 0);
 
   const getAchievementStatus = (id: string): 'unlocked' | 'in_progress' | 'locked' => {
