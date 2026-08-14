@@ -5,7 +5,7 @@
 <h1 align="center">CampusMind</h1>
 
 <p align="center">
-  <strong>Copiloto Academico Integral para Universitarios</strong>
+  <strong>A complete academic copilot for university students</strong>
 </p>
 
 <p align="center">
@@ -30,174 +30,179 @@
 
 ## Overview
 
-**CampusMind** es una plataforma SaaS de estudio potenciada por IA, disenada especificamente para estudiantes universitarios de habla hispana. Combina herramientas de gestion academica con capacidades avanzadas de inteligencia artificial para crear una experiencia de aprendizaje personalizada y efectiva.
+**CampusMind** is an AI-powered study platform built for Spanish-speaking university
+students. It combines the ordinary academic housekeeping — subjects, calendars, revision —
+with retrieval-augmented AI over the student's own material, so the help is grounded in
+what they are actually studying rather than in general knowledge.
 
 ### Vision
 
-Transformar la manera en que los universitarios estudian, organizan su tiempo y preparan sus examenes, utilizando tecnologia de vanguardia para maximizar su rendimiento academico.
+Change how university students study, plan their time and prepare for exams.
 
 ---
 
 ## Features
 
-### Core Features (Implementados)
+### Core features (implemented)
 
-#### Authentication & User Management
-- Registro y login con email/password
-- Autenticacion JWT con refresh tokens
-- Recuperacion de password por email
-- Autenticacion de dos factores (2FA) con TOTP
-- Login social (Google, GitHub)
-- Gestion de perfil de usuario
+#### Authentication & user management
+- Email and password sign-up and sign-in
+- JWT authentication with refresh tokens
+- Password recovery by email
+- Two-factor authentication (2FA) over TOTP
+- Social sign-in with Google and GitHub
+- Profile management
 
-#### Subjects (Materias/Workspaces)
-- CRUD completo de materias
-- Organizacion por carrera, ano y semestre
-- Sistema de colores personalizables
-- Archivado de materias inactivas
-- Estadisticas por materia
+#### Subjects (workspaces)
+- Full CRUD for subjects
+- Organised by degree, year and semester
+- Customisable colour scheme
+- Archiving for inactive subjects
+- Per-subject statistics
 
-#### Flashcards & Spaced Repetition
-- Creacion de mazos y tarjetas
-- Algoritmo SM-2 de repeticion espaciada
-- Seguimiento de progreso de estudio
-- Tarjetas pendientes de revision
-- Estadisticas de rendimiento
+#### Flashcards & spaced repetition
+- Decks and cards
+- SM-2 spaced repetition algorithm
+- Study progress tracking
+- Queue of cards due for review
+- Performance statistics
 
-#### Quizzes & Evaluaciones
-- Creacion de quizzes personalizados
-- Multiples tipos de preguntas (opcion multiple, V/F, respuesta corta)
-- Sistema de puntuacion automatico
-- Historial de intentos
-- Estadisticas de rendimiento
+#### Quizzes & assessments
+- Custom quizzes
+- Several question types: multiple choice, true/false, short answer
+- Automatic scoring
+- Attempt history
+- Performance statistics
 
-#### Calendar & Study Planning
-- Eventos de estudio personalizados
-- Tipos de eventos (sesion de estudio, examen, deadline, clase)
-- Vista por dia, semana y mes
-- Recordatorios configurables
-- Recurrencia de eventos
+#### Calendar & study planning
+- Custom study events
+- Event types: study session, exam, deadline, class
+- Day, week and month views
+- Configurable reminders
+- Recurring events
 
-#### Academic Library
-- Biblioteca de recursos academicos
-- Busqueda por carrera y categoria
-- Importacion de recursos externos
-- Notas sobre recursos
-- Sistema de recomendaciones
+#### Academic library
+- Library of academic resources
+- Search by degree and category
+- Import of external resources
+- Notes attached to resources
+- Recommendations
 
-#### RAG/AI Module (Retrieval-Augmented Generation)
-- Chat con documentos usando IA
-- Soporte multi-proveedor (OpenAI, Gemini, Groq)
-- Embeddings con pgvector
-- Generacion automatica de flashcards desde contenido
-- Generacion de quizzes desde material de estudio
-- Resumenes inteligentes
+#### RAG / AI module (retrieval-augmented generation)
+- Chat against the student's own documents
+- Multi-provider support: OpenAI, Gemini, Groq
+- Embeddings stored in pgvector
+- Flashcards generated automatically from content
+- Quizzes generated from study material
+- Summarisation
 
-#### Billing & Subscriptions
-- Planes: Free, Pro, Premium
-- Integracion con MercadoPago (Argentina/LATAM)
-- Integracion con Lemon Squeezy (Internacional)
-- Control de uso por plan
-- Portal de gestion de suscripcion
+#### Billing & subscriptions
+- Free, Pro and Premium plans
+- MercadoPago for Argentina and the rest of LATAM
+- Lemon Squeezy for international payments
+- Per-plan usage enforcement
+- Subscription management portal
 
 #### Notifications
-- Notificaciones push (Web Push API)
-- Notificaciones por email
-- Preferencias configurables por usuario
-- Recordatorios de estudio
+- Push notifications through the Web Push API
+- Email notifications
+- Per-user preferences
+- Study reminders
 
-### Additional Features
+### Additional features
+
+**UI ready** below means the interface exists and the backend does not yet.
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Dashboard | Implementado | Vista general con estadisticas y actividad reciente |
-| Pomodoro Timer | Implementado | Temporizador para sesiones de estudio |
-| Mind Maps | UI Ready | Mapas mentales interactivos |
-| Study Groups | UI Ready | Grupos de estudio colaborativos |
-| Leaderboard | UI Ready | Sistema de gamificacion |
-| Achievements | UI Ready | Logros y badges |
-| Progress Tracking | Implementado | Seguimiento de progreso de aprendizaje |
-| Notes | UI Ready | Sistema de notas con markdown |
-| Dark Mode | Implementado | Tema oscuro/claro |
-| PWA | Implementado | Instalable como app nativa |
-| i18n | Preparado | Soporte para multiples idiomas |
+| Dashboard | Implemented | Overview with statistics and recent activity |
+| Pomodoro timer | Implemented | Timer for study sessions |
+| Mind maps | UI ready | Interactive mind maps |
+| Study groups | UI ready | Collaborative study groups |
+| Leaderboard | UI ready | Gamification ranking |
+| Achievements | UI ready | Badges and achievements |
+| Progress tracking | Implemented | Learning progress over time |
+| Notes | UI ready | Markdown notes |
+| Dark mode | Implemented | Light and dark themes |
+| PWA | Implemented | Installable as a native app |
+| i18n | Scaffolded | Multi-language support |
 
-### New Student Features (v2.0)
+### New student features (v2.0)
 
-#### OCR - Text Extraction
-- Subir imagenes (PNG, JPG)
-- Extraccion de texto con IA
-- Mejora automatica del texto
-- Asociar a materias
-- Soporte multiidioma (ES, EN, PT)
+#### OCR — text extraction
+- Upload images (PNG, JPG)
+- Text extraction with AI
+- Automatic clean-up of the extracted text
+- Attach the result to a subject
+- Multi-language: Spanish, English, Portuguese
 
-#### Forums - Community Discussions
-- Categorias de discusion (General, Tecnico, Examenes, etc.)
-- Hilos y respuestas con votos
-- Sistema de karma y reputacion
-- Etiquetas y busqueda
-- Marcar respuestas como aceptadas
+#### Forums — community discussion
+- Discussion categories: general, technical, exams and others
+- Threads and replies with voting
+- Karma and reputation
+- Tags and search
+- Marking a reply as accepted
 
-#### Tutoring - Peer Learning
-- Busqueda de tutores por materia
-- Perfiles con calificaciones y resenas
-- Agendamiento de sesiones
-- Videollamadas integradas
-- Sistema de pagos entre usuarios
+#### Tutoring — peer learning
+- Find tutors by subject
+- Profiles with ratings and reviews
+- Session scheduling
+- Built-in video calls
+- Payments between users
 
-#### Bibliography - Citation Management
-- Crear bibliografias por proyecto
-- Agregar citas manualmente o por DOI
-- Exportar en multiples formatos (APA, MLA, Chicago, IEEE, Harvard)
-- Importar desde bases de datos academicas
+#### Bibliography — citation management
+- Bibliographies per project
+- Citations added by hand or by DOI
+- Export to APA, MLA, Chicago, IEEE and Harvard
+- Import from academic databases
 
-#### Study Plans - AI Generated
-- Planes personalizados segun estilo de aprendizaje
-- Actividades diarias con duracion estimada
-- Seguimiento de progreso
-- Regenerar planes con IA
-- Soporte para Visual, Auditivo, Lectura, Kinestesico
+#### Study plans — AI generated
+- Plans tailored to the student's learning style
+- Daily activities with estimated duration
+- Progress tracking
+- Regenerate a plan with AI
+- Visual, auditory, reading and kinaesthetic styles
 
-#### Transcription - Audio/Video to Text
-- Subir archivos de audio (MP3, WAV) o video (MP4, WebM)
-- Transcripcion automatica con IA
-- Segmentos con marcas de tiempo
-- Exportar a TXT, SRT, VTT
-- Resumen automatico del contenido
+#### Transcription — audio and video to text
+- Upload audio (MP3, WAV) or video (MP4, WebM)
+- Automatic transcription with AI
+- Timestamped segments
+- Export to TXT, SRT, VTT
+- Automatic summary of the content
 
-#### Video Summary - YouTube Integration
-- Pegar URL de YouTube
-- Extraer resumen automatico
-- Puntos clave y conclusiones
-- Timestamps navegables
-- Generar notas y flashcards del video
+#### Video summary — YouTube integration
+- Paste a YouTube URL
+- Automatic summary
+- Key points and conclusions
+- Navigable timestamps
+- Notes and flashcards generated from the video
 
-#### Integrations Panel
-- **Notion**: Sincronizar notas y documentos
-- **Google Drive**: Guardar y acceder archivos
-- **Discord**: Notificaciones y recordatorios
-- **Spotify**: Playlists de estudio
-- **GitHub**: Proyectos de codigo
-- **Slack**: Mensajeria y canales
+#### Integrations panel
+- **Notion** — sync notes and documents
+- **Google Drive** — store and read files
+- **Discord** — notifications and reminders
+- **Spotify** — study playlists
+- **GitHub** — code projects
+- **Slack** — messages and channels
 
-#### Email Reports
-- Reportes diarios, semanales o mensuales
-- Incluir estadisticas de estudio
-- Resumen de tareas y metas
-- Logros desbloqueados
-- Recomendaciones personalizadas con IA
+#### Email reports
+- Daily, weekly or monthly
+- Study statistics
+- Summary of tasks and goals
+- Achievements unlocked
+- AI-written recommendations
 
-#### LMS Integration
-- **Moodle**: Sincronizar cursos y tareas
-- **Google Classroom**: Importar clases
-- **Canvas LMS**: Conectar con tu institucion
-- Importar fechas de entrega automaticamente
+#### LMS integration
+- **Moodle** — sync courses and assignments
+- **Google Classroom** — import classes
+- **Canvas LMS** — connect to the institution
+- Due dates imported automatically
 
-#### Calendar Sync
-- Sincronizacion bidireccional con Google Calendar
-- Exportar tareas, examenes y sesiones de estudio
-- Importar eventos externos
-- Recordatorios configurables
+#### Calendar sync
+- Two-way sync with Google Calendar
+- Export tasks, exams and study sessions
+- Import external events
+- Configurable reminders
 
 ---
 
@@ -375,7 +380,7 @@ campusmind/
 
 ### Plan-Based Usage Limits System
 
-El sistema implementa limites de uso basados en el plan de suscripcion del usuario:
+Usage is capped per subscription plan:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -385,12 +390,12 @@ El sistema implementa limites de uso basados en el plan de suscripcion del usuar
     ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
     │    FREE     │        │     PRO     │        │   PREMIUM   │
     ├─────────────┤        ├─────────────┤        ├─────────────┤
-    │ 3 Materias  │        │ 10 Materias │        │ Ilimitado   │
-    │ 20 Recursos │        │ 100 Recursos│        │ Ilimitado   │
-    │ 50 Queries  │        │ 500 Queries │        │ Ilimitado   │
-    │ 5 Docs/mes  │        │ 50 Docs/mes │        │ Ilimitado   │
-    │ 100 Flash   │        │ 1000 Flash  │        │ Ilimitado   │
-    │ 10 Quizzes  │        │ 100 Quizzes │        │ Ilimitado   │
+    │ 3 subjects  │        │ 10 subjects │        │ unlimited   │
+    │ 20 resources│        │100 resources│        │ unlimited   │
+    │ 50 queries  │        │ 500 queries │        │ unlimited   │
+    │ 5 docs/mo   │        │ 50 docs/mo  │        │ unlimited   │
+    │ 100 flash   │        │ 1000 flash  │        │ unlimited   │
+    │ 10 quizzes  │        │ 100 quizzes │        │ unlimited   │
     └──────┬──────┘        └──────┬──────┘        └──────┬──────┘
            │                      │                      │
            └──────────────────────┼──────────────────────┘
@@ -414,14 +419,14 @@ El sistema implementa limites de uso basados en el plan de suscripcion del usuar
     │  Service    │        │   Service   │        │   Service   │
     └─────────────┘        └─────────────┘        └─────────────┘
 
-Flujo de verificacion:
-1. Usuario hace request → Controller
-2. Controller llama a Service
-3. Service llama a UsageLimitsService.enforceUsageLimit()
-4. UsageLimitsService consulta plan del usuario (Subscription table)
-5. Compara uso actual vs limite del plan
-6. Si excede: lanza ForbiddenException
-7. Si OK: continua operacion e incrementa contador
+Enforcement flow:
+1. User makes a request → Controller
+2. Controller calls the Service
+3. Service calls UsageLimitsService.enforceUsageLimit()
+4. UsageLimitsService reads the user's plan from the Subscription table
+5. Current usage is compared against the plan's limit
+6. Over the limit: throws ForbiddenException
+7. Under it: the operation proceeds and the counter is incremented
 ```
 
 ### Billing & Subscription Flow
@@ -431,9 +436,9 @@ Flujo de verificacion:
 │                         SUBSCRIPTION LIFECYCLE                               │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-  Usuario                    Frontend                 Backend              Payment Provider
+  User                       Frontend                 Backend              Payment Provider
      │                          │                        │                        │
-     │  Selecciona Plan PRO     │                        │                        │
+     │  Selects the PRO plan    │                        │                        │
      ├─────────────────────────>│                        │                        │
      │                          │  POST /billing/checkout│                        │
      │                          ├───────────────────────>│                        │
@@ -446,7 +451,7 @@ Flujo de verificacion:
      │<─────────────────────────┤                        │                        │
      │                          │                        │                        │
      │  ════════════════════════════════════════════════════════════════════════ │
-     │                          PAGO EXITOSO                                      │
+     │                        PAYMENT SUCCEEDED                                   │
      │  ════════════════════════════════════════════════════════════════════════ │
      │                          │                        │                        │
      │                          │                        │  Webhook: payment.success
@@ -1030,19 +1035,19 @@ This project is proprietary software. All rights reserved.
 
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
-*Vista principal con estadisticas, materias activas y actividad reciente*
+*Main view: statistics, active subjects and recent activity*
 
 ### Flashcards
 ![Flashcards](docs/screenshots/flashcards.png)
-*Sistema de flashcards con repeticion espaciada*
+*Flashcards with spaced repetition*
 
 ### AI Copilot
 ![Copilot](docs/screenshots/copilot.png)
-*Chat con IA para consultas sobre material de estudio*
+*AI chat grounded in the student's own study material*
 
 ### Calendar
 ![Calendar](docs/screenshots/calendar.png)
-*Calendario de estudio con eventos y recordatorios*
+*Study calendar with events and reminders*
 
 ---
 
